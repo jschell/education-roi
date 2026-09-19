@@ -1,6 +1,6 @@
 # Plan 05 — ACS PUMS Pipeline
 
-**Status:** ACTIVE
+**Status:** COMPLETE
 
 ## Objective
 
@@ -79,3 +79,16 @@ Each estimate must retain:
 - Estimates disclose fallback and sample support.
 - Every row traces to raw hashes, transformations, classifications, and CPI basis.
 - Release anomalies trigger review instead of silent promotion.
+
+## Completion record
+
+Completed on 2026-09-19. The implementation includes authoritative release discovery and bundled
+registration, safe selective ingestion, deterministic content-addressed Parquet output, versioned
+field crosswalk contracts, Zhang sample restrictions, weighted quantiles and support, replicate-
+weight uncertainty for totals and means, explicit hierarchical fallback, and cross-release anomaly
+gating. Automated tests cover the listed contracts, and all outputs preserve source and
+transformation lineage.
+
+The exact Zhang ten-group field mapping remains provisional until supplemental Table A1 is obtained.
+That external reproduction-certification gate remains tracked by Plan 01 and does not invalidate the
+completed ACS pipeline contract.
