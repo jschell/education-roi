@@ -14,5 +14,6 @@ dist/
 build/
 data/raw/
 data/processed/
+data/.downloads/
 results/*
 !results/README.md

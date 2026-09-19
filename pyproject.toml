@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Education ROI contributors" }]
-dependencies = ["pydantic>=2.11,<3", "typer>=0.16,<1"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "typer>=0.16,<1"]
 
 [project.scripts]
 edu-roi = "education_roi.cli.app:app"
@@ -24,6 +24,10 @@ packages = ["src/education_roi"]
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers"
 testpaths = ["tests"]
+markers = [
+  "integration: local integration tests using processes, HTTP servers, or CLI workflows",
+  "live: optional tests that access external authoritative HTTPS endpoints",
+]
 
 [tool.ruff]
 line-length = 100

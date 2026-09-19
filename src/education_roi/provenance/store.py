@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import sqlite3
+import tempfile
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,12 +55,15 @@ class Registry:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database, timeout=30)
         connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA busy_timeout = 30000")
         return connection
 
     def _initialize(self) -> None:
-        with closing(self._connect()) as connection, connection:
-            connection.executescript(
-                """
+        with closing(self._connect()) as connection:
+            connection.execute("PRAGMA journal_mode = WAL")
+            with connection:
+                connection.executescript(
+                    """
                 CREATE TABLE IF NOT EXISTS datasets (
                     dataset_id TEXT PRIMARY KEY,
                     definition_json TEXT NOT NULL
@@ -84,7 +88,7 @@ class Registry:
                     reason TEXT
                 );
                 """
-            )
+                )
 
     def add_dataset(self, definition: DatasetDefinition) -> None:
         payload = definition.model_dump_json()
@@ -102,6 +106,7 @@ class Registry:
 
     def add_artifact(self, manifest: ArtifactManifest) -> ArtifactManifest:
         with closing(self._connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
                 "SELECT manifest_json FROM artifacts WHERE artifact_id = ?",
                 (manifest.artifact_id,),
@@ -127,6 +132,46 @@ class Registry:
                 ),
             )
             return stored
+
+    def get_artifact(self, artifact_id: str) -> ArtifactManifest:
+        """Return one artifact by immutable identifier."""
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT manifest_json FROM artifacts WHERE artifact_id = ?", (artifact_id,)
+            ).fetchone()
+        if row is None:
+            raise KeyError(artifact_id)
+        return ArtifactManifest.model_validate_json(row[0])
+
+    def list_artifacts(
+        self, dataset_id: str | None = None, release: str | None = None
+    ) -> tuple[ArtifactManifest, ...]:
+        """List artifacts with optional exact dataset/release filters."""
+        query = "SELECT manifest_json FROM artifacts WHERE 1 = 1"
+        parameters: list[str] = []
+        if dataset_id is not None:
+            query += " AND dataset_id = ?"
+            parameters.append(dataset_id)
+        if release is not None:
+            query += " AND release = ?"
+            parameters.append(release)
+        query += " ORDER BY dataset_id, release, sha256"
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, parameters).fetchall()
+        return tuple(ArtifactManifest.model_validate_json(row[0]) for row in rows)
+
+    def transition_history(self, artifact_id: str) -> tuple[dict[str, str | None], ...]:
+        """Return the ordered audit trail for an artifact."""
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                "SELECT from_state, to_state, changed_at, reason FROM transitions "
+                "WHERE artifact_id = ? ORDER BY id",
+                (artifact_id,),
+            ).fetchall()
+        return tuple(
+            {"from_state": row[0], "to_state": row[1], "changed_at": row[2], "reason": row[3]}
+            for row in rows
+        )
 
     def transition(
         self, artifact_id: str, target: ApprovalState, reason: str | None = None
@@ -186,14 +231,20 @@ class ArtifactStore:
         destination = self.root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         if not destination.exists():
-            temporary = destination.with_suffix(destination.suffix + ".partial")
+            descriptor, temporary_name = tempfile.mkstemp(
+                prefix=f".{destination.name}.", suffix=".partial", dir=destination.parent
+            )
+            temporary = Path(temporary_name)
             try:
-                with source.open("rb") as incoming, temporary.open("xb") as outgoing:
+                with source.open("rb") as incoming, os.fdopen(descriptor, "wb") as outgoing:
                     shutil.copyfileobj(incoming, outgoing)
                     outgoing.flush()
                     os.fsync(outgoing.fileno())
-                temporary.replace(destination)
-                destination.chmod(0o444)
+                try:
+                    os.link(temporary, destination)
+                    destination.chmod(0o444)
+                except FileExistsError:
+                    pass
             except FileExistsError:
                 pass
             finally:
@@ -218,8 +269,20 @@ class ArtifactStore:
         stored = self.registry.add_artifact(manifest)
         manifest_path = destination.with_suffix(destination.suffix + ".manifest.json")
         if not manifest_path.exists():
-            manifest_path.write_text(
-                json.dumps(stored.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+            descriptor, temporary_name = tempfile.mkstemp(
+                prefix=f".{manifest_path.name}.", suffix=".partial", dir=manifest_path.parent
             )
-            manifest_path.chmod(0o444)
+            temporary_manifest = Path(temporary_name)
+            try:
+                with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+                    output.write(json.dumps(stored.model_dump(mode="json"), indent=2) + "\n")
+                    output.flush()
+                    os.fsync(output.fileno())
+                try:
+                    os.link(temporary_manifest, manifest_path)
+                    manifest_path.chmod(0o444)
+                except FileExistsError:
+                    pass
+            finally:
+                temporary_manifest.unlink(missing_ok=True)
         return stored

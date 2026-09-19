@@ -51,3 +51,10 @@ Artifacts may be rejected from reviewable states. An approved artifact can be re
 
 Release discovery and downloading are protocols. ACS, IPEDS, Scorecard, and BLS adapters will implement them separately so publisher-specific HTML, APIs, filenames, and release rules do not leak into the provenance core.
 
+The generic CLI accepts a JSON source configuration for explicit releases. `data check` reports configured releases, `data update` streams and registers one release, and `data validate` re-hashes every registered artifact. Source-specific automatic discovery begins with the ACS adapter in Plan 05.
+
+## Test layers
+
+- Unit tests cover schemas, hashes, archives, lifecycle rules, and storage policy.
+- Required integration tests use controlled HTTP transports, temporary directories, SQLite, multiprocessing, and the CLI.
+- The optional `live` test downloads Census `robots.txt` only when `EDU_ROI_LIVE_TESTS=1`; it is not required in ordinary CI.
