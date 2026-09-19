@@ -41,8 +41,8 @@ series and factor.
   one- and five-year observations must never be pooled silently.
 - The person file is sufficient for this initial earnings sample. Household fields may be added only
   through an explicit keyed join with its own validation.
-- Person estimates use `PWGTP`. Replicate weights and the variance estimator remain required before
-  uncertainty intervals are reported.
+- Point estimates use `PWGTP`. Supported totals and means use all 80 replicate weights with the
+  Census successive-difference-replication variance estimator before reporting uncertainty.
 - Weighted quantiles use the first ordered value whose cumulative positive weight reaches the target
   fraction of total weight. Outputs retain both unweighted and weighted sample sizes.
 - Zero, negative, missing, and not-applicable wage values are excluded by the named positive-wage
@@ -58,7 +58,7 @@ Table A1. Any reconstruction is marked `PROVISIONAL`. The code rejects provision
 asked to certify a Zhang reproduction; a `VERIFIED` status requires the publisher supplement or an
 equivalent authoritative artifact.
 
-## Deferred portions of Plan 05
+## Processing and storage
 
 The ingestion layer validates ZIP integrity, rejects traversal, encryption, ambiguous person files,
 and configured expansion limits, and streams only the person CSV into an isolated temporary
@@ -99,4 +99,18 @@ survey-quantile implementation; in particular, Census warns that replicate media
 zero standard error because of rounded values or small samples, which must not be presented as
 certainty.
 
-Hierarchical fallback and cross-release anomaly checks remain active Plan 05 work.
+## Hierarchical sample fallback
+
+Fallback is an explicit ordered list of pre-filtered candidate scopes, from the requested estimate
+to broader alternatives. For example, a caller may provide Seattle/computer science/age 32, then
+Seattle/computer science/age 30–34, then Washington/computer science/age 30–34. Each scope has a
+unique level name and records its geography, age definition, and major definition.
+
+There are no hidden support defaults. The caller must provide minimum unweighted and weighted sample
+sizes. Support counts include only observations usable by the requested statistic: non-null values
+with positive full-sample weights. The first scope meeting both thresholds is selected. The result
+records every attempted scope, its support, failed thresholds, the selected scope, and whether a
+fallback occurred. The engine never silently pools products, vintages, geographies, age groups, or
+majors. If every scope fails, it returns `INSUFFICIENT_DATA` without an estimate.
+
+Cross-release anomaly checks remain active Plan 05 work.
