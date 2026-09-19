@@ -1,6 +1,6 @@
 # Plan 05 — ACS PUMS Pipeline
 
-**Status:** QUEUED
+**Status:** ACTIVE
 
 ## Objective
 
