@@ -16,6 +16,8 @@ ACS_PUMS_DICTIONARY_DATASET = DatasetDefinition(
     allowed_domains=("census.gov",),
 )
 
+REPLICATE_WEIGHT_COLUMNS = tuple(f"PWGTP{number}" for number in range(1, 81))
+
 REQUIRED_PERSON_COLUMNS = frozenset(
     {
         "SERIALNO",

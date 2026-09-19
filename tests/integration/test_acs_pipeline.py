@@ -8,9 +8,14 @@ import pytest
 from pydantic import HttpUrl
 
 from education_roi.acs.archive import ACSArchiveError, person_csv_member
-from education_roi.acs.ingest import read_person_archive
+from education_roi.acs.ingest import (
+    PERSON_COLUMN_ORDER,
+    read_person_archive,
+    read_person_archive_with_replicates,
+)
 from education_roi.acs.models import ACSProduct, ACSRelease
 from education_roi.acs.pipeline import transform_zhang_archive
+from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ArtifactManifest
 
@@ -25,14 +30,17 @@ COLUMNS = [
     "WAGP",
     "FOD1P",
     "NATIVITY",
+    *REPLICATE_WEIGHT_COLUMNS,
     "EXTRA",
 ]
 
 
 def write_archive(path: Path, member: str = "psam_p53.csv") -> None:
+    replicate_one = [10] * 80
+    replicate_two = [5] * 80
     rows = [
-        ["one", 1, 1_020_000, 10, 30, 1, 21, 100_000, 1101, 1, "unused"],
-        ["two", 1, 1_020_000, 5, 17, 1, 21, 50_000, 1101, 1, "filtered"],
+        ["one", 1, 1_020_000, 10, 30, 1, 21, 100_000, 1101, 1, *replicate_one, "unused"],
+        ["two", 1, 1_020_000, 5, 17, 1, 21, 50_000, 1101, 1, *replicate_two, "filtered"],
     ]
     csv = ",".join(COLUMNS) + "\n" + "\n".join(",".join(map(str, row)) for row in rows) + "\n"
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
@@ -66,7 +74,9 @@ def test_archive_read_selects_only_requested_columns(tmp_path: Path) -> None:
     write_archive(archive)
     frame = read_person_archive(archive)
     assert "EXTRA" not in frame.columns
-    assert set(frame.columns) == set(COLUMNS) - {"EXTRA"}
+    assert set(frame.columns) == set(PERSON_COLUMN_ORDER)
+    with_replicates = read_person_archive_with_replicates(archive)
+    assert all(column in with_replicates.columns for column in REPLICATE_WEIGHT_COLUMNS)
     with_extra = read_person_archive(archive, ["EXTRA"])
     assert with_extra.get_column("EXTRA").to_list() == ["unused", "filtered"]
 
@@ -103,10 +113,12 @@ def test_archive_to_parquet_has_lineage_and_is_repeatable(tmp_path: Path) -> Non
     assert frame.item(0, "source_artifact_id") == source.artifact_id
     assert frame.item(0, "acs_release_id") == "2024-1yr-wa"
     assert frame.item(0, "wage_salary_adjusted") == 102_000.0
+    assert all(column in frame.columns for column in REPLICATE_WEIGHT_COLUMNS)
     payload = json.loads(first.manifest_path.read_text(encoding="utf-8"))
     assert payload["transformation"]["input_artifact_ids"] == [source.artifact_id]
     assert payload["transformation"]["output_sha256"] == sha256_file(first.parquet_path)[0]
     assert payload["row_count"] == 1
+    assert payload["uncertainty_method"].startswith("successive difference replication")
 
 
 @pytest.mark.integration

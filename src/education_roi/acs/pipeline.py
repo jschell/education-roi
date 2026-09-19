@@ -11,7 +11,7 @@ import polars as pl
 from pydantic import BaseModel, ConfigDict, Field
 
 from education_roi import __version__
-from education_roi.acs.ingest import read_person_archive
+from education_roi.acs.ingest import read_person_archive_with_replicates
 from education_roi.acs.models import ACSRelease
 from education_roi.acs.transform import apply_zhang_sample
 from education_roi.provenance.integrity import sha256_file
@@ -35,6 +35,7 @@ class ACSProcessingManifest(BaseModel):
     product: str
     geography: str
     cpi_basis: str
+    uncertainty_method: str
     row_count: int = Field(ge=0)
     columns: tuple[str, ...]
     output_path: str
@@ -78,7 +79,7 @@ def transform_zhang_archive(
     if (archive_hash, archive_size) != (raw_manifest.sha256, raw_manifest.file_size):
         raise ValueError("raw archive does not match its artifact manifest")
 
-    transformed = apply_zhang_sample(read_person_archive(archive)).with_columns(
+    transformed = apply_zhang_sample(read_person_archive_with_replicates(archive)).with_columns(
         pl.lit(raw_manifest.artifact_id).alias("source_artifact_id"),
         pl.lit(release.release_id).alias("acs_release_id"),
         pl.lit(TRANSFORMATION_VERSION).alias("transformation_version"),
@@ -129,6 +130,7 @@ def transform_zhang_archive(
         product=release.product.value,
         geography=release.geography,
         cpi_basis=f"ACS {release.vintage} ADJINC-adjusted dollars",
+        uncertainty_method="successive difference replication; 80 person replicate weights",
         row_count=transformed.height,
         columns=tuple(transformed.columns),
         output_path=parquet_relative.as_posix(),

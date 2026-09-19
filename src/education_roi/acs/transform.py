@@ -4,7 +4,7 @@ from collections.abc import Collection
 
 import polars as pl
 
-from education_roi.acs.source import REQUIRED_PERSON_COLUMNS
+from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS, REQUIRED_PERSON_COLUMNS
 
 
 class ACSchemaError(ValueError):
@@ -59,6 +59,11 @@ def apply_zhang_sample(frame: pl.DataFrame) -> pl.DataFrame:
         pl.col("ADJINC").cast(pl.Float64, strict=False),
         pl.col("PWGTP").cast(pl.Float64, strict=False),
         pl.col("FOD1P").cast(pl.String, strict=False),
+        *(
+            pl.col(column).cast(pl.Float64, strict=False)
+            for column in REPLICATE_WEIGHT_COLUMNS
+            if column in frame.columns
+        ),
     )
     bachelor_has_major = (pl.col("SCHL") != 21) | (
         pl.col("FOD1P").is_not_null() & (pl.col("FOD1P").str.strip_chars() != "")
