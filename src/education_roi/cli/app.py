@@ -13,6 +13,8 @@ app = typer.Typer(
     help="Reproducible education and career pathway analysis.",
     no_args_is_help=True,
 )
+data_app = typer.Typer(help="Discover, update, and validate source datasets.")
+app.add_typer(data_app, name="data")
 
 
 def version_callback(value: bool) -> None:
@@ -44,6 +46,25 @@ def paths(
     typer.echo(f"root={resolved.root}")
     typer.echo(f"data={resolved.data}")
     typer.echo(f"results={resolved.results}")
+
+
+@data_app.command("check")
+def data_check() -> None:
+    """Check configured authoritative sources for releases."""
+    typer.echo("No source adapters are configured yet.")
+
+
+@data_app.command("update")
+def data_update(dataset: Annotated[str, typer.Argument(help="Stable dataset identifier.")]) -> None:
+    """Download and register a dataset release through its source adapter."""
+    typer.echo(f"No source adapter is configured for {dataset}.")
+    raise typer.Exit(code=2)
+
+
+@data_app.command("validate")
+def data_validate() -> None:
+    """Validate registered artifact integrity and metadata."""
+    typer.echo("No registered artifacts were found.")
 
 
 if __name__ == "__main__":  # pragma: no cover

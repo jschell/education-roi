@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Education ROI contributors" }]
-dependencies = ["typer>=0.16,<1"]
+dependencies = ["pydantic>=2.11,<3", "typer>=0.16,<1"]
 
 [project.scripts]
 edu-roi = "education_roi.cli.app:app"
@@ -36,4 +36,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
-
