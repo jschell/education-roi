@@ -113,4 +113,16 @@ records every attempted scope, its support, failed thresholds, the selected scop
 fallback occurred. The engine never silently pools products, vintages, geographies, age groups, or
 majors. If every scope fails, it returns `INSUFFICIENT_DATA` without an estimate.
 
-Cross-release anomaly checks remain active Plan 05 work.
+## Cross-release anomaly gate
+
+Release comparisons use stable metric keys composed of a metric name and sorted analytical
+dimensions. Each snapshot retains its release ID, value, unweighted N, and weighted N. Comparison
+thresholds are explicit configuration by metric; there are no built-in tolerances. Absolute and/or
+relative limits may be configured, and exceeding either produces `REVIEW_REQUIRED`.
+
+The comparison covers the union of old and new metric keys. New metrics and metrics missing from the
+new release also require review. A nonzero value compared with a zero baseline cannot claim a finite
+relative change and is conservatively routed to review when a relative threshold applies. Duplicate
+keys, mismatched release IDs, non-finite values, and missing threshold configuration fail validation.
+Promotion is allowed only when every comparison is `VALIDATED`; unusual values remain preserved for
+investigation rather than being automatically rejected or averaged away.
