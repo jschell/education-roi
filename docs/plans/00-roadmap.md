@@ -16,9 +16,9 @@ Only this roadmap remains directly in `docs/plans/`.
 
 | Plan | Stage | Depends on | Gate | Status |
 |---|---|---|---|---|
-| [01](active/01-methodology-research.md) | Methodology research | None | Milestone 0 hard gate | **ACTIVE — supplement required** |
-| [02](complete/02-data-source-inventory.md) | Source inventory | None | Milestone 0 hard gate | **COMPLETE** |
-| [03](queue/03-project-foundation.md) | Project foundation | 01–02 | — | QUEUED |
+| [01](active/01-methodology-research.md) | Methodology research | None | Reproduction certification | **ACTIVE — supplement verification pending** |
+| [02](complete/02-data-source-inventory.md) | Source inventory | None | Milestone 0 | **COMPLETE** |
+| [03](complete/03-project-foundation.md) | Project foundation | 01–02 | CI | **COMPLETE** |
 | [04](queue/04-data-provenance.md) | Provenance system | 02–03 | — | QUEUED |
 | [05](queue/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | QUEUED |
 | [06](queue/06-financial-engine.md) | Financial engine | 01, 03–05 | — | QUEUED |
@@ -31,31 +31,19 @@ Only this roadmap remains directly in `docs/plans/`.
 | [13](queue/13-uncertainty-analysis.md) | Sensitivity/simulation | 06–12 | Deterministic gate | QUEUED |
 | [14](queue/14-reporting-maintenance-ui.md) | Reporting, maintenance, UI | 04–13 | UI gate | QUEUED |
 
-## Milestone 0 results
+## Milestone 0 status
 
-Plan 02 produced:
+Plan 02 produced the dataset inventory, validation specification, and official acquisition/update strategies.
 
-- [dataset inventory](../datasets.md);
-- [validation specification](../validation.md);
-- current official acquisition/update strategies.
+Plan 01 produced the verified main-paper methodology, reproduction plan, and research log. The main article resolved Equations 1–6, sample construction, costs, opportunity costs, quantile regression, and selection adjustment.
 
-Plan 01 produced:
-
-- [verified main-paper methodology](../methodology.md);
-- [reproduction plan](../reproduction-plan.md);
-- [research log](../research-log.md).
-
-The supplied main article resolved Equations 1–6, sample construction, costs, opportunity costs, quantile regression, and selection adjustment.
-
-### Remaining Plan 01 blocker
-
-Obtain the publisher supplemental PDF and transcribe Table A1’s exact mapping of 173 ACS fields into ten major categories. Confirm any supplement details concerning weights, variance, and additional deciles. Until this is resolved, the Milestone 0 methodology gate remains open.
+The publisher supplement remains necessary to certify Table A1’s exact mapping of 173 ACS fields into ten major categories and confirm appendix details. This does not block foundation or provenance engineering. Any reconstructed crosswalk must remain visibly provisional and cannot support a claim of successful Zhang reproduction.
 
 ## Hard gates
 
 ### Gate A — Research target
 
-Plan 01 must move to `complete/` before substantial paper-labeled analytical implementation. Plan 02 is complete.
+Paper-labeled reproduction cannot be certified until the supplement-dependent methodology is verified. Engineering that does not encode the unresolved crosswalk may proceed.
 
 ### Gate B — Reproduction
 
@@ -75,4 +63,4 @@ Every plan must preserve immutable raw data, deterministic calculations, explici
 
 ## Next action
 
-Acquire the supplementary PDF. Then complete Plan 01 and activate Plan 03.
+Activate Plan 04 after merging the Plan 03 foundation. Continue supplement acquisition in parallel.
