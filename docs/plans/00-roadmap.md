@@ -18,7 +18,7 @@ Only this roadmap remains directly in `docs/plans/`.
 |---|---|---|---|---|
 | [01](active/01-methodology-research.md) | Methodology research | None | Reproduction certification | **ACTIVE — supplement verification pending** |
 | [02](complete/02-data-source-inventory.md) | Source inventory | None | Milestone 0 | **COMPLETE** |
-| [03](active/03-project-foundation.md) | Project foundation | 01–02 | CI | **ACTIVE** |
+| [03](complete/03-project-foundation.md) | Project foundation | 01–02 | CI | **COMPLETE** |
 | [04](queue/04-data-provenance.md) | Provenance system | 02–03 | — | QUEUED |
 | [05](queue/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | QUEUED |
 | [06](queue/06-financial-engine.md) | Financial engine | 01, 03–05 | — | QUEUED |
@@ -63,4 +63,4 @@ Every plan must preserve immutable raw data, deterministic calculations, explici
 
 ## Next action
 
-Complete Plan 03 after CI validation, then activate Plan 04. Continue supplement acquisition in parallel.
+Activate Plan 04 after merging the Plan 03 foundation. Continue supplement acquisition in parallel.
