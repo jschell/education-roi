@@ -1,6 +1,6 @@
 # Plan 04 — Data Provenance and Immutable Storage
 
-**Status:** ACTIVE
+**Status:** COMPLETE
 
 ## Objective
 
@@ -25,12 +25,12 @@ Implement the source-artifact lifecycle so every downstream result can be traced
 
 ## Remaining work
 
-- [ ] Implement the production streaming HTTPS downloader using temporary files.
-- [ ] Add interruption and redirect integration tests around the downloader.
-- [ ] Add a multiprocess concurrency test for same-artifact registration.
-- [ ] Add registry lookup/listing methods used by `data validate`.
-- [ ] Make CLI commands operate on configured source adapters rather than placeholder responses.
-- [ ] Confirm CI and Docker checks.
+- [x] Implement the production streaming HTTPS downloader using temporary files.
+- [x] Add interruption, timeout, HTTP error, size-limit, and redirect integration tests.
+- [x] Add a multiprocess concurrency test for same-artifact registration.
+- [x] Add registry lookup/listing methods used by `data validate`.
+- [x] Make CLI commands operate on configuration-backed generic source adapters.
+- [x] Confirm CI and Docker checks.
 
 ## Safety behavior
 
@@ -42,7 +42,9 @@ Implement the source-artifact lifecycle so every downstream result can be traced
 
 ## Verification
 
-The initial increment has 16 unit tests covering CLI contracts, source-domain validation, hash and size calculation, corrupt archives, idempotence, changed releases, checksum mismatch, lifecycle transitions, safe paths, and transformation lineage.
+The implementation has 24 tests: 16 foundation/unit tests, 7 required local integration tests, and 1 optional live Census HTTPS smoke test. The required suite covers CLI orchestration, source-domain validation, streamed downloads, allowed and rejected redirects, interruption cleanup, timeouts, HTTP errors, size limits, hash and size calculation, corrupt archives, idempotence, concurrent registration, changed releases, checksum mismatch, lifecycle transitions, safe paths, and transformation lineage.
+
+GitHub Actions run `35467552429` passed on Linux, Windows, macOS, and Docker.
 
 ## Acceptance criteria
 
@@ -50,4 +52,3 @@ The initial increment has 16 unit tests covering CLI contracts, source-domain va
 - A processed artifact identifies every raw dependency.
 - No release silently replaces another.
 - Invalid or suspicious releases cannot become default without approval.
-
