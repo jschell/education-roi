@@ -2,69 +2,77 @@
 
 ## Purpose
 
-This is the execution index for Education Path ROI. The governing requirements remain in [../project-plan.md](../project-plan.md). Each linked plan is small enough to implement and review independently.
+This is the execution index for Education Path ROI. The governing requirements remain in [../project-plan.md](../project-plan.md).
 
-## Status vocabulary
+Plans move between:
 
-- `NOT_STARTED`
-- `RESEARCHING`
-- `IMPLEMENTING`
-- `BLOCKED`
-- `REVIEW_REQUIRED`
-- `COMPLETE`
+- `active/` — currently being researched or implemented;
+- `complete/` — acceptance criteria satisfied;
+- `queue/` — approved future work.
 
-A plan is not complete until its acceptance criteria and tests pass and its documentation is updated.
+Only this roadmap remains directly in `docs/plans/`.
 
-## Plan sequence
+## Current sequence
 
-| Plan | Stage | Depends on | Gate | Initial status |
+| Plan | Stage | Depends on | Gate | Status |
 |---|---|---|---|---|
-| [01](01-methodology-research.md) | Methodology research | None | Hard gate | NOT_STARTED |
-| [02](02-data-source-inventory.md) | Source inventory | None | Hard gate | NOT_STARTED |
-| [03](03-project-foundation.md) | Project foundation | 01–02 research direction | — | NOT_STARTED |
-| [04](04-data-provenance.md) | Provenance system | 02–03 | — | NOT_STARTED |
-| [05](05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | NOT_STARTED |
-| [06](06-financial-engine.md) | Financial engine | 01, 03–05 | — | NOT_STARTED |
-| [07](07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Hard gate | NOT_STARTED |
-| [08](08-scenario-engine.md) | Scenario engine | 04, 06–07 | — | NOT_STARTED |
-| [09](09-ipeds-integration.md) | IPEDS | 02, 04, 08 | — | NOT_STARTED |
-| [10](10-scorecard-integration.md) | College Scorecard | 02, 04, 08–09 | — | NOT_STARTED |
-| [11](11-bls-validation.md) | BLS validation | 02, 04–08 | — | NOT_STARTED |
-| [12](12-alternative-pathways.md) | Alternative pathways | 08–11 | — | NOT_STARTED |
-| [13](13-uncertainty-analysis.md) | Sensitivity and simulation | 06–12 | Deterministic gate | NOT_STARTED |
-| [14](14-reporting-maintenance-ui.md) | Reporting, maintenance, UI | 04–13 | UI gate | NOT_STARTED |
+| [01](active/01-methodology-research.md) | Methodology research | None | Milestone 0 hard gate | **ACTIVE — supplement required** |
+| [02](complete/02-data-source-inventory.md) | Source inventory | None | Milestone 0 hard gate | **COMPLETE** |
+| [03](queue/03-project-foundation.md) | Project foundation | 01–02 | — | QUEUED |
+| [04](queue/04-data-provenance.md) | Provenance system | 02–03 | — | QUEUED |
+| [05](queue/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | QUEUED |
+| [06](queue/06-financial-engine.md) | Financial engine | 01, 03–05 | — | QUEUED |
+| [07](queue/07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Reproduction hard gate | QUEUED |
+| [08](queue/08-scenario-engine.md) | Scenario engine | 04, 06–07 | — | QUEUED |
+| [09](queue/09-ipeds-integration.md) | IPEDS | 02, 04, 08 | — | QUEUED |
+| [10](queue/10-scorecard-integration.md) | College Scorecard | 02, 04, 08–09 | — | QUEUED |
+| [11](queue/11-bls-validation.md) | BLS validation | 02, 04–08 | — | QUEUED |
+| [12](queue/12-alternative-pathways.md) | Alternative pathways | 08–11 | — | QUEUED |
+| [13](queue/13-uncertainty-analysis.md) | Sensitivity/simulation | 06–12 | Deterministic gate | QUEUED |
+| [14](queue/14-reporting-maintenance-ui.md) | Reporting, maintenance, UI | 04–13 | UI gate | QUEUED |
+
+## Milestone 0 results
+
+Plan 02 produced:
+
+- [dataset inventory](../datasets.md);
+- [validation specification](../validation.md);
+- current official acquisition/update strategies.
+
+Plan 01 produced:
+
+- [verified main-paper methodology](../methodology.md);
+- [reproduction plan](../reproduction-plan.md);
+- [research log](../research-log.md).
+
+The supplied main article resolved Equations 1–6, sample construction, costs, opportunity costs, quantile regression, and selection adjustment.
+
+### Remaining Plan 01 blocker
+
+Obtain the publisher supplemental PDF and transcribe Table A1’s exact mapping of 173 ACS fields into ten major categories. Confirm any supplement details concerning weights, variance, and additional deciles. Until this is resolved, the Milestone 0 methodology gate remains open.
 
 ## Hard gates
 
 ### Gate A — Research target
 
-Plans 01 and 02 must establish a reviewable methodology, source inventory, exact candidate variables, unresolved ambiguities, and reproduction tolerances before substantial analytical implementation.
+Plan 01 must move to `complete/` before substantial paper-labeled analytical implementation. Plan 02 is complete.
 
 ### Gate B — Reproduction
 
-Plan 07 must reproduce selected Zhang results within approved tolerances—or document an accepted explanation for discrepancies—before institution-specific conclusions are described as trustworthy.
+Plan 07 must reproduce selected Zhang results within predeclared tolerances—or document an accepted evidence-based discrepancy—before institution-specific conclusions are decision-grade.
 
 ### Gate C — Deterministic model
 
-Deterministic calculations and sensitivity tests must be validated before Monte Carlo work begins.
+Deterministic calculations and sensitivity tests must be validated before Monte Carlo simulation.
 
 ### Gate D — Interface
 
-No significant web-interface work begins until the calculation library, provenance, scenarios, and reporting contracts are stable.
+No significant web-interface work begins until calculation, provenance, scenario, and report contracts are stable.
 
 ## Cross-cutting completion rules
 
-Every plan must:
+Every plan must preserve immutable raw data, deterministic calculations, explicit insufficient-data states, tests, documentation, dataset/model provenance, visible schema/assumption changes, and reviewable commits.
 
-1. Preserve immutable raw data.
-2. Keep calculations deterministic unless explicitly simulating.
-3. Return insufficient-data states rather than invent values.
-4. Add tests appropriate to its risk.
-5. Update methodology, dataset, assumptions, or validation documentation.
-6. Preserve dataset and model version provenance.
-7. Avoid silent schema, crosswalk, or assumption changes.
-8. Produce reviewable commits.
+## Next action
 
-## Immediate work
-
-Start Plans 01 and 02 together. Their combined deliverables form Milestone 0.
+Acquire the supplementary PDF. Then complete Plan 01 and activate Plan 03.
