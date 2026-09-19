@@ -12,6 +12,7 @@ FROM python:3.12-slim-bookworm AS runtime
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/src /app/src
 COPY --chown=appuser:appuser data/README.md data/README.md
 COPY --chown=appuser:appuser results/README.md results/README.md
 ENV PATH="/app/.venv/bin:$PATH" EDU_ROI_ROOT=/app
