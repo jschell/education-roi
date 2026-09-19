@@ -8,6 +8,12 @@ from education_roi.cashflow.costs import (
     selection_adjusted_earnings,
     selection_adjusted_foregone_earnings,
 )
+from education_roi.cashflow.financing import (
+    AnnualDebtPayment,
+    LoanSchedule,
+    LoanTerms,
+    build_loan_schedule,
+)
 from education_roi.cashflow.inflation import CPIConversion
 from education_roi.cashflow.metrics import (
     BreakEvenResult,
@@ -31,6 +37,7 @@ from education_roi.cashflow.models import (
 
 __all__ = [
     "AnnualCashFlow",
+    "AnnualDebtPayment",
     "BreakEvenResult",
     "BreakEvenStatus",
     "CashFlowPoint",
@@ -42,10 +49,13 @@ __all__ = [
     "EducationCostResult",
     "IRRResult",
     "IRRStatus",
+    "LoanSchedule",
+    "LoanTerms",
     "MoneyBasis",
     "ScenarioCashFlow",
     "break_even_age",
     "build_education_cost_schedule",
+    "build_loan_schedule",
     "incremental_cash_flow",
     "internal_rate_of_return",
     "lifetime_net_value",

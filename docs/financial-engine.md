@@ -29,6 +29,19 @@ counterfactual toward option earnings by the selected share of their gap. It is 
 calculated IRR. Schedule results carry JSON-compatible enrollment, nontuition, selection, and loan
 treatment assumptions.
 
+## Debt and financing
+
+Fixed-rate loan schedules declare the amount borrowed, interest rate, repayment term, origination
+fee, enrollment period, grace period, subsidy treatment, and payment frequency. Unsubsidized balances
+accrue and capitalize interest through enrollment and grace; subsidized balances enter repayment at
+their original principal. Repayment is amortized at full internal precision and aggregated into
+annual payment, principal, interest, and ending-balance records.
+
+The complete payment schedule is available for liquidity reporting. Economic cash flows treat the
+original education expense as the principal cost, so financing cost includes only interest and
+origination fees and does not count principal repayment a second time. A zero-debt schedule is valid
+and produces zero payments and financing costs.
+
 Opportunity cost is produced by subtracting the complete counterfactual scenario net flow from the
 option net flow at each matching age. Scenarios must cover identical, consecutive ages. This supports
 education versus workforce and option-versus-option comparisons with the same calculation.
