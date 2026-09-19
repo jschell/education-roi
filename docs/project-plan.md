@@ -1,5 +1,8 @@
 # Education Path ROI — Project Plan
 
+> Implementation is divided into 14 stage plans plus a master roadmap. Start with [plans/00-roadmap.md](plans/00-roadmap.md).
+
+
 ## 1. Objective
 
 Build an open-source, reproducible framework for comparing the financial outcomes of post-secondary education and career paths, including:
