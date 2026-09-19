@@ -60,7 +60,16 @@ equivalent authoritative artifact.
 
 ## Deferred portions of Plan 05
 
-Release discovery, archive extraction, selective lazy scanning, Parquet outputs, transformation
-manifests, replicate-weight uncertainty, hierarchical fallback, and cross-release anomaly checks
-remain active Plan 05 work. They will build on these tested source, schema, sample, weighting, and
-crosswalk contracts.
+The ingestion layer validates ZIP integrity, rejects traversal, encryption, ambiguous person files,
+and configured expansion limits, and streams only the person CSV into an isolated temporary
+directory. Polars lazily selects the contract columns instead of retaining the full source schema.
+
+The first processing pipeline writes a content-addressed, release- and transformation-specific
+Parquet path. Every row includes the source artifact ID, exact ACS release, transformation version,
+and source-dollar basis.
+An adjacent manifest records the raw artifact ID, output hash, parameters, row count, and schema.
+Regeneration is idempotent; different bytes at an existing stable path cause a conflict rather than
+silent replacement.
+
+Automatic release discovery and dictionary registration, replicate-weight uncertainty,
+hierarchical fallback, and cross-release anomaly checks remain active Plan 05 work.
