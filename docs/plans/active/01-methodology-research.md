@@ -1,5 +1,7 @@
 # Plan 01 — Methodology Research
 
+**Status:** ACTIVE — supplemental Table A1 required
+
 ## Objective
 
 Create an independently verified, implementation-ready specification of Zhang, Liu & Hu (2024). This is a hard gate before substantial analytical code.

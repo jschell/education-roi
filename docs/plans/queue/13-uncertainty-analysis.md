@@ -1,5 +1,7 @@
 # Plan 13 — Sensitivity and Uncertainty Analysis
 
+**Status:** QUEUED
+
 ## Objective
 
 Quantify how conclusions change under alternative assumptions, first deterministically and then through empirically justified Monte Carlo simulation.

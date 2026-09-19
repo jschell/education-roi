@@ -1,5 +1,7 @@
 # Plan 07 — Zhang Reproduction
 
+**Status:** QUEUED
+
 ## Objective
 
 Reproduce selected aggregate and major-level results from Zhang, Liu & Hu (2024) before trusting institution-specific extensions.

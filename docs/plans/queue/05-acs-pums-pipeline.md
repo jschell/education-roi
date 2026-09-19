@@ -1,5 +1,7 @@
 # Plan 05 — ACS PUMS Pipeline
 
+**Status:** QUEUED
+
 ## Objective
 
 Produce validated, weighted, versioned ACS analytical datasets for age-earnings and major-level analysis.

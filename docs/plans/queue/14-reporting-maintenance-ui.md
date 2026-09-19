@@ -1,5 +1,7 @@
 # Plan 14 — Reporting, Automated Maintenance, and Optional UI
 
+**Status:** QUEUED
+
 ## Objective
 
 Make validated results understandable and reproducible, automate safe source maintenance, and only then add an optional lightweight interface.

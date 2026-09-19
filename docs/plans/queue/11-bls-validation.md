@@ -1,5 +1,7 @@
 # Plan 11 — BLS Validation and Labor-Market Context
 
+**Status:** QUEUED
+
 ## Objective
 
 Integrate BLS CPI, OEWS, and Employment Projections while maintaining clear separation between degree evidence, occupation evidence, and forecasts.

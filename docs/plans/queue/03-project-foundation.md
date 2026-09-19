@@ -1,5 +1,7 @@
 # Plan 03 — Project Foundation
 
+**Status:** QUEUED
+
 ## Objective
 
 Create a minimal, reliable Python project that supports later research and data work without prematurely implementing the model.

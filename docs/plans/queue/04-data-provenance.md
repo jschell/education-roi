@@ -1,5 +1,7 @@
 # Plan 04 — Data Provenance and Immutable Storage
 
+**Status:** QUEUED
+
 ## Objective
 
 Implement the source-artifact lifecycle so every downstream result can be traced to immutable bytes and source metadata.

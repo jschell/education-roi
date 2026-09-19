@@ -1,5 +1,7 @@
 # Plan 08 — Scenario and Comparison Engine
 
+**Status:** QUEUED
+
 ## Objective
 
 Allow arbitrary education/workforce pathways to be defined in validated YAML and compared without changing calculation code.

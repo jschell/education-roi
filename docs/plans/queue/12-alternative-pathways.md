@@ -1,5 +1,7 @@
 # Plan 12 — Alternative Education and Workforce Pathways
 
+**Status:** QUEUED
+
 ## Objective
 
 Extend the scenario model beyond direct four-year enrollment while preserving comparable annual cash flows and evidence-quality disclosures.

@@ -1,5 +1,7 @@
 # Plan 10 — College Scorecard Integration
 
+**Status:** QUEUED
+
 ## Objective
 
 Add institution- and field-level earnings, net price, debt, repayment, completion, and institutional characteristics as scenario inputs and cross-source evidence.
