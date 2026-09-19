@@ -7,8 +7,9 @@ subsequent ages are end-of-period annual flows. Calculations retain full precisi
 to presentation.
 
 Every series declares either a constant-dollar (`real`) basis and dollar year or a `nominal` basis.
-Scenario comparison rejects mismatched bases rather than converting implicitly. CPI conversion will
-be a separate, provenance-bearing transformation in the next Plan 06 slice.
+Scenario comparison rejects mismatched bases rather than converting implicitly. CPI conversion is a
+separate transformation that records the series, source and target years, index observations, and
+factor. It accepts only an exact real-dollar source basis; nominal or wrong-year inputs are rejected.
 
 ## Annual components and counterfactuals
 
@@ -16,6 +17,17 @@ Each scenario year requires explicit earnings, direct education cost, incrementa
 aid, and financing cost. Net cash flow is earnings plus grant aid minus the three cost categories.
 Costs and financing remain separate components. Missing values are invalid; the engine does not infer
 zero from absent data.
+
+Education schedules retain tuition, fees, books, other nontuition expenses, total and counterfactual
+living costs, grants, student earnings, and loan proceeds as distinct inputs. The selected nontuition
+share is included in direct cost; only incremental living cost is included. Grants offset cost, while
+loans do not. Four-, five-, six-, and custom-year schedules determine when graduate earnings begin.
+
+Selection is applied before comparison at the earnings level. During enrollment, the selected share
+of an estimated earnings premium raises foregone earnings. Outside enrollment, it moves the
+counterfactual toward option earnings by the selected share of their gap. It is never applied to a
+calculated IRR. Schedule results carry JSON-compatible enrollment, nontuition, selection, and loan
+treatment assumptions.
 
 Opportunity cost is produced by subtracting the complete counterfactual scenario net flow from the
 option net flow at each matching age. Scenarios must cover identical, consecutive ages. This supports
