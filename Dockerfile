@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM ghcr.io/astral-sh/uv:0.12.15-python3.12-bookworm-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
+COPY --from=ghcr.io/astral-sh/uv:0.12.15 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md LICENSE ./
@@ -17,4 +18,3 @@ ENV PATH="/app/.venv/bin:$PATH" EDU_ROI_ROOT=/app
 USER appuser
 ENTRYPOINT ["edu-roi"]
 CMD ["--help"]
-
