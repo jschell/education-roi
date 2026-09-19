@@ -1,165 +1,146 @@
 # Zhang Reproduction Plan
 
-**Status:** BLOCKED ON FULL-TEXT METHOD VERIFICATION  
+**Status:** READY EXCEPT SUPPLEMENTAL CROSSWALK/DETAILS  
 **Plan:** 01 — Methodology Research
 
-## Purpose
+## Goal
 
-Create an automated, auditable reproduction of selected Zhang, Liu, and Hu (2024) results. The reproduction must test the published method rather than an interpretation inferred from the abstract.
+Reproduce selected results in Zhang, Liu, and Hu (2024), DOI https://doi.org/10.3102/00028312241231512, using immutable ACS 2009–2021 inputs, documented NPSAS-derived costs, and the verified Equations 1–6.
 
-## Entry requirements
+## Remaining entry blockers
 
-Do not begin paper-labeled reproduction calculations until all are available:
+Before coding the paper-labeled reproduction:
 
-1. Full article methods and equations.
-2. Tables/figures selected as targets.
-3. Appendices and supplements, if published.
-4. Exact ACS years/products.
-5. Sample restrictions and major group definitions.
-6. Earnings and cost definitions.
-7. Selection-adjustment equation.
-8. Quantile-regression specification.
+1. Obtain supplemental `sj-pdf-1-aer-10.3102_00028312241231512.pdf`.
+2. Transcribe Table A1’s exact 173-field-to-10-major crosswalk.
+3. Check the supplement for survey-weighting, variance, and additional-decile details.
+4. Resolve whether Equation 2 estimates all covariate slopes separately by group.
+5. Decide how to reproduce restricted NPSAS cost cells if restricted-use data are unavailable.
 
-If replication code or author-supplied data exist, archive only what licensing permits and record hashes/URLs.
+The article PDF resolves the prior full-text blocker.
 
-## Verified starting facts
+## Pinned research specification
 
-- ACS years span 2009–2021.
-- The comparison is ten broad college-major groups versus high-school graduates.
-- The paper estimates age-earnings trajectories and IRRs.
-- Quantile regression evaluates heterogeneity across the earnings distribution.
-- A selection adjustment is applied.
+- ACS annual 1-year PUMS: 2009–2021.
+- U.S.-born, ages 18–65.
+- Highest education exactly high-school diploma or bachelor’s.
+- Bachelor’s graduates must report first major.
+- Exclude enrolled persons, advanced degrees, associate/some-college, and nonpositive earnings.
+- Primary outcome: annual wage/salary earnings.
+- Apply ACS income adjustment then BLS CPI to 2021 dollars.
+- Covariates: sex, race/ethnicity, marital status, Census region; age and age squared.
+- Separate log-earnings profiles for high school and ten major groups.
+- Standardize with pooled bachelor’s-graduate covariate means.
+- Predict ages 18–65.
+- College attendance ages 18–21.
+- Preferred cost case: tuition/fees + $1,000 books + 50% other nontuition costs, net of grants.
+- Add student earnings of $3,268/year in 2021 dollars.
+- Preferred selection adjustment: 25%; opportunity-cost counterfactual is 15% above observed same-age high-school earnings.
+- Quantile regressions at deciles with rank invariance.
+- IRR solves verified Equation 5.
 
-Everything more specific is pending full-text verification.
+## Work packages
 
-## Reproduction work packages
+### R1 — Supplemental extraction
 
-### R1 — Article extraction
+Transcribe:
 
-Create a structured table with:
+- detailed ACS field crosswalk;
+- additional decile results;
+- robustness tables;
+- weighting/estimation notes;
+- any target values absent from the main paper.
 
-- equation ID;
-- page/section;
-- exact variable definitions;
-- unit;
-- timing;
-- transformations;
-- source dataset;
-- paper assumption;
-- code symbol;
-- test implication.
+Hash the supplement and record its provenance; do not commit copyrighted full text.
 
-Update `docs/methodology.md` and close ambiguities M-01 through M-10 where evidence permits.
+### R2 — Source acquisition
 
-### R2 — Data pinning
+Download and register all 13 ACS person files, dictionaries, code lists, and the selected BLS CPI series. Pin exact revisions and SHA-256 values.
 
-Identify exact ACS files and dictionaries. Download via Census, register immutable artifacts, calculate SHA-256, and retain retrieval metadata. Pin CPI/cost inputs to exact releases.
+NPSAS:18-AC is restricted-use. For strict reproduction, determine whether authors’ published aggregate cells can be transcribed from article/supplement or whether licensed restricted-use access is required. Never manufacture missing cost cells.
 
-### R3 — Sample-flow reconstruction
+### R3 — Variable mapping
 
-Produce counts after each restriction:
+Confirm vintage-specific codes/fields for:
 
-1. raw persons;
-2. age universe;
-3. education groups;
-4. employment/earnings restrictions;
-5. major assignment;
-6. missing-data exclusions;
-7. any demographic/geographic restrictions.
+- birthplace/U.S.-born;
+- `AGEP`;
+- `SEX`;
+- race and Hispanic origin;
+- marital status;
+- region derived from state;
+- `SCHL`;
+- school enrollment;
+- employment status;
+- first field of degree;
+- wage/salary income;
+- total earnings robustness;
+- income adjustment;
+- person/replicate weights.
 
-Retain unweighted and weighted counts.
+Create a per-vintage schema table rather than assuming names/codes are invariant.
 
-### R4 — Earnings profiles
+### R4 — Sample-flow test
 
-Reproduce the paper’s mean/conditional/quantile profiles using its exact functional form and weights. Save model coefficients and generated age profiles.
+Emit unweighted and weighted counts after each restriction. Target final unweighted N is 5,835,917. Approximate 2.9M/2.9M group counts are descriptive; exact counts should come from the reproduction.
 
-### R5 — Cost and cash flow
+### R5 — Earnings models
 
-Reproduce tuition/direct cost, foregone earnings, enrollment duration, timing, inflation, counterfactual, and terminal-age conventions exactly.
+Implement Equations 1–4 and generate profiles. Run both plausible Equation 2 interpretations if the supplement does not resolve group-specific covariate slopes. Save coefficients, standardized covariates, and annual predicted earnings.
 
-### R6 — Selection adjustment
+### R6 — Quantile models
 
-Implement the verified paper formula as a separately named transformation. Test the preferred specification and paper sensitivity cases.
+Implement Equation 6 at deciles. Validate against a second quantile-regression implementation on fixtures. Preserve solver, tolerance, weighting, and convergence metadata.
 
-### R7 — IRR and published targets
+### R7 — Costs and opportunity costs
 
-Select targets only after the article is reviewed. Prefer:
+Reconstruct:
 
-- at least one aggregate IRR;
-- at least three majors spanning low/middle/high returns;
-- more than one earnings quantile;
-- at least one selection-adjusted result;
-- one sensitivity result.
+- race/major average NPSAS net costs;
+- $1,000 books;
+- 0/50/100% other nontuition cases;
+- $3,268 student earnings;
+- high-school foregone earnings ages 18–21;
+- 0/25/50% selection cases and the corresponding opportunity-cost adjustment.
 
-### R8 — Discrepancy analysis
+### R8 — IRR
 
-Attribute differences to:
+Solve Equation 5 robustly, report no-root/multiple-root cases, and retain complete cash flows. Do not round until presentation.
 
-- vintage/revision;
-- sample construction;
-- field mapping;
-- weights;
-- income adjustment/CPI;
-- regression implementation;
-- cost timing;
-- root-finding;
-- unavailable details.
+### R9 — Targets
 
-Do not alter undocumented settings simply to obtain a match.
+Minimum target set:
 
-## Reproduction record schema
+- overall preferred IRR: women 9.88%, men 9.06%;
+- at least three Table 3 assumption combinations;
+- computer science and engineering preferred results;
+- education and humanities results;
+- median and at least two nonmedian deciles;
+- one sex and one race/ethnicity comparison;
+- one time-trend result if fully specified.
 
-```yaml
-target_id:
-paper_reference:
-published_value:
-reproduced_value:
-absolute_difference:
-relative_difference:
-tolerance:
-status: PASS|FAIL|REVIEW_REQUIRED
-configuration_hash:
-dataset_manifests:
-method_version:
-ambiguities:
-notes:
-```
+## Tolerances
 
-## Tolerance policy
+Declare before inspecting calculated targets:
 
-Tolerances must be declared before examining reproduced target values.
+- printed IRR: ±0.10 percentage point when source inputs are identical;
+- sample count: exact for same ACS inputs/rules;
+- annual profile: ±0.5% relative unless published rounding dominates;
+- coefficient/quantile solver: independently tested numerical tolerance.
 
-Proposed initial bands, subject to scale:
+Restricted-data approximations must be labeled and cannot pass strict reproduction merely by matching a rounded IRR.
 
-- displayed percentage: ±0.10 percentage point when identical inputs/method are available;
-- regression-derived profile value: ±0.5% relative or documented numerical tolerance;
-- sample counts: exact if the same public-use files and rules are available;
-- published rounded values: allow rounding interval.
+## Required outputs
 
-If source revisions or undisclosed details prevent these tolerances, mark `REVIEW_REQUIRED`; do not broaden tolerances retroactively without justification and review.
+- sample-flow CSV/JSON;
+- coefficient tables;
+- age profiles;
+- annual cash flows;
+- target comparison report;
+- manifest bundle;
+- ambiguity/discrepancy report;
+- deterministic test command.
 
-## Automated tests
+## Exit gate
 
-- fixture tests for every sample restriction;
-- weighted-count tests;
-- quantile-regression synthetic tests;
-- profile-generation regression tests;
-- cost and foregone-earnings tests;
-- selection-adjustment tests;
-- IRR edge cases;
-- published-target comparisons;
-- deterministic clean-run test;
-- manifest/provenance completeness test.
-
-## Exit decision
-
-Plan 01 and the reproduction gate pass only when:
-
-- paper methods are fully reviewed;
-- critical ambiguities are closed or bounded;
-- targets/tolerances are predeclared;
-- selected results pass or discrepancies receive documented reviewer acceptance.
-
-## Current blocker
-
-The available indexed pages did not provide the full methods/supplements, and ResearchGate denied this automated browser access. Obtain the paper through a lawful accessible copy or user-provided PDF. Until then, Plan 01 remains `ACTIVE/BLOCKED`.
+Plan 01 completes only after the supplement/crosswalk and weighting ambiguities are resolved or a reviewer explicitly approves a bounded substitute. Plan 07 completes only when selected published results pass predeclared tolerances or discrepancies have accepted evidence-based explanations.
