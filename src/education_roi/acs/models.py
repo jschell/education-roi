@@ -40,3 +40,17 @@ class ACSRelease(BaseModel):
     def variables_url(self) -> str:
         product = "acs1" if self.product is ACSProduct.ONE_YEAR else "acs5"
         return f"https://api.census.gov/data/{self.vintage}/acs/{product}/pums/variables.json"
+
+    @property
+    def dictionary_url(self) -> str:
+        root = "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict"
+        if self.product is ACSProduct.ONE_YEAR:
+            name = f"PUMS_Data_Dictionary_{self.vintage}.csv"
+        else:
+            name = f"PUMS_Data_Dictionary_{self.vintage - 4}-{self.vintage}.csv"
+        return f"{root}/{name}"
+
+    @property
+    def product_index_url(self) -> str:
+        root = "https://www2.census.gov/programs-surveys/acs/data/pums"
+        return f"{root}/{self.vintage}/{self.product.value}/"

@@ -220,6 +220,7 @@ class ArtifactStore:
         schema_version: str,
         vintage: str | None = None,
         expected_sha256: str | None = None,
+        artifact_name: str | None = None,
     ) -> ArtifactManifest:
         validate_source_url(source_url, definition.allowed_domains)
         validate_source_url(final_url, definition.allowed_domains)
@@ -227,7 +228,10 @@ class ArtifactStore:
         if expected_sha256 is not None and digest != expected_sha256.lower():
             raise ProvenanceError("download SHA-256 does not match the expected value")
         validate_archive(source)
-        relative = Path(definition.dataset_id) / release / digest / source.name
+        stored_name = artifact_name or source.name
+        if Path(stored_name).name != stored_name or stored_name in {"", ".", ".."}:
+            raise ProvenanceError("artifact_name must be a safe basename")
+        relative = Path(definition.dataset_id) / release / digest / stored_name
         destination = self.root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         if not destination.exists():

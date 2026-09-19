@@ -2,12 +2,14 @@
 
 from education_roi.acs.models import ACSProduct, ACSRelease
 from education_roi.acs.pipeline import transform_zhang_archive
+from education_roi.acs.registration import register_acs_release
 from education_roi.acs.transform import apply_zhang_sample, validate_person_schema
 
 __all__ = [
     "ACSProduct",
     "ACSRelease",
     "apply_zhang_sample",
+    "register_acs_release",
     "transform_zhang_archive",
     "validate_person_schema",
 ]

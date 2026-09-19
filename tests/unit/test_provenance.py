@@ -196,3 +196,22 @@ def test_transformation_requires_raw_lineage() -> None:
             output_sha256="0" * 64,
             input_artifact_ids=(),
         )
+
+
+def test_artifact_name_must_be_safe_basename(tmp_path: Path) -> None:
+    registry = Registry(tmp_path / "metadata.sqlite")
+    dataset = definition()
+    registry.add_dataset(dataset)
+    source = tmp_path / "download.partial"
+    source.write_text("data", encoding="utf-8")
+    with pytest.raises(ProvenanceError, match="safe basename"):
+        ArtifactStore(tmp_path / "raw", registry).register(
+            source,
+            dataset,
+            release="2024",
+            source_url="https://census.gov/data",
+            final_url="https://census.gov/data",
+            publication_status="final",
+            schema_version="1",
+            artifact_name="../data.csv",
+        )

@@ -1,5 +1,7 @@
 """Safe access to ACS PUMS ZIP archives."""
 
+import csv
+import io
 import shutil
 import tempfile
 import zipfile
@@ -56,6 +58,23 @@ def person_csv_member(
             f"expected exactly one root-level psam_p*.csv member; found {len(person_files)}"
         )
     return person_files[0]
+
+
+def person_csv_columns(archive: Path) -> tuple[str, ...]:
+    """Read only the validated person CSV header."""
+    member = person_csv_member(archive)
+    try:
+        with (
+            zipfile.ZipFile(archive) as bundle,
+            bundle.open(member) as raw,
+            io.TextIOWrapper(raw, encoding="utf-8-sig", newline="") as text,
+        ):
+            header = next(csv.reader(text))
+    except (OSError, UnicodeError, csv.Error, StopIteration) as error:
+        raise ACSArchiveError(f"could not read ACS person CSV header: {error}") from error
+    if not header or len(set(header)) != len(header):
+        raise ACSArchiveError("ACS person CSV header is empty or contains duplicate columns")
+    return tuple(header)
 
 
 @contextmanager
