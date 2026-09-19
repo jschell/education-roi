@@ -23,3 +23,11 @@ def test_paths(tmp_path: Path) -> None:
     result = runner.invoke(app, ["paths", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert f"root={tmp_path.resolve()}" in result.stdout
+
+
+def test_data_contracts_are_visible() -> None:
+    result = runner.invoke(app, ["data", "--help"])
+    assert result.exit_code == 0
+    assert "check" in result.stdout
+    assert "update" in result.stdout
+    assert "validate" in result.stdout
