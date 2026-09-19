@@ -21,7 +21,7 @@ Only this roadmap remains directly in `docs/plans/`.
 | [03](complete/03-project-foundation.md) | Project foundation | 01–02 | CI | **COMPLETE** |
 | [04](complete/04-data-provenance.md) | Provenance system | 02–03 | — | **COMPLETE** |
 | [05](complete/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | **COMPLETE** |
-| [06](queue/06-financial-engine.md) | Financial engine | 01, 03–05 | — | QUEUED |
+| [06](active/06-financial-engine.md) | Financial engine | 01, 03–05 | — | **ACTIVE** |
 | [07](queue/07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Reproduction hard gate | QUEUED |
 | [08](queue/08-scenario-engine.md) | Scenario engine | 04, 06–07 | — | QUEUED |
 | [09](queue/09-ipeds-integration.md) | IPEDS | 02, 04, 08 | — | QUEUED |
@@ -63,5 +63,6 @@ Every plan must preserve immutable raw data, deterministic calculations, explici
 
 ## Next action
 
-Prepare and activate Plan 06 for the deterministic financial engine. Continue supplement acquisition
-in parallel so the Plan 07 reproduction gate can eventually certify the exact major mapping.
+Implement Plan 06's deterministic cash-flow, cost, financing, and metric contracts. Continue
+supplement acquisition in parallel so the Plan 07 reproduction gate can eventually certify the
+exact major mapping.

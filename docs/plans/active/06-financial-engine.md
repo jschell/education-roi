@@ -1,10 +1,11 @@
 # Plan 06 — Financial and Cash-Flow Engine
 
-**Status:** QUEUED
+**Status:** ACTIVE
 
 ## Objective
 
-Implement deterministic, well-tested cash-flow calculations independent of specific data-source adapters and user interfaces.
+Implement deterministic, well-tested cash-flow calculations independent of specific data-source
+adapters and user interfaces.
 
 ## Prerequisites
 
