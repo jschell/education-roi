@@ -71,5 +71,19 @@ An adjacent manifest records the raw artifact ID, output hash, parameters, row c
 Regeneration is idempotent; different bytes at an existing stable path cause a conflict rather than
 silent replacement.
 
-Automatic release discovery and dictionary registration, replicate-weight uncertainty,
-hierarchical fallback, and cross-release anomaly checks remain active Plan 05 work.
+## Release discovery and registration
+
+Discovery reads the official Census PUMS root index for candidate vintages, newest first. A vintage
+is returned only if the requested product directory explicitly advertises the exact person archive
+for the requested geography. Discovery never means approval and never assigns an alias such as
+`latest`; it emits an exact release ID such as `2024-1yr-wa` with `DISCOVERED` semantics.
+
+Registration treats the person ZIP and official CSV data dictionary as one validation bundle. Both
+are downloaded before either is registered. The ZIP must satisfy the archive checks and the
+dictionary must contain every required analytical variable as a Census `NAME` record. Failed bundle
+validation leaves the registry unchanged. Valid artifacts are stored under separate dataset IDs,
+with their publisher filenames, hashes, release, vintage, schema version, retrieval URL, final URL,
+and publication status.
+
+Replicate-weight uncertainty, hierarchical fallback, and cross-release anomaly checks remain active
+Plan 05 work.

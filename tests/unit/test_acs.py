@@ -36,8 +36,14 @@ def test_release_constructs_authoritative_urls() -> None:
     assert release.variables_url == (
         "https://api.census.gov/data/2024/acs/acs1/pums/variables.json"
     )
+    assert release.dictionary_url.endswith("/PUMS_Data_Dictionary_2024.csv")
     with pytest.raises(ValidationError):
         ACSRelease(vintage=2024, product=ACSProduct.ONE_YEAR, geography="washington")
+
+
+def test_five_year_dictionary_names_full_vintage_window() -> None:
+    release = ACSRelease(vintage=2024, product=ACSProduct.FIVE_YEAR, geography="us")
+    assert release.dictionary_url.endswith("/PUMS_Data_Dictionary_2020-2024.csv")
 
 
 def test_schema_error_names_missing_columns() -> None:
