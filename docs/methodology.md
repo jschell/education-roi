@@ -1,189 +1,292 @@
 # Methodology Specification
 
-**Status:** PROVISIONAL — Plan 01 remains active  
-**Last reviewed:** 2026-09-19
+**Status:** VERIFIED AGAINST MAIN ARTICLE; supplemental Table A1 still required  
+**Last reviewed:** 2026-09-19  
+**Article:** Zhang, Liu, and Hu (2024), DOI: https://doi.org/10.3102/00028312241231512
 
-## Research target
+## Scope and evidence boundary
 
-The initial reproduction target is Zhang, Liu, and Hu (2024), “Degrees of Return: Estimating Internal Rates of Return for College Majors Using Quantile Regression,” *American Educational Research Journal* 61(3), 577–609.
+This specification was checked against the supplied 33-page article PDF. Equations 1–6, the ACS sample, covariates, cost construction, opportunity-cost assumptions, quantile method, and selection adjustment are verified from the main article.
 
-Public publisher/author metadata verifies that the study:
+The publisher lists a separate supplemental PDF. It contains at least Table A1, which maps 173 detailed ACS undergraduate fields into the paper’s ten major groups. The publisher’s supplement endpoint returned an access challenge in this environment. Until that file is obtained, the exact field crosswalk is unresolved and the reproduction hard gate remains open.
 
-- uses American Community Survey data from 2009–2021;
-- estimates IRRs for college graduates in ten broad majors relative to high-school graduates;
-- finds materially different age-earnings trajectories and returns across majors;
-- applies quantile regression to examine different positions in the earnings distribution;
-- uses a selection adjustment;
-- reports generally higher IRRs toward the high end of the earnings distribution.
+## Data and sample
 
-These facts are verified from the publisher/AERA metadata and institutional research metadata. The full article equations, complete sample restrictions, appendices, and supplements were **not accessible during this research pass**. ResearchGate returned an automated-access restriction, and indexed publisher pages exposed only metadata/abstract material.
+The paper pools 13 annual ACS 1-year PUMS files, 2009–2021.
 
-Accordingly, this document distinguishes:
+Inclusion criteria:
 
-- **VERIFIED:** supported directly by accessible primary metadata or government documentation;
-- **PROVISIONAL:** standard implementation proposal awaiting article verification;
-- **PROJECT EXTENSION:** capability required by this project but not attributed to the paper.
+1. Born in the United States.
+2. Age 18–65.
+3. Highest attainment is either high-school diploma or bachelor’s degree.
+4. Bachelor’s graduates report undergraduate major.
+5. Not currently enrolled in school.
+6. Positive annual earnings.
 
-## Hard-gate rule
+Explicit exclusions:
 
-No paper-specific implementation may be labeled a Zhang reproduction until the full article and any supplements have been reviewed and the provisional fields below are replaced with verified specifications.
+- less than high school;
+- some college;
+- associate degree;
+- advanced degrees, including master’s, first-professional, and doctorate;
+- nonpositive earnings;
+- currently enrolled people;
+- foreign-born people.
 
-## Analytical unit
+Final reported sample: 5,835,917, approximately 2.9 million high-school graduates and 2.9 million bachelor’s graduates.
 
-**VERIFIED:** ten broad bachelor’s-major groups are compared with high-school graduates.
+The paper uses only the first reported undergraduate major. About 11% of bachelor’s graduates report a second major; a robustness analysis excluding dual majors was similar but is not published in the article.
 
-**PROJECT EXTENSION:** the system’s primary unit is a scenario. A scenario can describe an institution/program, transfer pathway, apprenticeship, workforce path, or staged pathway. Any scenario may be another scenario’s counterfactual.
+## Outcomes and dollar normalization
 
-## Canonical cash-flow framework
+Primary dependent variable: annual wage and salary income.
 
-The following equations are the project’s provisional mathematical contract. They are standard financial definitions and are **not yet asserted to be verbatim paper equations**.
+Robustness analysis: total earnings, including income such as self-employment.
 
-For scenario (s), age/year (t):
+For pooled ACS income:
+
+1. Apply the ACS income adjustment factor for the annual file.
+2. Convert to constant 2021 dollars using BLS CPI.
+
+The resulting IRRs are real rates. The paper states nominal IRRs before inflation adjustment are typically 2–3 percentage points higher.
+
+## Major taxonomy
+
+The paper builds on Carnevale, Strohl, and Melton (2013) and a Census crosswalk to aggregate 173 detailed ACS fields into:
+
+1. Biological and life sciences
+2. Business
+3. Computer science
+4. Education
+5. Engineering
+6. Health
+7. Humanities and liberal arts
+8. Math and sciences
+9. Social sciences
+10. Other majors
+
+Exact detailed-code membership is in supplemental Table A1 and must be imported verbatim once obtained. Do not independently invent or approximate that mapping in a paper-labeled reproduction.
+
+## Covariates
+
+The earnings equations include:
+
+- age and age squared;
+- sex;
+- race/ethnicity: White reference, Asian, Black, Hispanic, other;
+- marital status: single/never married reference, married, divorced/widowed/separated;
+- Census region: Northeast, Midwest, South, West.
+
+The authors intentionally omit industry and class of worker because those outcomes depend partly on college major.
+
+## Mean earnings equations
+
+The paper begins with a pooled log-linear equation:
 
 [
-CF_{s,t}=E_{s,t}-C_{s,t}-L_{s,t}-F_{s,t}
+ln(Y_i)=alpha_0+eta_1 age_i+eta_2 age_i^2+
+sum_{j=1}^{10}gamma_j M_j+Z_i'\lambda+mu_i
+	ag{1}
+]
+
+where (Y_i) is annual wage/salary earnings, (M_j) is major (j), high school is the reference, and (Z_i) contains covariates.
+
+Because Equation 1 forces parallel age profiles, the preferred specification estimates separate equations:
+
+[
+ln(Y_{im})=alpha_{0m}+eta_{1m}age_i+eta_{2m}age_i^2+
+Z_i'\lambda+mu_{im},quad m=0,ldots,10
+	ag{2}
+]
+
+where (m=0) is high school and (m=1,ldots,10) are major groups.
+
+To standardize observed composition, insert the pooled mean values of all bachelor’s-graduate covariates except age and age squared into every group equation:
+
+[
+ln(E_m)=hat{\alpha}_{0m}+ar{Z}'hat{\lambda}
+	ag{3}
+]
+
+Then the age profile is:
+
+[
+ln(Y_{im})=ln(E_m)+hat{\beta}_{1m}age_i+
+hat{\beta}_{2m}age_i^2
+	ag{4}
+]
+
+Predictions are generated for every age 18–65.
+
+### Implementation ambiguity to test
+
+The printed Equation 2 displays an un-subscripted (\lambda), even though the text says a separate earnings equation is estimated for every group. Implementation must determine whether all coefficients, including covariates, are estimated separately by group—as separate regressions imply—or whether covariate slopes are constrained. This must be resolved from supplement/code/author clarification or bounded through both implementations.
+
+## IRR equation
+
+The paper’s printed equation is:
+
+[
+sum_{t=18}^{65}\frac{Y_{ct}-Y_{ht}}{(1+r)^{t-18}}
+-
+sum_{t=18}^{21}\frac{C_{ct}}{(1+r)^{t-18}}=0
+	ag{5}
 ]
 
 where:
 
-- (E): real earnings;
-- (C): direct education costs net of grants/scholarships;
-- (L): incremental living costs relative to the counterfactual;
-- (F): financing costs kept separate from education resource cost.
+- (Y_{ct}): predicted bachelor’s/major earnings at age (t);
+- (Y_{ht}): predicted high-school earnings at age (t);
+- (C_{ct}): college cost at age (t);
+- (r): IRR.
 
-Incremental cash flow relative to counterfactual (c):
+College is modeled as four years of full-time attendance from ages 18–21. College students may earn income during those years; the cost construction must include both direct and opportunity costs as described below.
 
-[
-Delta CF_t=CF_{s,t}-CF_{c,t}
-]
+## Quantile regression
 
-Net present value at real discount rate (d):
+Equation 2 is re-estimated at earnings deciles using the Koenker–Bassett check-loss objective:
 
 [
-NPV(d)=sum_{t=0}^{T}rac{Delta CF_t}{(1+d)^t}
+min_{bin R^K}
+left[
+sum_{y_i>x_i b}u|y_i-x_i b|
++
+sum_{y_i<x_i b}(1-u)|y_i-x_i b|
+ight]
+	ag{6}
 ]
 
-IRR is a real rate (r) satisfying:
+The paper estimates deciles and computes an IRR at each decile by comparing bachelor’s/major earnings with high-school earnings at the equivalent distributional position.
 
-[
-0=sum_{t=0}^{T}rac{Delta CF_t}{(1+r)^t}
-]
+Identifying assumption: rank invariance. A person’s earnings rank is assumed unchanged between observed and counterfactual education states. Quantiles must not be presented as personalized probabilities.
 
-The engine must return structured undefined states when no real root exists or multiple economically relevant roots occur.
-
-Break-even age is the first age (a) for which cumulative incremental value is nonnegative and remains disclosed with the chosen discounting convention:
-
-[
-a^*=minleft{a:sum_{t=0}^{a}rac{Delta CF_t}{(1+d)^t}ge 0ight}
-]
-
-## Real-dollar conversion
-
-For a monetary value (V_y) measured in year (y), converted to target year (b):
-
-[
-V_b=V_yrac{CPI_b}{CPI_y}
-]
-
-Every conversion must retain CPI series ID, source period, target period, source value, target value, and factor. Annual-average CPI-U is the proposed default for annual cash flows; this remains a project choice unless the paper specifies another series/convention.
-
-## Earnings model
-
-**VERIFIED:** the study analyzes age-earnings trajectories and quantile variation.
-
-**PROVISIONAL implementation:**
-
-- model approximately ages 18–65;
-- use P10, P25, P50, P75, and P90;
-- treat percentiles as distribution positions, not individual probabilities;
-- estimate separate trajectories by education/major and other verified covariates;
-- use survey person weights;
-- preserve unweighted N, weighted N, uncertainty, ACS product, vintage, geography, and fallback level;
-- avoid extrapolation outside observed support unless explicitly labeled.
-
-The exact paper quantile-regression equation, polynomial/spline age form, covariates, pooling, weighting behavior, and standard-error procedure remain unresolved pending full-text review.
-
-## ACS candidate variables
-
-These are candidates to confirm against the paper and the selected ACS vintage’s data dictionary:
-
-| Concept | Candidate ACS PUMS fields | Status |
-|---|---|---|
-| Age | `AGEP` | Highly likely; paper-specific rule unverified |
-| Attainment | `SCHL` | Highly likely |
-| First/second bachelor’s field | `FOD1P`, `FOD2P` | Highly likely |
-| Wage/salary earnings | `WAGP` | Candidate target |
-| Total personal income | `PINCP` | Candidate; do not substitute for earnings silently |
-| Employment status | `ESR` | Candidate restriction/covariate |
-| Weeks worked | `WKWN` or vintage-specific equivalent | Candidate |
-| Usual hours | `WKHP` | Candidate |
-| Person weight | `PWGTP` | Required for weighted estimates |
-| Replicate weights | `PWGTP1–PWGTP80` | Candidate for variance estimation |
-| Inflation adjustment | `ADJINC` | Required when pooling income years as defined by Census |
-| Sex | `SEX` | Candidate stratifier/control |
-| Race/ethnicity | `RAC1P`, `HISP` | Candidate control/descriptive fields |
-| State/PUMA | `ST`, `PUMA` | Project extension |
-| Occupation/industry | `OCCP`, `INDP` | Validation/context only |
-
-Field availability and coding must be checked per vintage. No transformation should proceed solely from this table.
-
-## Counterfactual and foregone earnings
-
-**VERIFIED:** the research compares college-major returns with high-school graduates.
-
-**PROVISIONAL:** foregone earnings during enrollment equal the counterfactual earnings path minus any scenario earnings during study. They are not zero.
-
-**PROJECT EXTENSION:** a counterfactual may be another education scenario. Incremental comparison must use aligned annual cash flows rather than subtracting summary IRRs.
-
-## Direct and living costs
-
-Paper-specific cost datasets, tuition assumptions, duration, and living-cost treatment are unresolved.
-
-Project rules:
-
-- distinguish sticker price, net price, and incremental living cost;
-- do not count all food/housing as education cost automatically;
-- keep grants/scholarships, family contribution, and borrowing distinct;
-- keep economic resource cost separate from financing cost;
-- retain nominal year and conversion provenance.
+The article presents selected quantiles; it says detailed other-decile results are in the supplement or available upon request.
 
 ## Selection adjustment
 
-**VERIFIED:** the study applies a selection adjustment.
+The paper cites Ashworth et al. (2021), which attributes about 37% of the raw college/high-school gap to individual heterogeneity. The paper’s observed controls explain about 11%, leaving approximately 25% as the preferred remaining adjustment.
 
-The exact formula and placement in the earnings/cash-flow calculation remain unverified. The project must not assume that “25% adjustment” necessarily means multiplying all graduate earnings, the earnings premium, or IRR by 0.75 until the article confirms it.
+Sensitivity specifications:
 
-Provisional sensitivity values remain 0%, 10%, 25%, 40%, and 50%, but are project scenarios—not a claim about the paper’s exact operation.
+- 0%
+- 25% preferred
+- 50%
 
-## Completion and graduate education
+The adjustment applies consistently to:
 
-These are project extensions. Compute separately:
+1. the college/high-school earnings differential; and
+2. opportunity cost while enrolled.
 
-- conditional-graduate return;
-- expected enrollment return incorporating noncompletion/late completion;
-- optional and mandatory graduate-school branches.
+### Opportunity-cost adjustment
 
-Do not use graduate-only outcomes as enrollment outcomes.
+Using log-earnings equations for workers aged 22–25, the authors estimate a high-school/bachelor’s earnings difference of 0.472 log points, described as 60%. They attribute 25% of this gap to selection, giving a 15% counterfactual advantage for college-bound students. Thus college students’ foregone earnings are modeled as 15% higher than observed same-age high-school earnings in the preferred specification.
 
-## Known ambiguities
+Implementation must encode the adjustment at the earnings/counterfactual level, never by multiplying the final IRR by 0.75.
 
-| ID | Question | Impact | Resolution required |
-|---|---|---|---|
-| M-01 | Exact paper equations | Critical | Review full article |
-| M-02 | Exact ACS sample restrictions | Critical | Review methods/appendix |
-| M-03 | Earnings definition and zero earners | Critical | Verify target and exclusions |
-| M-04 | Quantile-regression specification | Critical | Verify form, covariates, weights |
-| M-05 | Cost source and construction | Critical | Verify datasets/dollar basis |
-| M-06 | Selection-adjustment formula | Critical | Verify equation and preferred value |
-| M-07 | Tuition duration/timing | High | Verify annual timing |
-| M-08 | Second-major handling | Medium | Verify major assignment |
-| M-09 | Graduate-degree handling | High | Verify sample |
-| M-10 | Variance/uncertainty method | High | Verify replicate weights/SE approach |
+## Direct-cost construction
 
-## Primary references
+Source: NPSAS:18-AC restricted-use undergraduate data.
 
-- Publisher/AERA article landing: https://journals.sagepub.com/
-- AERA article metadata: https://www.aera.net/
-- User-provided ResearchGate record: https://www.researchgate.net/publication/378878341_Degrees_of_Return_Estimating_Internal_Rates_of_Return_for_College_Majors_Using_Quantile_Regression
-- Rutgers research metadata: https://www.researchwithrutgers.com/
-- Census ACS PUMS: https://www.census.gov/programs-surveys/acs/microdata.html
+Population:
+
+- full-time students;
+- four-year institutions;
+- approximately 1,870 institutions and about 250,000 undergraduates in the NPSAS file.
+
+Cost elements:
+
+- tuition and fees;
+- books and supplies;
+- room and board;
+- transportation;
+- other education-related personal expenses.
+
+All costs are converted to 2021 dollars.
+
+Net cost equals enrollment-adjusted budget minus all grant aid. Loans are not deducted because they finance cost rather than reduce it.
+
+Reported average grants are just over $10,000, composed approximately of:
+
+- $2,250 federal;
+- $1,580 state;
+- $6,780 institutional;
+- $340 private.
+
+## Nontuition scenarios
+
+The authors fix books and supplies at $1,000 in 2021 dollars, informed by approximately $281 course-material spending plus roughly $700 technology spending.
+
+Other nontuition costs receive three attribution scenarios:
+
+- 0%
+- 50% preferred
+- 100%
+
+Preferred main specification:
+
+- tuition and fees;
+- $1,000 books/supplies;
+- 50% of other nontuition costs;
+- 25% selection adjustment.
+
+Costs vary by race/ethnicity and major using NPSAS. The article does not use sex-specific costs due to small cells in some majors and broadly similar costs where both sexes are represented.
+
+## Student earnings during college
+
+Source: NPSAS:12.
+
+Population: full-time students ages 18–21 attending four-year colleges.
+
+Reported annual student earnings:
+
+- $2,740 nominal in source-period terms;
+- $3,268 in 2021 dollars.
+
+This income offsets college-period cost/foregone earnings in reproduction.
+
+## Reported validation targets from the main article
+
+Preferred specification results include:
+
+- overall IRR: 9.88% women;
+- overall IRR: 9.06% men;
+- computer science and engineering: above 13%;
+- preferred assumptions: 50% other nontuition cost and 25% selection adjustment.
+
+Table 3 contains combinations of cost attribution and selection adjustment. Table 4 contains major/demographic results. Exact target rows must be transcribed before tests are implemented.
+
+## Project extensions kept separate
+
+The following are not part of the paper’s core reproduction and must use separate configurations:
+
+- institution-specific costs;
+- enrollment/noncompletion risk;
+- transfer pathways;
+- debt financing;
+- graduate education;
+- regional earnings;
+- scenario-vs-scenario counterfactuals;
+- uncertainty propagation and Monte Carlo.
+
+## Remaining open items
+
+| ID | Item | Status |
+|---|---|---|
+| M-01 | Main equations 1–6 | Resolved |
+| M-02 | ACS sample restrictions | Resolved |
+| M-03 | Earnings definition/positive earnings | Resolved |
+| M-04 | Quantile objective/deciles/rank invariance | Resolved |
+| M-05 | Cost source and construction | Resolved |
+| M-06 | Selection adjustment | Resolved |
+| M-07 | Four-year timing, ages 18–21 | Resolved |
+| M-08 | First-major handling | Resolved |
+| M-09 | Advanced-degree exclusion | Resolved |
+| M-10 | Exact 173-field crosswalk | **Blocked on supplemental Table A1** |
+| M-11 | Survey weighting/variance details | Not explicitly stated in main methods; verify supplement/code |
+| M-12 | Whether all Equation 2 covariate slopes vary by group | Clarification required |
+
+## Sources
+
+- Main article DOI: https://doi.org/10.3102/00028312241231512
+- Supplemental listing: https://journals.sagepub.com/doi/abs/10.3102/00028312241231512
+- ACS PUMS: https://www.census.gov/programs-surveys/acs/microdata.html
