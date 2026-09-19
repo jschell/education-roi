@@ -1,0 +1,10 @@
+services:
+  edu-roi:
+    build: .
+    environment:
+      EDU_ROI_ROOT: /workspace
+    volumes:
+      - ./data:/workspace/data
+      - ./results:/workspace/results
+    command: ["--help"]
+
