@@ -52,3 +52,27 @@ Decision:
 - Plan 02 may be marked complete as an architecture/source-inventory deliverable.
 - Every endpoint must still be revalidated when its adapter is implemented.
 - Plan 01 cannot pass its hard gate until article-level method verification is complete.
+
+
+## 2026-09-19 — User supplied article PDF
+
+The attached 33-page article was extracted and reviewed. It resolved:
+
+- DOI and publication metadata;
+- Equations 1–6;
+- ACS 2009–2021 sample construction;
+- primary/robustness earnings outcomes;
+- 2021-dollar conversion;
+- covariates;
+- first-major handling;
+- separate age-profile method;
+- decile quantile regression and rank invariance;
+- 0/25/50% selection sensitivity and preferred 25%;
+- 15% opportunity-cost earnings uplift;
+- NPSAS:18-AC direct cost construction;
+- 0/50/100% nontuition attribution;
+- $1,000 books/supplies;
+- NPSAS:12 student earnings of $3,268 in 2021 dollars;
+- four-year ages 18–21 attendance assumption.
+
+The publisher confirms a 337.25 KB supplemental PDF named `sj-pdf-1-aer-10.3102_00028312241231512.pdf`. Its endpoint presented a browser challenge. Table A1’s exact 173-field crosswalk and any additional estimation details remain blocked. Plan 01 therefore stays active; the full-text blocker is narrowed to the supplement.
