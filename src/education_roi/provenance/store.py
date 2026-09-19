@@ -235,6 +235,7 @@ class ArtifactStore:
                 prefix=f".{destination.name}.", suffix=".partial", dir=destination.parent
             )
             temporary = Path(temporary_name)
+            created = False
             try:
                 with source.open("rb") as incoming, os.fdopen(descriptor, "wb") as outgoing:
                     shutil.copyfileobj(incoming, outgoing)
@@ -242,13 +243,15 @@ class ArtifactStore:
                     os.fsync(outgoing.fileno())
                 try:
                     os.link(temporary, destination)
-                    destination.chmod(0o444)
+                    created = True
                 except FileExistsError:
                     pass
             except FileExistsError:
                 pass
             finally:
                 temporary.unlink(missing_ok=True)
+            if created:
+                destination.chmod(0o444)
         artifact_id = f"{definition.dataset_id}:{release}:{digest}"
         manifest = ArtifactManifest(
             artifact_id=artifact_id,
@@ -273,6 +276,7 @@ class ArtifactStore:
                 prefix=f".{manifest_path.name}.", suffix=".partial", dir=manifest_path.parent
             )
             temporary_manifest = Path(temporary_name)
+            manifest_created = False
             try:
                 with os.fdopen(descriptor, "w", encoding="utf-8") as output:
                     output.write(json.dumps(stored.model_dump(mode="json"), indent=2) + "\n")
@@ -280,9 +284,11 @@ class ArtifactStore:
                     os.fsync(output.fileno())
                 try:
                     os.link(temporary_manifest, manifest_path)
-                    manifest_path.chmod(0o444)
+                    manifest_created = True
                 except FileExistsError:
                     pass
             finally:
                 temporary_manifest.unlink(missing_ok=True)
+            if manifest_created:
+                manifest_path.chmod(0o444)
         return stored
