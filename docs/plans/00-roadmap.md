@@ -20,7 +20,7 @@ Only this roadmap remains directly in `docs/plans/`.
 | [02](complete/02-data-source-inventory.md) | Source inventory | None | Milestone 0 | **COMPLETE** |
 | [03](complete/03-project-foundation.md) | Project foundation | 01–02 | CI | **COMPLETE** |
 | [04](complete/04-data-provenance.md) | Provenance system | 02–03 | — | **COMPLETE** |
-| [05](queue/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | QUEUED |
+| [05](active/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | **ACTIVE** |
 | [06](queue/06-financial-engine.md) | Financial engine | 01, 03–05 | — | QUEUED |
 | [07](queue/07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Reproduction hard gate | QUEUED |
 | [08](queue/08-scenario-engine.md) | Scenario engine | 04, 06–07 | — | QUEUED |
@@ -63,4 +63,5 @@ Every plan must preserve immutable raw data, deterministic calculations, explici
 
 ## Next action
 
-Activate Plan 05 for ACS PUMS ingestion. Continue supplement acquisition in parallel.
+Continue Plan 05 with registered downloads, selective source reads, Parquet lineage, uncertainty,
+fallback, and release-comparison checks. Continue supplement acquisition in parallel.

@@ -10,7 +10,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Education ROI contributors" }]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "typer>=0.16,<1"]
+dependencies = [
+  "httpx>=0.28,<1",
+  "polars>=1.33,<2",
+  "pydantic>=2.11,<3",
+  "typer>=0.16,<1",
+]
 
 [project.scripts]
 edu-roi = "education_roi.cli.app:app"
