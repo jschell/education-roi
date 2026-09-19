@@ -1,0 +1,73 @@
+# Plan 07 — Zhang Reproduction
+
+## Objective
+
+Reproduce selected aggregate and major-level results from Zhang, Liu & Hu (2024) before trusting institution-specific extensions.
+
+## Hard-gate rule
+
+If results materially miss predeclared tolerances, stop expansion and investigate. Do not tune undocumented parameters merely to match published values.
+
+## Prerequisites
+
+- Plan 01 approved methodology and target table
+- Plan 05 validated ACS pipeline
+- Plan 06 validated financial engine
+- Exact available source vintages and CPI series registered
+
+## Implementation tasks
+
+1. Encode the published-method configuration separately from project-default extensions.
+2. Implement the exact sample restrictions supported by the evidence.
+3. Produce a sample-flow table after every restriction.
+4. Reconstruct age-earnings profiles.
+5. Reproduce direct-cost and foregone-earnings construction.
+6. Apply the specified selection adjustment.
+7. Reproduce quantile-regression outputs.
+8. Calculate target IRRs and related intermediate values.
+9. Compare with published tables using predeclared tolerances.
+10. Run alternative interpretations for unresolved ambiguities.
+11. Attribute discrepancies to data vintage, sample, variables, weighting, inflation, numerical implementation, or unavailable details.
+12. Generate a machine-readable and human-readable reproduction report.
+
+## Reproduction record
+
+For each target retain:
+
+- paper table/figure reference;
+- published value;
+- reproduced value;
+- absolute and relative difference;
+- tolerance;
+- pass/fail/review status;
+- configuration hash;
+- dataset hashes;
+- ambiguity notes.
+
+## Tests
+
+- sample-flow regression;
+- fixed-profile regression;
+- published target comparisons;
+- configuration immutability;
+- deterministic rerun;
+- sensitivity to documented ambiguous interpretations;
+- clean-environment reproduction.
+
+## Deliverables
+
+- `docs/reproduction.md`
+- reproducible configuration files
+- automated reproduction test suite
+- intermediate sample/profile artifacts
+- comparison report
+- discrepancy log
+
+## Acceptance criteria
+
+One of the following is approved:
+
+1. Selected results reproduce within tolerance; or
+2. Remaining differences have strong documented explanations, sensitivity bounds, and reviewer acceptance.
+
+No institution-level output may be labeled decision-grade before this gate passes.
