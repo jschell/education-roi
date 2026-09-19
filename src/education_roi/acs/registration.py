@@ -10,6 +10,7 @@ from education_roi.acs.models import ACSRelease
 from education_roi.acs.source import (
     ACS_PUMS_DATASET,
     ACS_PUMS_DICTIONARY_DATASET,
+    REPLICATE_WEIGHT_COLUMNS,
     REQUIRED_PERSON_COLUMNS,
 )
 from education_roi.config.paths import ProjectPaths
@@ -55,7 +56,8 @@ def validate_dictionary(path: Path) -> frozenset[str]:
                     variables.add(row[1])
     except (OSError, UnicodeError, csv.Error) as error:
         raise ACSDictionaryError(f"could not parse ACS dictionary: {error}") from error
-    missing = sorted(REQUIRED_PERSON_COLUMNS.difference(variables))
+    required = REQUIRED_PERSON_COLUMNS.union(REPLICATE_WEIGHT_COLUMNS)
+    missing = sorted(required.difference(variables))
     if missing:
         raise ACSDictionaryError(
             f"ACS dictionary is missing required variables: {', '.join(missing)}"
@@ -91,7 +93,8 @@ def register_acs_release(
                 )
             )
         person_columns = person_csv_columns(downloads[0].path)
-        missing_person_columns = sorted(REQUIRED_PERSON_COLUMNS.difference(person_columns))
+        required_person_columns = REQUIRED_PERSON_COLUMNS.union(REPLICATE_WEIGHT_COLUMNS)
+        missing_person_columns = sorted(required_person_columns.difference(person_columns))
         if missing_person_columns:
             raise ACSPersonSchemaError(
                 "ACS person archive is missing required columns: "

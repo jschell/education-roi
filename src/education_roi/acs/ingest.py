@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 
 from education_roi.acs.archive import materialize_person_csv
-from education_roi.acs.source import REQUIRED_PERSON_COLUMNS
+from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS, REQUIRED_PERSON_COLUMNS
 from education_roi.acs.transform import validate_person_schema
 
 PERSON_COLUMN_ORDER = (
@@ -43,3 +43,8 @@ def read_person_archive(archive: Path, extra_columns: Collection[str] = ()) -> p
     """Read selected columns from a validated ACS person archive."""
     with materialize_person_csv(archive) as csv_path:
         return read_person_csv(csv_path, extra_columns)
+
+
+def read_person_archive_with_replicates(archive: Path) -> pl.DataFrame:
+    """Read the analytical fields plus all 80 ACS person replicate weights."""
+    return read_person_archive(archive, REPLICATE_WEIGHT_COLUMNS)

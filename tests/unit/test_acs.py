@@ -8,7 +8,13 @@ from education_roi.acs.crosswalk import (
     ReproductionCrosswalkError,
 )
 from education_roi.acs.models import ACSProduct, ACSRelease
-from education_roi.acs.statistics import weighted_quantile
+from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS
+from education_roi.acs.statistics import (
+    replicate_weighted_mean,
+    replicate_weighted_total,
+    successive_difference_uncertainty,
+    weighted_quantile,
+)
 from education_roi.acs.transform import ACSchemaError, apply_zhang_sample, validate_person_schema
 
 
@@ -99,3 +105,38 @@ def test_provisional_crosswalk_cannot_certify_reproduction() -> None:
     )
     with pytest.raises(ReproductionCrosswalkError, match="Table A1"):
         crosswalk.require_verified_for_reproduction()
+
+
+def test_sdr_formula_and_90_percent_interval() -> None:
+    result = successive_difference_uncertainty(100.0, [101.0] * 80)
+    assert result.standard_error == 2.0
+    assert result.margin_of_error_90 == 3.29
+    assert result.confidence_interval_90 == (96.71, 103.29)
+
+
+def test_sdr_requires_all_80_finite_replicates() -> None:
+    with pytest.raises(ValueError, match="exactly 80"):
+        successive_difference_uncertainty(100.0, [101.0] * 79)
+    with pytest.raises(ValueError, match="finite"):
+        successive_difference_uncertainty(100.0, [float("nan")] * 80)
+
+
+def test_replicate_mean_retains_negative_weights() -> None:
+    data: dict[str, list[float]] = {
+        "value": [10.0, 20.0],
+        "person_weight": [1.0, 1.0],
+    }
+    for column in REPLICATE_WEIGHT_COLUMNS:
+        data[column] = [-1.0, 3.0]
+    result = replicate_weighted_mean(pl.DataFrame(data), "value")
+    assert result.estimate == 15.0
+    assert result.standard_error == 20.0
+
+
+def test_replicate_population_total() -> None:
+    data: dict[str, list[float]] = {"person_weight": [2.0, 3.0]}
+    for column in REPLICATE_WEIGHT_COLUMNS:
+        data[column] = [2.0, 4.0]
+    result = replicate_weighted_total(pl.DataFrame(data))
+    assert result.estimate == 5.0
+    assert result.standard_error == 2.0

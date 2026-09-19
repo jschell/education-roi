@@ -85,5 +85,18 @@ validation leaves the registry unchanged. Valid artifacts are stored under separ
 with their publisher filenames, hashes, release, vintage, schema version, retrieval URL, final URL,
 and publication status.
 
-Replicate-weight uncertainty, hierarchical fallback, and cross-release anomaly checks remain active
-Plan 05 work.
+## Sampling uncertainty
+
+The analytical read retains `PWGTP1` through `PWGTP80`. Sampling standard errors use the Census
+successive-difference-replication method: calculate the estimate once with `PWGTP`, repeat the same
+calculation with each of the 80 replicate weights, and apply the Census SDR sum-of-squared-differences
+formula. The standard 90% margin of error is `1.645 × SE`.
+
+Replicate weights are allowed to be positive, zero, or negative. They are never filtered by the
+positive-full-weight rule and are used only for uncertainty estimation. The implementation currently
+supports totals and means. Quantile uncertainty remains explicitly unsupported pending a validated
+survey-quantile implementation; in particular, Census warns that replicate medians can produce a
+zero standard error because of rounded values or small samples, which must not be presented as
+certainty.
+
+Hierarchical fallback and cross-release anomaly checks remain active Plan 05 work.

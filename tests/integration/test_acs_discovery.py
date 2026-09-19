@@ -12,6 +12,7 @@ from education_roi.acs.registration import (
     ACSPersonSchemaError,
     register_acs_release,
 )
+from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS
 from education_roi.config.paths import ProjectPaths
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.store import Registry
@@ -20,8 +21,24 @@ from education_roi.provenance.store import Registry
 def person_zip() -> bytes:
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w") as bundle:
-        columns = "SERIALNO,SPORDER,ADJINC,PWGTP,AGEP,SCH,SCHL,WAGP,FOD1P,NATIVITY"
-        bundle.writestr("psam_p53.csv", columns + "\n1,1,1000000,1,30,1,21,10,1101,1\n")
+        columns = [
+            "SERIALNO",
+            "SPORDER",
+            "ADJINC",
+            "PWGTP",
+            "AGEP",
+            "SCH",
+            "SCHL",
+            "WAGP",
+            "FOD1P",
+            "NATIVITY",
+            *REPLICATE_WEIGHT_COLUMNS,
+        ]
+        values = ["1", "1", "1000000", "1", "30", "1", "21", "10", "1101", "1"]
+        bundle.writestr(
+            "psam_p53.csv",
+            ",".join(columns) + "\n" + ",".join([*values, *(["1"] * 80)]) + "\n",
+        )
     return output.getvalue()
 
 
@@ -37,6 +54,7 @@ def dictionary_csv(*, complete: bool = True) -> bytes:
         "WAGP",
         "FOD1P",
         "NATIVITY",
+        *REPLICATE_WEIGHT_COLUMNS,
     ]
     if not complete:
         variables.remove("ADJINC")
