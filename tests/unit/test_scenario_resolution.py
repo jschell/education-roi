@@ -6,6 +6,7 @@ from education_roi.scenarios import (
     FixtureValueProvider,
     ProviderValue,
     ResolutionStatus,
+    ResolvedScenarioGraph,
     ScenarioResolutionError,
     load_scenario_file,
     resolve_configuration_graph,
@@ -15,7 +16,7 @@ from education_roi.scenarios import (
 EXAMPLES = Path(__file__).parents[2] / "scenarios" / "examples"
 
 
-def graph():
+def graph() -> ResolvedScenarioGraph:
     return resolve_scenario_graph(
         (
             load_scenario_file(EXAMPLES / "example-bachelors.yaml"),
