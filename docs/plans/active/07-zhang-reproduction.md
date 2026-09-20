@@ -74,6 +74,9 @@ For each target retain:
   implemented.
 - Immutable deterministic run bundles now split sample-flow, profile, validation, cash-flow, and
   comparison artifacts; a SHA-256 manifest and CLI verifier detect tampering and metadata drift.
+- A typed end-to-end runner now connects ACS sample flow, quantile fitting, independent fixture
+  validation, profile-linked cash flows, target comparisons, reports, and immutable bundles in one
+  deterministic execution.
 - Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
   inputs, exact coefficients, restricted cost cells, and supplemental Table A1.
 
