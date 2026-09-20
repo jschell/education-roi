@@ -29,6 +29,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - production `scenario resolve-ipeds` CLI resolution from validated immutable registry artifacts.
 - explicit full-time/part-time attendance basis with full-time-only annual charge resolution and no
   part-time conversion or fallback.
+- immutable institution/release charge Parquet tables retaining reporting basis, residency cells,
+  raw status cells, publication status, raw artifact lineage, and transformation version.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -39,7 +41,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
 4. Preserve reported basis and population definitions.
 5. Map programs using versioned CIP and handle institution identity changes.
-6. Generate institution/year analytical Parquet tables.
+6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and release comparisons.
 
 ## Tests still required
