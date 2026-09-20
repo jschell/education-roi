@@ -9,6 +9,7 @@ scenario:
     expected_duration_years: 4
     institution:
       unitid: 236948
+      tuition_residency: in_state
       name: Example institution
     program:
       cip: "11"

@@ -34,6 +34,12 @@ class ValueStatus(StrEnum):
     INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
 
 
+class TuitionResidency(StrEnum):
+    IN_DISTRICT = "in_district"
+    IN_STATE = "in_state"
+    OUT_OF_STATE = "out_of_state"
+
+
 class ValueSpec(StrictModel):
     """A value is supplied, delegated to a named dataset, or explicitly unavailable."""
 
@@ -71,6 +77,7 @@ class MoneyBasisConfig(StrictModel):
 class InstitutionConfig(StrictModel):
     unitid: int = Field(gt=0)
     name: str | None = None
+    tuition_residency: TuitionResidency
 
 
 class ProgramConfig(StrictModel):

@@ -47,8 +47,11 @@ hashes. Until the Plan 07 evidence gate is resolved, scenario output remains pro
 not be labeled decision-grade.
 
 Plan 09 also supplies an `IPEDSValueProvider` library boundary for validated registry artifacts.
-It resolves only `costs.tuition_and_fees` (`CHG2AY3`) and `costs.books_and_supplies` (`CHG4AY3`)
-for the scenario's exact UNITID and pinned release. It verifies the stored artifact hash and size
+An institution scenario must declare `tuition_residency` as `in_district`, `in_state`, or
+`out_of_state`. The provider resolves `costs.tuition_and_fees` from the corresponding IPEDS
+`CHG1AY3`, `CHG2AY3`, or `CHG3AY3` column and `costs.books_and_supplies` from `CHG4AY3`, for the
+scenario's exact UNITID and pinned release. It never falls back to a different residency basis;
+an unavailable selected value remains insufficient data. It verifies the stored artifact hash and size
 before reading it and emits the artifact and selection transformation identifiers. It deliberately
 returns no value for other inputs. CLI wiring and authoritative release discovery are later slices;
 fixture resolution remains the command-line path until those policies are complete.

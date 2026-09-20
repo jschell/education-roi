@@ -17,12 +17,21 @@ IPEDS_DICTIONARY_DATASET = DatasetDefinition(
 
 IPEDS_SCHEMA_VERSION = "ipeds-ic-ay-v1"
 UNITID_COLUMN = "UNITID"
-COST_COLUMNS = {
-    "costs.tuition_and_fees": "CHG2AY3",
-    "costs.books_and_supplies": "CHG4AY3",
+TUITION_COLUMNS = {
+    "in_district": "CHG1AY3",
+    "in_state": "CHG2AY3",
+    "out_of_state": "CHG3AY3",
 }
+TUITION_STATUS_COLUMNS = {
+    "in_district": "XCHG1AY3",
+    "in_state": "XCHG2AY3",
+    "out_of_state": "XCHG3AY3",
+}
+BOOKS_COLUMN = "CHG4AY3"
+BOOKS_STATUS_COLUMN = "XCHG4AY3"
+COST_COLUMNS = {"costs.tuition_and_fees": "CHG2AY3", "costs.books_and_supplies": BOOKS_COLUMN}
 COST_STATUS_COLUMNS = {
     "costs.tuition_and_fees": "XCHG2AY3",
-    "costs.books_and_supplies": "XCHG4AY3",
+    "costs.books_and_supplies": BOOKS_STATUS_COLUMN,
 }
 REQUIRED_COLUMNS = frozenset({UNITID_COLUMN, *COST_COLUMNS.values()})

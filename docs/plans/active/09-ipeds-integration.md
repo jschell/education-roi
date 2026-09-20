@@ -21,6 +21,7 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - paired validation and separate immutable data/dictionary manifests;
 - required-variable dictionary validation with retained definition rows.
 - raw `XCHG2AY3`/`XCHG4AY3` source-status propagation without undocumented interpretation.
+- explicit in-district/in-state/out-of-state tuition basis with no residency fallback.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

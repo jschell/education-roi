@@ -4,7 +4,14 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from education_roi.ipeds.archive import parse_nonnegative_cost, read_charge_rows
-from education_roi.ipeds.source import COST_COLUMNS, COST_STATUS_COLUMNS, IPEDS_CHARGES_DATASET
+from education_roi.ipeds.source import (
+    BOOKS_COLUMN,
+    BOOKS_STATUS_COLUMN,
+    COST_COLUMNS,
+    IPEDS_CHARGES_DATASET,
+    TUITION_COLUMNS,
+    TUITION_STATUS_COLUMNS,
+)
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ApprovalState, ArtifactManifest
 from education_roi.provenance.store import Registry
@@ -72,8 +79,15 @@ class IPEDSValueProvider:
         row = self._rows(manifest).get(institution.unitid)
         if row is None:
             return None
-        column = COST_COLUMNS[request.path]
-        status_column = COST_STATUS_COLUMNS[request.path]
+        if request.path == "costs.tuition_and_fees":
+            residency = institution.tuition_residency.value
+            column = TUITION_COLUMNS[residency]
+            status_column = TUITION_STATUS_COLUMNS[residency]
+        else:
+            column = BOOKS_COLUMN
+            status_column = BOOKS_STATUS_COLUMN
+        if column not in row:
+            return None
         value = parse_nonnegative_cost(row[column])
         if value is None:
             return None

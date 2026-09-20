@@ -9,6 +9,7 @@ from education_roi.provenance.store import ArtifactStore, Registry
 from education_roi.scenarios import (
     ResolutionRequest,
     ScenarioResolutionError,
+    TuitionResidency,
     load_scenario_file,
 )
 
@@ -21,7 +22,13 @@ def make_zip(path: Path, body: str) -> Path:
     return path
 
 
-def provider(tmp_path: Path, body: str, *, validate: bool = True) -> tuple[IPEDSValueProvider, str]:
+def provider(
+    tmp_path: Path,
+    body: str,
+    *,
+    validate: bool = True,
+    residency: TuitionResidency = TuitionResidency.IN_STATE,
+) -> tuple[IPEDSValueProvider, str]:
     source = make_zip(tmp_path / "charges.zip", body)
     registry = Registry(tmp_path / "data/manifests/registry.sqlite")
     registry.add_dataset(IPEDS_CHARGES_DATASET)
@@ -37,6 +44,10 @@ def provider(tmp_path: Path, body: str, *, validate: bool = True) -> tuple[IPEDS
     if validate:
         registry.transition(manifest.artifact_id, ApprovalState.VALIDATED, "test validation")
     scenario = load_scenario_file(EXAMPLES / "example-bachelors.yaml").scenario
+    assert scenario.education is not None and scenario.education.institution is not None
+    institution = scenario.education.institution.model_copy(update={"tuition_residency": residency})
+    education = scenario.education.model_copy(update={"institution": institution})
+    scenario = scenario.model_copy(update={"education": education})
     resolver = IPEDSValueProvider(registry, tmp_path / "data/raw", {scenario.id: scenario})
     return resolver, manifest.artifact_id
 
@@ -72,6 +83,45 @@ def test_provider_retains_raw_status_without_interpreting_it(tmp_path: Path) -> 
     books = resolver.resolve(request("costs.books_and_supplies"))
     assert tuition is not None and tuition.source_metadata == ("XCHG2AY3=R",)
     assert books is not None and books.source_metadata == ("XCHG4AY3=I",)
+
+
+@pytest.mark.parametrize(
+    ("residency", "value", "column", "status"),
+    [
+        (TuitionResidency.IN_DISTRICT, 8000, "CHG1AY3", "D"),
+        (TuitionResidency.IN_STATE, 12000, "CHG2AY3", "S"),
+        (TuitionResidency.OUT_OF_STATE, 30000, "CHG3AY3", "O"),
+    ],
+)
+def test_provider_selects_explicit_tuition_residency(
+    tmp_path: Path,
+    residency: TuitionResidency,
+    value: int,
+    column: str,
+    status: str,
+) -> None:
+    resolver, _ = provider(
+        tmp_path,
+        (
+            "UNITID,CHG1AY3,CHG2AY3,CHG3AY3,CHG4AY3,"
+            "XCHG1AY3,XCHG2AY3,XCHG3AY3,XCHG4AY3\n"
+            "236948,8000,12000,30000,900,D,S,O,B\n"
+        ),
+        residency=residency,
+    )
+    tuition = resolver.resolve(request())
+    assert tuition is not None and tuition.value == value
+    assert tuition.transformation_ids == (f"ipeds:2023-24-provisional:unitid:236948:{column}",)
+    assert tuition.source_metadata == (f"X{column}={status}",)
+
+
+def test_provider_does_not_fall_back_when_selected_residency_is_absent(tmp_path: Path) -> None:
+    resolver, _ = provider(
+        tmp_path,
+        "UNITID,CHG2AY3,CHG4AY3\n236948,12000,900\n",
+        residency=TuitionResidency.OUT_OF_STATE,
+    )
+    assert resolver.resolve(request()) is None
 
 
 @pytest.mark.parametrize("cell", ["", "-1"])
