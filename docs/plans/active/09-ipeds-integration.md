@@ -20,6 +20,7 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - reviewed `IC2023_AY` data/dictionary URL pair and corrected provisional labeling.
 - paired validation and separate immutable data/dictionary manifests;
 - required-variable dictionary validation with retained definition rows.
+- raw `XCHG2AY3`/`XCHG4AY3` source-status propagation without undocumented interpretation.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

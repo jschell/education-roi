@@ -21,4 +21,8 @@ COST_COLUMNS = {
     "costs.tuition_and_fees": "CHG2AY3",
     "costs.books_and_supplies": "CHG4AY3",
 }
+COST_STATUS_COLUMNS = {
+    "costs.tuition_and_fees": "XCHG2AY3",
+    "costs.books_and_supplies": "XCHG4AY3",
+}
 REQUIRED_COLUMNS = frozenset({UNITID_COLUMN, *COST_COLUMNS.values()})

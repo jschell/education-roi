@@ -22,6 +22,7 @@ from education_roi.ipeds.registration import (
 )
 from education_roi.ipeds.source import (
     COST_COLUMNS,
+    COST_STATUS_COLUMNS,
     IPEDS_CHARGES_DATASET,
     IPEDS_DICTIONARY_DATASET,
     IPEDS_SCHEMA_VERSION,
@@ -29,6 +30,7 @@ from education_roi.ipeds.source import (
 
 __all__ = [
     "COST_COLUMNS",
+    "COST_STATUS_COLUMNS",
     "IPEDSArchiveError",
     "IPEDSCatalogError",
     "IPEDSComponent",

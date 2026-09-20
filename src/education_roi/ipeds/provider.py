@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from education_roi.ipeds.archive import parse_nonnegative_cost, read_charge_rows
-from education_roi.ipeds.source import COST_COLUMNS, IPEDS_CHARGES_DATASET
+from education_roi.ipeds.source import COST_COLUMNS, COST_STATUS_COLUMNS, IPEDS_CHARGES_DATASET
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ApprovalState, ArtifactManifest
 from education_roi.provenance.store import Registry
@@ -73,6 +73,7 @@ class IPEDSValueProvider:
         if row is None:
             return None
         column = COST_COLUMNS[request.path]
+        status_column = COST_STATUS_COLUMNS[request.path]
         value = parse_nonnegative_cost(row[column])
         if value is None:
             return None
@@ -82,4 +83,5 @@ class IPEDSValueProvider:
             vintage=request.vintage,
             artifact_id=manifest.artifact_id,
             transformation_ids=(f"ipeds:{request.vintage}:unitid:{institution.unitid}:{column}",),
+            source_metadata=(f"{status_column}={row.get(status_column, '<absent>')}",),
         )
