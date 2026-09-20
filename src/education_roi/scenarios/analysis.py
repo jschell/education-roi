@@ -185,6 +185,7 @@ def _weighted_scenario(
     profiles: dict[OutcomeName, EarningsProfile],
     perspective: ReturnPerspective,
 ) -> tuple[ScenarioCashFlow, tuple[EarningsProfile, ...]]:
+    _values(resolved)
     if scenario.education is None:
         profile = profiles.get(OutcomeName.BASE)
         if profile is None:
