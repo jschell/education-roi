@@ -42,6 +42,10 @@ Official entry points:
 
 NCES pages were intermittently slow from the research environment; therefore implementation must test downloads directly and record final redirects. Use component-level files where practical. Record collection year, survey component, revision, and publication status.
 
+The first implemented contract uses the Institutional Characteristics academic-year charges file only. `CHG2AY3` is interpreted as reported in-state tuition and fees, and `CHG4AY3` as books and supplies, selected by exact `UNITID`. These are institutional academic-year charges—not net price, program-specific price, aid, incremental living cost, or a guarantee of what a particular student pays. An explicit official NCES URL, release label, and publication status are required at registration; the code does not guess the newest release. Only schema-validated immutable artifacts in `VALIDATED` or `APPROVED` state may resolve scenarios.
+
+Blank cells, negative sentinel values, absent UNITIDs, and absent exact releases remain unavailable. They are never converted to zero. Release-page discovery, dictionaries, imputation-status interpretation, residency policy beyond in-state charges, completion, aid, program production, and release comparison remain subsequent Plan 09 slices.
+
 ### College Scorecard
 
 Official data home: https://collegescorecard.ed.gov/data/
