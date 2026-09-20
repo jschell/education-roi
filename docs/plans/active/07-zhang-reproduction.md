@@ -72,6 +72,8 @@ For each target retain:
 - Decile definitions, rank-invariance labeling, quantile profile and solver contracts, independent
   fixed-fixture validation, median/nonmedian IRRs, and deterministic JSON/Markdown reporting are
   implemented.
+- Immutable deterministic run bundles now split sample-flow, profile, validation, cash-flow, and
+  comparison artifacts; a SHA-256 manifest and CLI verifier detect tampering and metadata drift.
 - Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
   inputs, exact coefficients, restricted cost cells, and supplemental Table A1.
 

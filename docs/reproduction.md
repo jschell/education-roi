@@ -43,6 +43,25 @@ comparisons. Markdown highlights evidence blockers, distributional IRRs, discrep
 methodological ambiguities. Provisional report construction requires at least one named blocker and
 cannot silently become certified.
 
+## Reproduction bundles
+
+Each report can be written once to an immutable run directory. The bundle contains `report.json`,
+`report.md`, and separate canonical JSON artifacts for sample flow, profiles, profile validations,
+cash flows, and comparisons. `manifest.json` records the run ID, report schema, certification
+status, configuration hash, dataset hashes, and SHA-256 plus byte size for every report artifact.
+
+Writing is staged in a temporary sibling directory and refuses to replace an existing run. Identical
+inputs and run IDs produce byte-identical bundles. Verification rejects missing or extra files,
+symbolic links, noncanonical JSON, digest or size changes, report/manifest metadata drift, and split
+artifacts that differ from the canonical report. Run verification with:
+
+```console
+edu-roi reproduce verify-bundle results/run-001
+```
+
+The command emits a machine-readable `VALID` result or exits nonzero with `INVALID`. Bundle
+integrity does not elevate the evidence status: fixture-backed runs remain visibly `PROVISIONAL`.
+
 Current aggregate and quantile comparisons remain provisional fixtures until authoritative ACS
 inputs, exact coefficients, CPI observations, and restricted cost cells are registered. Paper-level
 major reproduction remains blocked until supplemental Table A1 is verified.

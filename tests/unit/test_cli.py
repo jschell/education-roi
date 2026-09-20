@@ -31,3 +31,9 @@ def test_data_contracts_are_visible() -> None:
     assert "check" in result.stdout
     assert "update" in result.stdout
     assert "validate" in result.stdout
+
+
+def test_reproduction_bundle_contract_is_visible() -> None:
+    result = runner.invoke(app, ["reproduce", "--help"])
+    assert result.exit_code == 0
+    assert "verify-bundle" in result.stdout
