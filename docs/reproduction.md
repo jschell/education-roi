@@ -62,6 +62,20 @@ edu-roi reproduce verify-bundle results/run-001
 The command emits a machine-readable `VALID` result or exits nonzero with `INVALID`. Bundle
 integrity does not elevate the evidence status: fixture-backed runs remain visibly `PROVISIONAL`.
 
+## Deterministic run orchestration
+
+`run_provisional_reproduction` joins the implemented stages behind one typed request. It applies the
+documented ACS sample flow, builds quantile profiles, validates converged profiles against named
+reference fixtures, checks that every cash flow references profiles produced by the same run,
+calculates distributional IRRs, evaluates predeclared targets, creates the provisional report, and
+writes its immutable bundle.
+
+Profile cases and targets are sorted by stable identities before reporting, so caller order does not
+change output bytes. Failed solvers remain visible without profiles or invented reference checks.
+Cash flows with missing or failed profile dependencies stop the run before a result directory is
+published. This orchestration is currently validated with synthetic fixtures; it does not bypass the
+authoritative-input and Table A1 evidence gates.
+
 Current aggregate and quantile comparisons remain provisional fixtures until authoritative ACS
 inputs, exact coefficients, CPI observations, and restricted cost cells are registered. Paper-level
 major reproduction remains blocked until supplemental Table A1 is verified.

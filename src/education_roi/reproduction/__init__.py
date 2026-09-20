@@ -47,6 +47,13 @@ from education_roi.reproduction.reporting import (
     ReproductionReport,
     provisional_reproduction_report,
 )
+from education_roi.reproduction.runner import (
+    ProfileFixture,
+    ProvisionalRunRequest,
+    ProvisionalRunResult,
+    TargetObservation,
+    run_provisional_reproduction,
+)
 from education_roi.reproduction.sample_flow import (
     SampleFlowRecord,
     SampleFlowResult,
@@ -66,6 +73,7 @@ __all__ = [
     "EarningsPoint",
     "EarningsProfile",
     "ProfileValidationReport",
+    "ProfileFixture",
     "QuantileCashFlow",
     "QuantileDefinition",
     "QuantileEarningsCoefficients",
@@ -74,6 +82,8 @@ __all__ = [
     "QuantileIRRResult",
     "QuantileProfileFit",
     "QuantileSolverMetadata",
+    "ProvisionalRunRequest",
+    "ProvisionalRunResult",
     "ReproductionReport",
     "ReproductionBundle",
     "ReproductionStatus",
@@ -81,6 +91,7 @@ __all__ = [
     "SampleFlowRecord",
     "SampleFlowResult",
     "SolverStatus",
+    "TargetObservation",
     "ZhangConfiguration",
     "build_age_earnings_profile",
     "build_quantile_earnings_profile",
@@ -89,6 +100,7 @@ __all__ = [
     "provisional_reproduction_report",
     "published_zhang_configuration",
     "reproduce_aggregate_target",
+    "run_provisional_reproduction",
     "validate_profile_against_reference",
     "verify_reproduction_bundle",
     "write_reproduction_bundle",
