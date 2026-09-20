@@ -42,6 +42,19 @@ original education expense as the principal cost, so financing cost includes onl
 origination fees and does not count principal repayment a second time. A zero-debt schedule is valid
 and produces zero payments and financing costs.
 
+## Completion branches
+
+Graduate-conditional and enrollment returns are separate labeled results. A graduate branch records
+the graduation age and compares the graduate cash flow with its counterfactual. Enrollment return
+also requires an explicit completion probability, a non-completer cash flow, and the non-completion
+exit age. It probability-weights graduate and non-completer incremental cash flows year by year,
+including costs incurred and earnings received before each outcome.
+
+When completion evidence or the non-completer branch is unavailable, the graduate-conditional result
+may still be calculated, but enrollment return is `INSUFFICIENT_DATA`; the engine never substitutes
+the graduate result or treats missing evidence as certain completion. Both results retain the same
+machine-readable completion and timing assumptions.
+
 Opportunity cost is produced by subtracting the complete counterfactual scenario net flow from the
 option net flow at each matching age. Scenarios must cover identical, consecutive ages. This supports
 education versus workforce and option-versus-option comparisons with the same calculation.

@@ -1,5 +1,13 @@
 """Deterministic education-path cash-flow models and metrics."""
 
+from education_roi.cashflow.completion import (
+    BranchResult,
+    BranchStatus,
+    CompletionAssumptions,
+    CompletionReturnSet,
+    ReturnPerspective,
+    completion_return_branches,
+)
 from education_roi.cashflow.costs import (
     CostAssumptions,
     EducationCostInput,
@@ -38,11 +46,15 @@ from education_roi.cashflow.models import (
 __all__ = [
     "AnnualCashFlow",
     "AnnualDebtPayment",
+    "BranchResult",
+    "BranchStatus",
     "BreakEvenResult",
     "BreakEvenStatus",
     "CashFlowPoint",
     "CashFlowSeries",
     "CPIConversion",
+    "CompletionAssumptions",
+    "CompletionReturnSet",
     "CostAssumptions",
     "DollarMode",
     "EducationCostInput",
@@ -52,10 +64,12 @@ __all__ = [
     "LoanSchedule",
     "LoanTerms",
     "MoneyBasis",
+    "ReturnPerspective",
     "ScenarioCashFlow",
     "break_even_age",
     "build_education_cost_schedule",
     "build_loan_schedule",
+    "completion_return_branches",
     "incremental_cash_flow",
     "internal_rate_of_return",
     "lifetime_net_value",
