@@ -45,3 +45,17 @@ provider is connected; this command does not invent an earnings curve.
 Resolved scenarios are emitted in counterfactual-first order with canonical per-scenario and graph
 hashes. Until the Plan 07 evidence gate is resolved, scenario output remains provisional and must
 not be labeled decision-grade.
+
+## Synthetic analysis boundary
+
+`edu-roi scenario analyze` combines the resolved-value fixture with a separate, explicit
+age-earnings fixture. The latter identifies source, exact vintage, artifact and transformation IDs,
+quantile, enrollment duration, and one earnings value for every modeled age. Conditional-graduate
+analysis requires an on-time-graduate profile. Enrollment-return analysis requires a distinct
+profile and enrollment duration for every completion outcome whose probability is nonzero.
+
+The command constructs annual component cash flows, applies the disclosed selection adjustment,
+subtracts the referenced counterfactual, and reports NPV, IRR, lifetime values, and break-even age.
+If any cost, financing, completion, timing, or earnings input is unresolved, it returns a structured
+`INSUFFICIENT_DATA` result instead of calculating partial metrics. Fixtures are synthetic test
+infrastructure, not institution-level evidence.

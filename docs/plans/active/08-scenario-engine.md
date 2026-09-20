@@ -61,6 +61,12 @@ accepted.
 - Resolved scenarios and graphs are counterfactual-first, canonical, and deterministically hashed.
 - `edu-roi scenario resolve` supports an explicitly fixture-backed provider for integration tests;
   live IPEDS and Scorecard providers remain a later slice.
+- `edu-roi scenario analyze` now builds annual option and counterfactual cash flows from complete
+  synthetic fixtures and produces deterministic NPV, IRR, lifetime-value, and break-even results.
+- Conditional-graduate and enrollment-return perspectives remain separate. Enrollment analysis
+  requires outcome-specific earnings and timing for every nonzero completion state.
+- Incomplete numeric, earnings, timing, or outcome evidence produces a structured
+  `INSUFFICIENT_DATA` result; partial metrics are not published.
 
 ## Validation rules
 
