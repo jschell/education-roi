@@ -64,12 +64,20 @@ def _pairwise(
     discount_rate: float,
     basis: MoneyBasis,
 ) -> PairwiseComparison:
-    identity = {"option_id": option.scenario_id, "counterfactual_id": counterfactual.scenario_id}
+    option_id = option.scenario_id
+    counterfactual_id = counterfactual.scenario_id
     if (
         option.status is AnalysisStatus.INSUFFICIENT_DATA
         or counterfactual.status is AnalysisStatus.INSUFFICIENT_DATA
     ):
-        payload = {**identity, "status": AnalysisStatus.INSUFFICIENT_DATA.value, "result": None}
+        status = AnalysisStatus.INSUFFICIENT_DATA
+        result_payload: dict[str, object] | None = None
+        payload = {
+            "option_id": option_id,
+            "counterfactual_id": counterfactual_id,
+            "status": status.value,
+            "result": result_payload,
+        }
     else:
         option_points = option.annual_cash_flow
         baseline_points = counterfactual.annual_cash_flow
@@ -80,16 +88,18 @@ def _pairwise(
         series = CashFlowSeries(
             f"{option.scenario_id} vs {counterfactual.scenario_id}", basis, points
         )
-        artifact_ids = tuple(
-            sorted(
-                {
-                    str(identifier)
-                    for analysis in (option, counterfactual)
-                    if analysis.result is not None
-                    for identifier in analysis.result["provenance"]["dataset_artifact_ids"]  # type: ignore[index,union-attr]
-                }
-            )
-        )
+        artifact_values: set[str] = set()
+        for analysis in (option, counterfactual):
+            if analysis.result is None:
+                continue
+            provenance_record = analysis.result.get("provenance")
+            if not isinstance(provenance_record, dict):
+                raise ScenarioComparisonError("analysis result is missing provenance")
+            identifiers = provenance_record.get("dataset_artifact_ids")
+            if not isinstance(identifiers, list):
+                raise ScenarioComparisonError("analysis provenance is missing artifact IDs")
+            artifact_values.update(str(identifier) for identifier in identifiers)
+        artifact_ids = tuple(sorted(artifact_values))
         provenance = ComputationProvenance(
             model_name="scenario-pairwise-comparison",
             model_version="0.1.0",
@@ -110,11 +120,24 @@ def _pairwise(
             lifetime_earnings=option_earnings,
             provenance=provenance,
         )
-        payload = {**identity, "status": AnalysisStatus.AVAILABLE.value, "result": result.as_dict()}
+        status = AnalysisStatus.AVAILABLE
+        result_payload = result.as_dict()
+        payload = {
+            "option_id": option_id,
+            "counterfactual_id": counterfactual_id,
+            "status": status.value,
+            "result": result_payload,
+        }
     digest = sha256(
         dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     ).hexdigest()
-    return PairwiseComparison(**payload, comparison_hash=digest)
+    return PairwiseComparison(
+        option_id=option_id,
+        counterfactual_id=counterfactual_id,
+        status=status,
+        result=result_payload,
+        comparison_hash=digest,
+    )
 
 
 def compare_scenarios(

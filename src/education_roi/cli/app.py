@@ -386,12 +386,15 @@ def scenario_verify_bundle(
     except ComparisonBundleError as error:
         typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
         raise typer.Exit(code=1) from None
+    files = manifest.get("files")
+    if not isinstance(files, list):  # pragma: no cover - verifier enforces this
+        raise typer.Exit(code=1)
     typer.echo(
         json.dumps(
             {
                 "status": "VALID",
                 "report_hash": manifest["report_hash"],
-                "files_checked": len(manifest["files"]),
+                "files_checked": len(files),
             },
             sort_keys=True,
         )

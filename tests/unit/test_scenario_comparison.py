@@ -89,7 +89,9 @@ def test_comparison_bundle_is_deterministic_and_detects_tampering(tmp_path: Path
     )
     assert (first / "manifest.json").read_bytes() == (second / "manifest.json").read_bytes()
     manifest = verify_comparison_bundle(first)
-    assert len(manifest["files"]) == 9
+    records = manifest["files"]
+    assert isinstance(records, list)
+    assert len(records) == 9
     assert (first / "results.csv").read_text(encoding="utf-8").startswith("record_type,")
     (first / "comparison.json").write_text("tampered", encoding="utf-8")
     with pytest.raises(ComparisonBundleError, match="integrity mismatch"):

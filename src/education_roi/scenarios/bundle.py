@@ -6,6 +6,7 @@ from io import StringIO
 from json import dumps, loads
 from pathlib import Path
 from shutil import rmtree
+from typing import cast
 
 from education_roi.scenarios.analysis import EarningsFixture
 from education_roi.scenarios.comparison import ComparisonReport
@@ -164,8 +165,16 @@ def write_comparison_bundle(
 
 def verify_comparison_bundle(destination: Path) -> dict[str, object]:
     try:
-        manifest = loads((destination / "manifest.json").read_text(encoding="utf-8"))
-        for record in manifest["files"]:
+        manifest = cast(
+            dict[str, object],
+            loads((destination / "manifest.json").read_text(encoding="utf-8")),
+        )
+        records = manifest.get("files")
+        if not isinstance(records, list):
+            raise ComparisonBundleError("manifest files must be a list")
+        for record in records:
+            if not isinstance(record, dict):
+                raise ComparisonBundleError("manifest file record must be an object")
             path = destination / record["path"]
             content = path.read_bytes()
             if len(content) != record["size"] or _digest(content) != record["sha256"]:
