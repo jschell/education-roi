@@ -339,11 +339,7 @@ def analyze_scenario(
                 for profile in (*option_profiles, *baseline_profiles)
                 for identifier in profile.transformation_ids
             }
-            | {
-                identifier
-                for item in resolved_inputs
-                for identifier in item.transformation_ids
-            }
+            | {identifier for item in resolved_inputs for identifier in item.transformation_ids}
         )
     )
     provenance = ComputationProvenance(
