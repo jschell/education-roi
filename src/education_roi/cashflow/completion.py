@@ -1,5 +1,6 @@
 """Completion-conditioned and enrollment-weighted cash-flow branches."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from math import isfinite
@@ -54,7 +55,7 @@ class BranchResult:
     status: BranchStatus
     cash_flow: CashFlowSeries | None
     reason: str | None
-    assumptions: dict[str, float | int | None]
+    assumptions: Mapping[str, object]
 
     def __post_init__(self) -> None:
         if self.status is BranchStatus.AVAILABLE:
