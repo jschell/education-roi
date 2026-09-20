@@ -8,6 +8,12 @@ IPEDS_CHARGES_DATASET = DatasetDefinition(
     name="IPEDS Institutional Characteristics: Academic Year Charges",
     allowed_domains=("nces.ed.gov",),
 )
+IPEDS_DICTIONARY_DATASET = DatasetDefinition(
+    dataset_id="ipeds-institutional-characteristics-dictionary",
+    publisher="National Center for Education Statistics",
+    name="IPEDS Institutional Characteristics: Academic Year Charges Dictionary",
+    allowed_domains=("nces.ed.gov",),
+)
 
 IPEDS_SCHEMA_VERSION = "ipeds-ic-ay-v1"
 UNITID_COLUMN = "UNITID"
