@@ -40,6 +40,11 @@ class TuitionResidency(StrEnum):
     OUT_OF_STATE = "out_of_state"
 
 
+class AttendanceBasis(StrEnum):
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+
+
 class ValueSpec(StrictModel):
     """A value is supplied, delegated to a named dataset, or explicitly unavailable."""
 
@@ -78,6 +83,7 @@ class InstitutionConfig(StrictModel):
     unitid: int = Field(gt=0)
     name: str | None = None
     tuition_residency: TuitionResidency
+    attendance_basis: AttendanceBasis
 
 
 class ProgramConfig(StrictModel):

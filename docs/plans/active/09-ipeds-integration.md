@@ -27,6 +27,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - deterministic `ipeds compare-inventory` CLI output with optional CI failure on review-required
   changes.
 - production `scenario resolve-ipeds` CLI resolution from validated immutable registry artifacts.
+- explicit full-time/part-time attendance basis with full-time-only annual charge resolution and no
+  part-time conversion or fallback.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -34,12 +36,11 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 1. Verify dictionary parsing against official workbook bytes in an enabled live environment.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
-3. Add attendance-basis policies.
-4. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
-5. Preserve reported basis and population definitions.
-6. Map programs using versioned CIP and handle institution identity changes.
-7. Generate institution/year analytical Parquet tables.
-8. Add scenario completion resolution and release comparisons.
+3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
+4. Preserve reported basis and population definitions.
+5. Map programs using versioned CIP and handle institution identity changes.
+6. Generate institution/year analytical Parquet tables.
+7. Add scenario completion resolution and release comparisons.
 
 ## Tests still required
 

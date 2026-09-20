@@ -7,6 +7,7 @@ from education_roi.ipeds import IPEDS_CHARGES_DATASET, IPEDSArchiveError, IPEDSV
 from education_roi.provenance.models import ApprovalState
 from education_roi.provenance.store import ArtifactStore, Registry
 from education_roi.scenarios import (
+    AttendanceBasis,
     ResolutionRequest,
     ScenarioResolutionError,
     TuitionResidency,
@@ -28,6 +29,7 @@ def provider(
     *,
     validate: bool = True,
     residency: TuitionResidency = TuitionResidency.IN_STATE,
+    attendance_basis: AttendanceBasis = AttendanceBasis.FULL_TIME,
 ) -> tuple[IPEDSValueProvider, str]:
     source = make_zip(tmp_path / "charges.zip", body)
     registry = Registry(tmp_path / "data/manifests/registry.sqlite")
@@ -45,7 +47,9 @@ def provider(
         registry.transition(manifest.artifact_id, ApprovalState.VALIDATED, "test validation")
     scenario = load_scenario_file(EXAMPLES / "example-bachelors.yaml").scenario
     assert scenario.education is not None and scenario.education.institution is not None
-    institution = scenario.education.institution.model_copy(update={"tuition_residency": residency})
+    institution = scenario.education.institution.model_copy(
+        update={"tuition_residency": residency, "attendance_basis": attendance_basis}
+    )
     education = scenario.education.model_copy(update={"institution": institution})
     scenario = scenario.model_copy(update={"education": education})
     resolver = IPEDSValueProvider(registry, tmp_path / "data/raw", {scenario.id: scenario})
@@ -122,6 +126,16 @@ def test_provider_does_not_fall_back_when_selected_residency_is_absent(tmp_path:
         residency=TuitionResidency.OUT_OF_STATE,
     )
     assert resolver.resolve(request()) is None
+
+
+def test_provider_does_not_convert_annual_charges_for_part_time_attendance(tmp_path: Path) -> None:
+    resolver, _ = provider(
+        tmp_path,
+        "UNITID,CHG2AY3,CHG4AY3\n236948,12000,900\n",
+        attendance_basis=AttendanceBasis.PART_TIME,
+    )
+    assert resolver.resolve(request()) is None
+    assert resolver.resolve(request("costs.books_and_supplies")) is None
 
 
 @pytest.mark.parametrize("cell", ["", "-1"])
