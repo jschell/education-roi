@@ -50,12 +50,8 @@ def estimate(
 def test_fallback_is_deterministic_and_discloses_actual_level() -> None:
     institution = estimate("institution", CostLevel.INSTITUTION, 20_000)
     sector = estimate("sector", CostLevel.SECTOR_CREDENTIAL, 15_000)
-    first = select_cost_estimate(
-        CostLevel.INSTITUTION_PROGRAM, (sector, institution)
-    )
-    second = select_cost_estimate(
-        CostLevel.INSTITUTION_PROGRAM, (institution, sector)
-    )
+    first = select_cost_estimate(CostLevel.INSTITUTION_PROGRAM, (sector, institution))
+    second = select_cost_estimate(CostLevel.INSTITUTION_PROGRAM, (institution, sector))
     assert first == second
     assert first.status is CostSelectionStatus.AVAILABLE
     assert first.estimate == institution
@@ -87,10 +83,7 @@ def test_cost_sensitivity_changes_npv_and_irr_monotonically() -> None:
     cash_flow = CashFlowSeries(
         "earnings advantage before education costs",
         MoneyBasis(DollarMode.REAL, 2021),
-        tuple(
-            CashFlowPoint(age, 0 if age < 22 else 100_000)
-            for age in range(18, 23)
-        ),
+        tuple(CashFlowPoint(age, 0 if age < 22 else 100_000) for age in range(18, 23)),
     )
     sensitivity = CostSensitivitySet(
         estimate("low", CostLevel.INSTITUTION, 10_000),
@@ -102,9 +95,7 @@ def test_cost_sensitivity_changes_npv_and_irr_monotonically() -> None:
     )
     assert [item.case.value for item in results] == ["LOW", "BASE", "HIGH"]
     assert (
-        results[0].net_present_value
-        > results[1].net_present_value
-        > results[2].net_present_value
+        results[0].net_present_value > results[1].net_present_value > results[2].net_present_value
     )
     roots = [item.internal_rate_of_return.roots[0] for item in results]
     assert roots[0] > roots[1] > roots[2]
@@ -125,9 +116,7 @@ def test_report_exposes_substitute_costs_and_bundle_payload_is_deterministic(
         estimate("base", CostLevel.INSTITUTION, 20_000),
         estimate("high", CostLevel.INSTITUTION, 30_000),
     )
-    analysis = evaluate_cost_sensitivity(
-        cash_flow, cases, education_ages=(18,), discount_rate=0.04
-    )
+    analysis = evaluate_cost_sensitivity(cash_flow, cases, education_ages=(18,), discount_rate=0.04)
     report = provisional_reproduction_report(
         configuration_hash="config",
         dataset_hashes=("dataset",),
