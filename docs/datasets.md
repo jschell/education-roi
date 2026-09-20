@@ -46,6 +46,10 @@ The first implemented contract uses the Institutional Characteristics academic-y
 
 Blank cells, negative sentinel values, absent UNITIDs, and absent exact releases remain unavailable. They are never converted to zero. Release-page discovery, dictionaries, imputation-status interpretation, residency policy beyond in-state charges, completion, aid, program production, and release comparison remain subsequent Plan 09 slices.
 
+The NCES institution inventory reviewed on 2026-09-20 showed that release availability differs by component: Institutional Characteristics displayed 2025–26 provisional availability and final data through 2023–24, while Pricing and Tuition displayed 2023–24. The release catalog therefore treats component, collection year, publication status, data URL, dictionary URL, and inventory URL as one reviewed record. Default selection chooses the newest final release for the exact component. Preliminary or provisional data require both an exact release ID and explicit opt-in.
+
+The catalog contract does not synthesize download paths or treat an adjacent component's newer year as a charges release. Because the dynamic NCES download page could not be fetched reliably from the implementation environment, no supposedly “current” URL catalog is committed yet. Exact data and dictionary links must first be reviewed from the official inventory and then stored together as an auditable catalog input.
+
 ### College Scorecard
 
 Official data home: https://collegescorecard.ed.gov/data/
