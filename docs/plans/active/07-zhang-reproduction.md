@@ -85,6 +85,9 @@ For each target retain:
   microdata will not be pursued. Public substitutes require provenance, fallback disclosure, and
   sensitivity bounds; they can support a methodologically aligned reproduction but not an
   exact-input replication.
+- Public cost contracts, deterministic fallback selection, explicit insufficient-data handling,
+  low/base/high NPV and IRR sensitivity, report provenance, and immutable bundle output are
+  implemented with fixed fixtures. Live source adapters remain in Plans 09 and 10.
 
 ## Acceptance criteria
 

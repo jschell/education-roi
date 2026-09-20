@@ -10,10 +10,11 @@ from tempfile import mkdtemp
 
 from education_roi.reproduction.reporting import ReproductionReport
 
-BUNDLE_SCHEMA_VERSION = "reproduction-bundle-v1"
+BUNDLE_SCHEMA_VERSION = "reproduction-bundle-v2"
 ARTIFACT_NAMES = (
     "cash-flows.json",
     "comparisons.json",
+    "cost-analysis.json",
     "profile-validations.json",
     "profiles.json",
     "report.json",
@@ -89,6 +90,7 @@ def write_reproduction_bundle(
         "profile-validations.json": payload["profile_validations"],
         "cash-flows.json": payload["cash_flows"],
         "comparisons.json": payload["comparisons"],
+        "cost-analysis.json": payload["cost_analysis"],
     }
     temporary = Path(mkdtemp(prefix=f".{run_id}.", dir=results_root))
     try:
@@ -191,6 +193,7 @@ def verify_reproduction_bundle(path: Path) -> ReproductionBundle:
         ("profile-validations.json", "profile_validations"),
         ("cash-flows.json", "cash_flows"),
         ("comparisons.json", "comparisons"),
+        ("cost-analysis.json", "cost_analysis"),
     )
     if any(_read_json(path / name) != report.get(key) for name, key in section_pairs):
         raise BundleIntegrityError("split artifact does not match report.json")

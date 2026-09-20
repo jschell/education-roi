@@ -33,6 +33,7 @@ class ReproductionReport:
     profile_validations: tuple[ProfileValidationReport, ...]
     cash_flows: tuple[QuantileIRRResult, ...]
     comparisons: tuple[dict[str, object], ...]
+    cost_analysis: tuple[dict[str, object], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.schema_version.strip() or not self.configuration_hash.strip():
@@ -41,6 +42,10 @@ class ReproductionReport:
             raise ValueError("report requires nonempty dataset hashes")
         if self.certification_status is CertificationStatus.CERTIFIED and self.blockers:
             raise ValueError("a certified report cannot retain blockers")
+        if self.certification_status is CertificationStatus.CERTIFIED and any(
+            not bool(item.get("exact_input_eligible", False)) for item in self.cost_analysis
+        ):
+            raise ValueError("a certified exact-input report cannot use substituted costs")
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -56,6 +61,7 @@ class ReproductionReport:
             "profile_validations": [item.as_dict() for item in self.profile_validations],
             "cash_flows": [item.as_dict() for item in self.cash_flows],
             "comparisons": list(self.comparisons),
+            "cost_analysis": list(self.cost_analysis),
         }
 
     def to_json(self) -> str:
@@ -112,6 +118,22 @@ class ReproductionReport:
                 )
         else:
             lines.append("- None")
+        lines.extend(["", "## Cost evidence and sensitivity", ""])
+        if self.cost_analysis:
+            lines.append("| Case | Evidence | Actual level | Net cost | Exact-input eligible |")
+            lines.append("|---|---|---|---:|---:|")
+            for cost_item in self.cost_analysis:
+                estimate = cost_item.get("estimate", {})
+                estimate = estimate if isinstance(estimate, dict) else {}
+                components = estimate.get("components", {})
+                components = components if isinstance(components, dict) else {}
+                lines.append(
+                    f"| {cost_item.get('case', '—')} | {estimate.get('evidence', '—')} | "
+                    f"{estimate.get('actual_level', '—')} | {components.get('net_cost', '—')} | "
+                    f"{'yes' if estimate.get('exact_input_eligible') else 'no'} |"
+                )
+        else:
+            lines.append("- No cost analysis supplied")
         lines.extend(["", "## Ambiguities", ""])
         lines.extend(f"- {item}" for item in self.ambiguity_notes)
         if not self.ambiguity_notes:
@@ -130,12 +152,13 @@ def provisional_reproduction_report(
     comparisons: Sequence[dict[str, object]],
     blockers: tuple[str, ...],
     ambiguity_notes: tuple[str, ...],
+    cost_analysis: Sequence[dict[str, object]] = (),
 ) -> ReproductionReport:
     """Build a report that cannot accidentally certify provisional fixture results."""
     if not blockers:
         raise ValueError("a provisional reproduction report must name its evidence blockers")
     return ReproductionReport(
-        "reproduction-report-v1",
+        "reproduction-report-v2",
         CertificationStatus.PROVISIONAL,
         configuration_hash,
         dataset_hashes,
@@ -146,4 +169,5 @@ def provisional_reproduction_report(
         tuple(profile_validations),
         tuple(cash_flows),
         tuple(comparisons),
+        tuple(cost_analysis),
     )
