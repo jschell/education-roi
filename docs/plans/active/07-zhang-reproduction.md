@@ -80,7 +80,11 @@ For each target retain:
 - An explicitly synthetic installed-CLI smoke run and subprocess integration test now cover the
   clean-environment reproduction path without weakening the paper-data evidence gate.
 - Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
-  inputs, exact coefficients, restricted cost cells, and supplemental Table A1.
+  inputs, exact coefficients, public cost-substitute implementation, and supplemental Table A1.
+- Per [Decision 0001](../../decisions/0001-proceed-without-restricted-npsas.md), restricted NPSAS
+  microdata will not be pursued. Public substitutes require provenance, fallback disclosure, and
+  sensitivity bounds; they can support a methodologically aligned reproduction but not an
+  exact-input replication.
 
 ## Acceptance criteria
 

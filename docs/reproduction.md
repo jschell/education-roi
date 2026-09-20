@@ -93,5 +93,8 @@ and verifies both bundles. Passing this smoke run demonstrates packaging and orc
 agreement with Zhang et al.
 
 Current aggregate and quantile comparisons remain provisional fixtures until authoritative ACS
-inputs, exact coefficients, CPI observations, and restricted cost cells are registered. Paper-level
-major reproduction remains blocked until supplemental Table A1 is verified.
+inputs, exact coefficients, and CPI observations are registered. Under [Decision 0001](decisions/0001-proceed-without-restricted-npsas.md),
+the project will not pursue restricted NPSAS microdata: public or published cost substitutes must be
+identified in provenance and bounded through sensitivity analysis. Results using those substitutes
+may be described as a methodologically aligned reproduction, but never as an exact-input
+replication. Paper-level major reproduction remains blocked until supplemental Table A1 is verified.
