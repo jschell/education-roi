@@ -59,3 +59,16 @@ subtracts the referenced counterfactual, and reports NPV, IRR, lifetime values, 
 If any cost, financing, completion, timing, or earnings input is unresolved, it returns a structured
 `INSUFFICIENT_DATA` result instead of calculating partial metrics. Fixtures are synthetic test
 infrastructure, not institution-level evidence.
+
+## Comparison run bundles
+
+`edu-roi compare` accepts two or more education scenario IDs that share an explicit counterfactual,
+money basis, horizon, and earnings quantile. It reports each scenario against the common baseline
+and every pairwise education-option comparison. Different quantiles are rejected rather than being
+presented as comparable.
+
+Each invocation writes a new immutable run directory containing the original scenario YAML,
+resolved inputs, earnings fixture, assumptions, dataset references, validation findings, full JSON
+comparison, and CSV metric table. `manifest.json` records byte sizes and SHA-256 hashes. Existing
+run directories are never overwritten, and `edu-roi scenario verify-bundle RUN_DIRECTORY` detects
+missing or altered artifacts. All fixture-backed bundles are visibly marked provisional.

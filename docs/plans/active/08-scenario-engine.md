@@ -67,6 +67,12 @@ accepted.
   requires outcome-specific earnings and timing for every nonzero completion state.
 - Incomplete numeric, earnings, timing, or outcome evidence produces a structured
   `INSUFFICIENT_DATA` result; partial metrics are not published.
+- `edu-roi compare` validates common counterfactual, money basis, horizon, and earnings quantile,
+  then emits side-by-side and pairwise results for two or more options.
+- Comparison runs preserve source scenarios, resolved inputs, earnings, assumptions, dataset
+  references, cash flows, results, and validation findings in a new immutable directory.
+- JSON and CSV outputs are covered by a SHA-256 manifest; deterministic reruns and tamper detection
+  are tested through `edu-roi scenario verify-bundle`.
 
 ## Validation rules
 
