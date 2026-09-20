@@ -60,6 +60,18 @@ def test_provider_resolves_exact_unitid_release_and_column_with_provenance(tmp_p
     assert books is not None and books.value == 900
     assert tuition.artifact_id == artifact_id
     assert tuition.transformation_ids == ("ipeds:2023-24-provisional:unitid:236948:CHG2AY3",)
+    assert tuition.source_metadata == ("XCHG2AY3=<absent>",)
+
+
+def test_provider_retains_raw_status_without_interpreting_it(tmp_path: Path) -> None:
+    resolver, _ = provider(
+        tmp_path,
+        "UNITID,CHG2AY3,CHG4AY3,XCHG2AY3,XCHG4AY3\n236948,12000,900,R,I\n",
+    )
+    tuition = resolver.resolve(request())
+    books = resolver.resolve(request("costs.books_and_supplies"))
+    assert tuition is not None and tuition.source_metadata == ("XCHG2AY3=R",)
+    assert books is not None and books.source_metadata == ("XCHG4AY3=I",)
 
 
 @pytest.mark.parametrize("cell", ["", "-1"])

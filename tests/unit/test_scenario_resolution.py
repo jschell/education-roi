@@ -33,6 +33,7 @@ def fixture_values() -> dict[str, ProviderValue]:
             vintage="2023-24-provisional",
             artifact_id="ipeds-artifact-sha256",
             transformation_ids=("select-unitid-236948",),
+            source_metadata=("XCHG2AY3=R",),
         ),
         "example-bachelors.costs.books_and_supplies": ProviderValue(
             value=900,
@@ -64,6 +65,7 @@ def test_resolution_is_deterministic_and_preserves_zero_and_provenance() -> None
     living = next(item for item in bachelors.values if item.path == "costs.incremental_living_cost")
     assert tuition.artifact_id == "ipeds-artifact-sha256"
     assert tuition.transformation_ids == ("select-unitid-236948",)
+    assert tuition.source_metadata == ("XCHG2AY3=R",)
     assert living.value == 0
     assert living.source == "scenario-assumption"
     assert bachelors.status is ResolutionStatus.INSUFFICIENT_DATA

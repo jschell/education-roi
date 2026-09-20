@@ -45,6 +45,7 @@ class ProviderValue(StrictModel):
     vintage: str = Field(min_length=1)
     artifact_id: str = Field(min_length=1)
     transformation_ids: tuple[str, ...] = ()
+    source_metadata: tuple[str, ...] = ()
 
 
 class ValueProvider(Protocol):
@@ -83,6 +84,7 @@ class ResolvedValue(StrictModel):
     vintage: str | None = None
     artifact_id: str | None = None
     transformation_ids: tuple[str, ...] = ()
+    source_metadata: tuple[str, ...] = ()
     input_status: ValueStatus
     note: str | None = None
 
@@ -207,6 +209,7 @@ def _resolve_value(
         vintage=result.vintage,
         artifact_id=result.artifact_id,
         transformation_ids=result.transformation_ids,
+        source_metadata=result.source_metadata,
         input_status=specification.status,
         note=specification.note,
     )
