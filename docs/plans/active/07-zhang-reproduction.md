@@ -77,6 +77,8 @@ For each target retain:
 - A typed end-to-end runner now connects ACS sample flow, quantile fitting, independent fixture
   validation, profile-linked cash flows, target comparisons, reports, and immutable bundles in one
   deterministic execution.
+- An explicitly synthetic installed-CLI smoke run and subprocess integration test now cover the
+  clean-environment reproduction path without weakening the paper-data evidence gate.
 - Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
   inputs, exact coefficients, restricted cost cells, and supplemental Table A1.
 

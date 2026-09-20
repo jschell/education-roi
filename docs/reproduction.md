@@ -76,6 +76,22 @@ Cash flows with missing or failed profile dependencies stop the run before a res
 published. This orchestration is currently validated with synthetic fixtures; it does not bypass the
 authoritative-input and Table A1 evidence gates.
 
+## Clean-environment smoke run
+
+An explicitly synthetic, versioned fixture exercises the complete installed CLI path without network
+access or restricted research inputs:
+
+```console
+edu-roi reproduce synthetic-run --results-root results --run-id smoke-v1
+edu-roi reproduce verify-bundle results/smoke-v1
+```
+
+The command, report blockers, coefficient sources, target reference, and console output all label the
+run as synthetic and provisional. Fixture configuration and records receive deterministic SHA-256
+identifiers. An integration test launches two fresh Python subprocesses, compares every output byte,
+and verifies both bundles. Passing this smoke run demonstrates packaging and orchestration, not
+agreement with Zhang et al.
+
 Current aggregate and quantile comparisons remain provisional fixtures until authoritative ACS
 inputs, exact coefficients, CPI observations, and restricted cost cells are registered. Paper-level
 major reproduction remains blocked until supplemental Table A1 is verified.

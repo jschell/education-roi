@@ -13,6 +13,11 @@ from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.store import ArtifactStore, Registry
 from education_roi.reproduction.bundle import BundleIntegrityError, verify_reproduction_bundle
+from education_roi.reproduction.runner import run_provisional_reproduction
+from education_roi.reproduction.synthetic import (
+    SYNTHETIC_FIXTURE_VERSION,
+    synthetic_provisional_request,
+)
 
 app = typer.Typer(
     name="edu-roi",
@@ -159,6 +164,30 @@ def reproduce_verify_bundle(
                 "run_id": verified.run_id,
                 "certification_status": verified.certification_status,
                 "files_checked": len(verified.artifacts),
+            },
+            sort_keys=True,
+        )
+    )
+
+
+@reproduce_app.command("synthetic-run")
+def reproduce_synthetic_run(
+    results_root: Annotated[Path, typer.Option(help="Directory that will contain the run.")],
+    run_id: Annotated[str, typer.Option(help="New immutable run identifier.")] = "synthetic-run",
+) -> None:
+    """Run the explicitly synthetic clean-environment reproduction fixture."""
+    result = run_provisional_reproduction(
+        synthetic_provisional_request(), results_root=results_root, run_id=run_id
+    )
+    typer.echo(
+        json.dumps(
+            {
+                "status": "WRITTEN",
+                "certification_status": result.report.certification_status.value,
+                "fixture_version": SYNTHETIC_FIXTURE_VERSION,
+                "run_id": result.bundle.run_id,
+                "bundle_path": str(result.bundle.path),
+                "warning": "SYNTHETIC FIXTURE; NOT A PAPER REPRODUCTION",
             },
             sort_keys=True,
         )
