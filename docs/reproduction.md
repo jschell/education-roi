@@ -13,6 +13,12 @@ differences, tolerance, configuration hash, dataset hashes, and ambiguity notes.
 configuration pins ACS 2009–2021, ages 18–65, 2021 dollars, college ages 18–21, $1,000 books, $3,268
 student earnings, 50% nontuition attribution, and 25% selection adjustment.
 
-The next implementation slice will build fixed age-earnings profile fixtures and connect supported
-aggregate sample outputs to the financial engine. Paper-labeled major reproduction remains blocked
-until Table A1 is verified.
+Age-earnings profiles now evaluate the documented quadratic log-earnings equation for ages 18–65
+while preserving standardized covariates, the common-versus-group-specific slope interpretation,
+coefficient source, and a deterministic coefficient hash. Aggregate integration applies the
+selection adjustment to annual earnings, builds four years of college costs and student earnings,
+and sends complete annual cash flows through the financial engine.
+
+Current aggregate comparisons remain provisional fixtures until exact coefficients, ACS artifacts,
+CPI observations, and restricted cost cells are registered. Paper-labeled major reproduction remains
+blocked until Table A1 is verified.
