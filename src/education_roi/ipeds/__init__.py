@@ -4,9 +4,13 @@ from education_roi.ipeds.archive import IPEDSArchiveError, parse_nonnegative_cos
 from education_roi.ipeds.catalog import (
     IPEDSCatalogError,
     IPEDSComponent,
+    IPEDSInventoryChange,
+    IPEDSInventoryChangeType,
+    IPEDSInventoryComparison,
     IPEDSPublicationStatus,
     IPEDSRelease,
     IPEDSReleaseCatalog,
+    compare_release_catalogs,
     select_release,
 )
 from education_roi.ipeds.dictionary import (
@@ -40,6 +44,9 @@ __all__ = [
     "IPEDSArchiveError",
     "IPEDSCatalogError",
     "IPEDSComponent",
+    "IPEDSInventoryChange",
+    "IPEDSInventoryChangeType",
+    "IPEDSInventoryComparison",
     "IPEDSPublicationStatus",
     "IPEDSRelease",
     "IPEDSReleaseCatalog",
@@ -50,6 +57,7 @@ __all__ = [
     "IPEDS_DICTIONARY_DATASET",
     "IPEDS_SCHEMA_VERSION",
     "RegisteredIPEDSRelease",
+    "compare_release_catalogs",
     "parse_nonnegative_cost",
     "read_charge_rows",
     "read_dictionary",

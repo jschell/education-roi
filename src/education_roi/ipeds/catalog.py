@@ -23,6 +23,14 @@ class IPEDSComponent(StrEnum):
     ACADEMIC_YEAR_CHARGES = "academic-year-charges"
 
 
+class IPEDSInventoryChangeType(StrEnum):
+    """A review state produced by comparing two explicit inventory snapshots."""
+
+    DISCOVERED = "discovered"
+    CHANGED = "changed"
+    MISSING = "missing"
+
+
 class IPEDSRelease(BaseModel):
     """One human-reviewed release discovered through an official NCES inventory."""
 
@@ -77,6 +85,98 @@ class IPEDSReleaseCatalog(BaseModel):
             return cls.model_validate_json(path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise IPEDSCatalogError(f"invalid IPEDS release catalog {path}: {error}") from error
+
+
+class IPEDSInventoryChange(BaseModel):
+    """One catalog difference requiring human review before catalog promotion."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    change_type: IPEDSInventoryChangeType
+    release_id: str
+    component: IPEDSComponent
+    previous: IPEDSRelease | None = None
+    observed: IPEDSRelease | None = None
+
+    @model_validator(mode="after")
+    def snapshots_match_change_type(self) -> Self:
+        if self.change_type is IPEDSInventoryChangeType.DISCOVERED:
+            valid = self.previous is None and self.observed is not None
+        elif self.change_type is IPEDSInventoryChangeType.MISSING:
+            valid = self.previous is not None and self.observed is None
+        else:
+            valid = (
+                self.previous is not None
+                and self.observed is not None
+                and self.previous != self.observed
+            )
+        if not valid:
+            raise ValueError("inventory snapshots do not match change type")
+        for snapshot in (self.previous, self.observed):
+            if snapshot is not None and (
+                snapshot.release_id != self.release_id or snapshot.component is not self.component
+            ):
+                raise ValueError("inventory change identity does not match snapshot")
+        return self
+
+
+class IPEDSInventoryComparison(BaseModel):
+    """Deterministic differences between reviewed and newly observed inventories."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: str = "1.0"
+    reviewed_at: str
+    observed_at: str
+    changes: tuple[IPEDSInventoryChange, ...]
+
+    @property
+    def review_required(self) -> bool:
+        return bool(self.changes)
+
+
+def compare_release_catalogs(
+    reviewed: IPEDSReleaseCatalog,
+    observed: IPEDSReleaseCatalog,
+) -> IPEDSInventoryComparison:
+    """Compare explicit snapshots without constructing URLs or promoting observations."""
+
+    def keyed(catalog: IPEDSReleaseCatalog) -> dict[tuple[str, str], IPEDSRelease]:
+        return {
+            (release.component.value, release.release_id): release for release in catalog.releases
+        }
+
+    previous_by_key = keyed(reviewed)
+    observed_by_key = keyed(observed)
+    changes: list[IPEDSInventoryChange] = []
+    for component_value, release_id in sorted(previous_by_key.keys() | observed_by_key.keys()):
+        previous = previous_by_key.get((component_value, release_id))
+        current = observed_by_key.get((component_value, release_id))
+        if previous == current:
+            continue
+        if previous is None:
+            change_type = IPEDSInventoryChangeType.DISCOVERED
+            component = current.component  # type: ignore[union-attr]
+        elif current is None:
+            change_type = IPEDSInventoryChangeType.MISSING
+            component = previous.component
+        else:
+            change_type = IPEDSInventoryChangeType.CHANGED
+            component = previous.component
+        changes.append(
+            IPEDSInventoryChange(
+                change_type=change_type,
+                release_id=release_id,
+                component=component,
+                previous=previous,
+                observed=current,
+            )
+        )
+    return IPEDSInventoryComparison(
+        reviewed_at=reviewed.reviewed_at,
+        observed_at=observed.reviewed_at,
+        changes=tuple(changes),
+    )
 
 
 def select_release(
