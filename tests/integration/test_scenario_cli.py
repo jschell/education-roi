@@ -51,13 +51,13 @@ def test_scenario_resolve_cli_emits_provenance_complete_configuration(tmp_path: 
   example-bachelors.costs.tuition_and_fees:
     value: 12000
     source: ipeds
-    vintage: 2023-24-final
+    vintage: 2023-24-provisional
     artifact_id: ipeds-sha256
     transformation_ids: [select-unitid]
   example-bachelors.costs.books_and_supplies:
     value: 900
     source: ipeds
-    vintage: 2023-24-final
+    vintage: 2023-24-provisional
     artifact_id: ipeds-sha256
   example-bachelors.costs.grants_and_scholarships:
     value: 5000
@@ -112,13 +112,13 @@ def test_scenario_analyze_cli_is_deterministic_for_complete_fixtures(tmp_path: P
                     "example-bachelors.costs.tuition_and_fees": {
                         "value": 12000,
                         "source": "ipeds",
-                        "vintage": "2023-24-final",
+                        "vintage": "2023-24-provisional",
                         "artifact_id": "ipeds-sha",
                     },
                     "example-bachelors.costs.books_and_supplies": {
                         "value": 1000,
                         "source": "ipeds",
-                        "vintage": "2023-24-final",
+                        "vintage": "2023-24-provisional",
                         "artifact_id": "ipeds-sha",
                     },
                     "example-bachelors.costs.grants_and_scholarships": {

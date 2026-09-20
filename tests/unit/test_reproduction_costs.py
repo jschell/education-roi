@@ -21,7 +21,7 @@ def provenance(source: str = "IPEDS public fixture") -> CostProvenance:
     return CostProvenance(
         source,
         "NCES",
-        "2023-24-final",
+        "2023-24-provisional",
         "a" * 64,
         "https://nces.ed.gov/ipeds/",
     )

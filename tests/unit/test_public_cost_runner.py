@@ -19,7 +19,7 @@ from education_roi.reproduction.runner import (
 PROVENANCE = CostProvenance(
     "versioned public fixture",
     "NCES",
-    "2023-24-final",
+    "2023-24-provisional",
     "a" * 64,
     "https://nces.ed.gov/ipeds/",
 )

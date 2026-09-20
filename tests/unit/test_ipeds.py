@@ -28,10 +28,10 @@ def provider(tmp_path: Path, body: str, *, validate: bool = True) -> tuple[IPEDS
     manifest = ArtifactStore(tmp_path / "data/raw", registry).register(
         source,
         IPEDS_CHARGES_DATASET,
-        release="2023-24-final",
-        source_url="https://nces.ed.gov/ipeds/datacenter/data/IC2023_AY.zip",
-        final_url="https://nces.ed.gov/ipeds/datacenter/data/IC2023_AY.zip",
-        publication_status="final",
+        release="2023-24-provisional",
+        source_url="https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
+        final_url="https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
+        publication_status="provisional",
         schema_version="ipeds-ic-ay-v1",
     )
     if validate:
@@ -43,7 +43,10 @@ def provider(tmp_path: Path, body: str, *, validate: bool = True) -> tuple[IPEDS
 
 def request(path: str = "costs.tuition_and_fees") -> ResolutionRequest:
     return ResolutionRequest(
-        scenario_id="example-bachelors", path=path, source="ipeds", vintage="2023-24-final"
+        scenario_id="example-bachelors",
+        path=path,
+        source="ipeds",
+        vintage="2023-24-provisional",
     )
 
 
@@ -56,7 +59,7 @@ def test_provider_resolves_exact_unitid_release_and_column_with_provenance(tmp_p
     assert tuition is not None and tuition.value == 12000
     assert books is not None and books.value == 900
     assert tuition.artifact_id == artifact_id
-    assert tuition.transformation_ids == ("ipeds:2023-24-final:unitid:236948:CHG2AY3",)
+    assert tuition.transformation_ids == ("ipeds:2023-24-provisional:unitid:236948:CHG2AY3",)
 
 
 @pytest.mark.parametrize("cell", ["", "-1"])

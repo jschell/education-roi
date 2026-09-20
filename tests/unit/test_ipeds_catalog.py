@@ -13,6 +13,8 @@ from education_roi.ipeds import (
     select_release,
 )
 
+PROJECT_ROOT = Path(__file__).parents[2]
+
 
 def release(
     year: int,
@@ -99,3 +101,21 @@ def test_catalog_file_is_strict_and_duplicate_pairs_are_rejected(tmp_path: Path)
     )
     with pytest.raises(IPEDSCatalogError, match="duplicate"):
         IPEDSReleaseCatalog.from_file(path)
+
+
+def test_reviewed_catalog_pins_official_provisional_charge_pair() -> None:
+    inventory = IPEDSReleaseCatalog.from_file(
+        PROJECT_ROOT / "data/manifests/ipeds-release-catalog.json"
+    )
+    selected = select_release(
+        inventory,
+        IPEDSComponent.ACADEMIC_YEAR_CHARGES,
+        release_id="2023-24-provisional",
+        allow_nonfinal=True,
+    )
+    assert str(selected.data_url) == ("https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip")
+    assert str(selected.dictionary_url) == (
+        "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY_Dict.zip"
+    )
+    with pytest.raises(IPEDSCatalogError, match="no final"):
+        select_release(inventory, IPEDSComponent.ACADEMIC_YEAR_CHARGES)
