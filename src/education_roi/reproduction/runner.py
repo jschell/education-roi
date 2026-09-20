@@ -11,6 +11,7 @@ from education_roi.reproduction.comparison import (
     ReproductionTarget,
     compare_target,
 )
+from education_roi.reproduction.costs import CostSensitivityResult
 from education_roi.reproduction.quantiles import (
     ProfileValidationReport,
     QuantileCashFlow,
@@ -78,6 +79,7 @@ class ProvisionalRunRequest:
     target_observations: tuple[TargetObservation, ...]
     blockers: tuple[str, ...]
     ambiguity_notes: tuple[str, ...]
+    cost_analysis: tuple[CostSensitivityResult, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.profile_fixtures:
@@ -181,6 +183,7 @@ def run_provisional_reproduction(
         comparisons=comparisons,
         blockers=request.blockers,
         ambiguity_notes=request.ambiguity_notes,
+        cost_analysis=tuple(item.as_dict() for item in request.cost_analysis),
     )
     bundle = write_reproduction_bundle(report, results_root=results_root, run_id=run_id)
     return ProvisionalRunResult(report, bundle)

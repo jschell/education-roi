@@ -98,3 +98,20 @@ the project will not pursue restricted NPSAS microdata: public or published cost
 identified in provenance and bounded through sensitivity analysis. Results using those substitutes
 may be described as a methodologically aligned reproduction, but never as an exact-input
 replication. Paper-level major reproduction remains blocked until supplemental Table A1 is verified.
+
+## Public cost substitutes
+
+Restricted NPSAS microdata are not part of the project execution path. Cost inputs use a typed,
+provenance-bearing fallback hierarchy: scenario, institution/program, institution, sector and income,
+sector and credential, then national credential. If no candidate exists, selection returns
+`INSUFFICIENT_DATA`; missing components never silently become zero.
+
+Every selected estimate records the requested and actual aggregation levels, source, publisher,
+vintage, artifact hash, dollar year, assumptions, and evidence label. A broader fallback must be
+labeled `PUBLIC_SUBSTITUTE` and cannot support an exact-input replication claim. Duplicate
+candidates at the same fallback level are rejected for review instead of being selected arbitrarily.
+
+Low, base, and high cost cases are evaluated against the same real-dollar cash flow and enrollment
+ages. Reports and immutable bundles retain each case's components, provenance, NPV, IRR, and
+exact-input eligibility. The initial tests use fixed public-data fixtures; live IPEDS and College
+Scorecard ingestion remains assigned to Plans 09 and 10.

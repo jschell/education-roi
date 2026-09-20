@@ -117,7 +117,8 @@ def synthetic_provisional_request() -> ProvisionalRunRequest:
         (TargetObservation(target, 0.20, CrosswalkStatus.PROVISIONAL),),
         (
             "SYNTHETIC FIXTURE: contains no authoritative ACS observations or paper estimates",
-            "authoritative coefficients, restricted cost cells, and Table A1 remain unavailable",
+            "authoritative coefficients and Table A1 remain unavailable; public cost substitutes "
+            "are not exact paper inputs",
         ),
         ("smoke-test values validate orchestration only",),
     )
