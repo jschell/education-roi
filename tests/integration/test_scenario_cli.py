@@ -1,14 +1,24 @@
 import json
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 import yaml
 from typer.testing import CliRunner
 
 from education_roi.cli.app import app
+from education_roi.ipeds import IPEDS_CHARGES_DATASET
+from education_roi.provenance.models import ApprovalState
+from education_roi.provenance.store import ArtifactStore, Registry
 
 runner = CliRunner()
 EXAMPLES = Path(__file__).parents[2] / "scenarios" / "examples"
+
+
+def make_ipeds_zip(path: Path, body: str) -> Path:
+    with ZipFile(path, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("IC2023_AY.csv", body)
+    return path
 
 
 @pytest.mark.integration
@@ -89,6 +99,70 @@ def test_scenario_resolve_cli_emits_provenance_complete_configuration(tmp_path: 
         if item["path"] == "costs.tuition_and_fees"
     )
     assert tuition["artifact_id"] == "ipeds-sha256"
+
+
+@pytest.mark.integration
+def test_scenario_resolve_ipeds_uses_validated_registry_artifact(tmp_path: Path) -> None:
+    source = make_ipeds_zip(
+        tmp_path / "charges.zip",
+        "UNITID,CHG2AY3,CHG4AY3,XCHG2AY3,XCHG4AY3\n236948,12000,900,R,I\n",
+    )
+    registry = Registry(tmp_path / "data/manifests/registry.sqlite")
+    registry.add_dataset(IPEDS_CHARGES_DATASET)
+    manifest = ArtifactStore(tmp_path / "data/raw", registry).register(
+        source,
+        IPEDS_CHARGES_DATASET,
+        release="2023-24-provisional",
+        source_url="https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
+        final_url="https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
+        publication_status="provisional",
+        schema_version="ipeds-ic-ay-v1",
+    )
+    registry.transition(manifest.artifact_id, ApprovalState.VALIDATED, "integration fixture")
+
+    result = runner.invoke(
+        app,
+        [
+            "scenario",
+            "resolve-ipeds",
+            str(EXAMPLES / "example-bachelors.yaml"),
+            str(EXAMPLES / "workforce-high-school.yaml"),
+            "--root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    bachelors = payload["scenarios"][1]
+    tuition = next(item for item in bachelors["values"] if item["path"] == "costs.tuition_and_fees")
+    books = next(item for item in bachelors["values"] if item["path"] == "costs.books_and_supplies")
+    grants = next(
+        item for item in bachelors["values"] if item["path"] == "costs.grants_and_scholarships"
+    )
+    assert tuition["value"] == 12000
+    assert tuition["artifact_id"] == manifest.artifact_id
+    assert tuition["source_metadata"] == ["XCHG2AY3=R"]
+    assert books["value"] == 900
+    assert grants["status"] == "INSUFFICIENT_DATA"
+
+
+@pytest.mark.integration
+def test_scenario_resolve_ipeds_requires_existing_registry(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "scenario",
+            "resolve-ipeds",
+            str(EXAMPLES / "example-bachelors.yaml"),
+            str(EXAMPLES / "workforce-high-school.yaml"),
+            "--root",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 1
+    assert json.loads(result.stdout)["status"] == "INVALID"
+    assert not (tmp_path / "data/manifests/registry.sqlite").exists()
 
 
 @pytest.mark.integration

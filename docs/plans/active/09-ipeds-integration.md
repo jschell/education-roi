@@ -26,6 +26,7 @@ Add versioned institution-level costs, characteristics, program production, aid,
   guessed URLs or automatic promotion.
 - deterministic `ipeds compare-inventory` CLI output with optional CI failure on review-required
   changes.
+- production `scenario resolve-ipeds` CLI resolution from validated immutable registry artifacts.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -39,7 +40,6 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 6. Map programs using versioned CIP and handle institution identity changes.
 7. Generate institution/year analytical Parquet tables.
 8. Add scenario completion resolution and release comparisons.
-9. Wire validated registry providers into production CLI commands.
 
 ## Tests still required
 

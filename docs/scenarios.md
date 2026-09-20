@@ -42,6 +42,16 @@ not substitute a newer or different release. Explicit `PROVIDED` values retain t
 including zero. Earnings remain a validated pinned dataset reference until the earnings-profile
 provider is connected; this command does not invent an earnings curve.
 
+Validated IPEDS artifacts can be used without a fixture through the separate production path:
+
+```console
+edu-roi scenario resolve-ipeds scenarios/examples/*.yaml --root .
+```
+
+This command requires an existing artifact registry, verifies the immutable artifact before reading
+it, and resolves only the IPEDS fields supported by the provider. Requests for other sources remain
+`INSUFFICIENT_DATA`; the command does not combine production data with synthetic fixture values.
+
 Resolved scenarios are emitted in counterfactual-first order with canonical per-scenario and graph
 hashes. Until the Plan 07 evidence gate is resolved, scenario output remains provisional and must
 not be labeled decision-grade.
@@ -53,8 +63,8 @@ An institution scenario must declare `tuition_residency` as `in_district`, `in_s
 scenario's exact UNITID and pinned release. It never falls back to a different residency basis;
 an unavailable selected value remains insufficient data. It verifies the stored artifact hash and size
 before reading it and emits the artifact and selection transformation identifiers. It deliberately
-returns no value for other inputs. CLI wiring and authoritative release discovery are later slices;
-fixture resolution remains the command-line path until those policies are complete.
+returns no value for other inputs. The `resolve-ipeds` command wires this provider to the validated
+local registry while the generic fixture command remains available for deterministic development.
 
 ## Synthetic analysis boundary
 

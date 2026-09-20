@@ -10,8 +10,10 @@ from education_roi import __version__
 from education_roi.cashflow import ReturnPerspective
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds import (
+    IPEDSArchiveError,
     IPEDSCatalogError,
     IPEDSReleaseCatalog,
+    IPEDSValueProvider,
     compare_release_catalogs,
 )
 from education_roi.provenance.adapters import SourceConfiguration
@@ -303,6 +305,45 @@ def scenario_resolve(
         resolved = resolve_configuration_graph(graph, provider)
     except (ScenarioValidationError, ScenarioGraphError, ScenarioResolutionError) as error:
         typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(json.dumps(resolved.as_dict(), sort_keys=True))
+
+
+@scenario_app.command("resolve-ipeds")
+def scenario_resolve_ipeds(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    root: Annotated[
+        Path | None,
+        typer.Option(help="Project root containing the validated artifact registry."),
+    ] = None,
+) -> None:
+    """Resolve IPEDS values from validated immutable registry artifacts."""
+    paths = ProjectPaths.from_environment(root)
+    registry_path = paths.data / "manifests" / "registry.sqlite"
+    if not registry_path.is_file():
+        typer.echo(
+            json.dumps(
+                {"error": f"artifact registry not found: {registry_path}", "status": "INVALID"},
+                sort_keys=True,
+            )
+        )
+        raise typer.Exit(code=1)
+    try:
+        documents = tuple(load_scenario_file(path) for path in files)
+        graph = resolve_scenario_graph(documents)
+        scenarios = {scenario.id: scenario for scenario in graph.scenarios}
+        provider = IPEDSValueProvider(Registry(registry_path), paths.data / "raw", scenarios)
+        resolved = resolve_configuration_graph(graph, provider)
+    except (
+        IPEDSArchiveError,
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioResolutionError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=1) from None
     typer.echo(json.dumps(resolved.as_dict(), sort_keys=True))
 
