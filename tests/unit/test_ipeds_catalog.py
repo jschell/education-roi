@@ -7,9 +7,11 @@ from pydantic import ValidationError
 from education_roi.ipeds import (
     IPEDSCatalogError,
     IPEDSComponent,
+    IPEDSInventoryChangeType,
     IPEDSPublicationStatus,
     IPEDSRelease,
     IPEDSReleaseCatalog,
+    compare_release_catalogs,
     select_release,
 )
 
@@ -119,3 +121,40 @@ def test_reviewed_catalog_pins_official_provisional_charge_pair() -> None:
     )
     with pytest.raises(IPEDSCatalogError, match="no final"):
         select_release(inventory, IPEDSComponent.ACADEMIC_YEAR_CHARGES)
+
+
+def test_inventory_comparison_classifies_changes_without_promoting_them() -> None:
+    retained = release(2023, IPEDSPublicationStatus.FINAL)
+    changed_payload = retained.model_dump()
+    changed_payload["dictionary_url"] = (
+        "https://nces.ed.gov/ipeds/complete-data-files/revised-dictionary.zip"
+    )
+    changed = IPEDSRelease.model_validate(changed_payload)
+    missing = release(2022, IPEDSPublicationStatus.FINAL)
+    discovered = release(2024, IPEDSPublicationStatus.PROVISIONAL)
+
+    comparison = compare_release_catalogs(
+        catalog(retained, missing),
+        IPEDSReleaseCatalog(
+            reviewed_at="2026-09-21",
+            releases=(changed, discovered),
+        ),
+    )
+
+    assert comparison.review_required
+    assert comparison.reviewed_at == "2026-09-20"
+    assert comparison.observed_at == "2026-09-21"
+    assert [item.change_type for item in comparison.changes] == [
+        IPEDSInventoryChangeType.MISSING,
+        IPEDSInventoryChangeType.CHANGED,
+        IPEDSInventoryChangeType.DISCOVERED,
+    ]
+    assert comparison.changes[1].previous == retained
+    assert comparison.changes[1].observed == changed
+
+
+def test_identical_inventory_comparison_is_deterministically_empty() -> None:
+    item = release(2023, IPEDSPublicationStatus.FINAL)
+    comparison = compare_release_catalogs(catalog(item), catalog(item))
+    assert not comparison.review_required
+    assert comparison.changes == ()

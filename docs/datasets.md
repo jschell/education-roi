@@ -50,6 +50,12 @@ The live NCES release-information table reviewed on 2026-09-20 showed that relea
 
 The catalog contract does not synthesize download paths or treat an adjacent component's status as the status of a charges release. The live complete-data-files page identifies the exact paired artifacts as `https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip` and `https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY_Dict.zip`. These reviewed links are stored together in the committed catalog snapshot. A newer provisional pricing release may be used only through explicit opt-in and must remain visibly provisional in outputs.
 
+Inventory checks compare two complete, explicit catalog snapshots by release ID and component. They
+classify newly observed entries as `DISCOVERED`, altered metadata or URLs as `CHANGED`, and entries
+absent from the new snapshot as `MISSING`. Every difference requires review: the comparison does not
+construct a likely URL, mutate the reviewed catalog, download a newly observed artifact, or treat a
+missing page entry as proof that a release was withdrawn.
+
 ### College Scorecard
 
 Official data home: https://collegescorecard.ed.gov/data/

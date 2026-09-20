@@ -22,21 +22,22 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - required-variable dictionary validation with retained definition rows.
 - raw `XCHG2AY3`/`XCHG4AY3` source-status propagation without undocumented interpretation.
 - explicit in-district/in-state/out-of-state tuition basis with no residency fallback.
+- deterministic inventory snapshot comparison with discovered/changed/missing review states and no
+  guessed URLs or automatic promotion.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
 ## Remaining implementation tasks
 
-1. Implement resilient inventory change detection without guessing download paths.
-2. Verify dictionary parsing against official workbook bytes in an enabled live environment.
-3. Interpret and retain IPEDS imputation/status fields.
-5. Add residency and attendance-basis policies, including out-of-state charges.
-6. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
-7. Preserve reported basis and population definitions.
-8. Map programs using versioned CIP and handle institution identity changes.
-9. Generate institution/year analytical Parquet tables.
-10. Add scenario completion resolution and release comparisons.
-11. Wire validated registry providers into production CLI commands.
+1. Verify dictionary parsing against official workbook bytes in an enabled live environment.
+2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
+3. Add attendance-basis policies.
+4. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
+5. Preserve reported basis and population definitions.
+6. Map programs using versioned CIP and handle institution identity changes.
+7. Generate institution/year analytical Parquet tables.
+8. Add scenario completion resolution and release comparisons.
+9. Wire validated registry providers into production CLI commands.
 
 ## Tests still required
 
