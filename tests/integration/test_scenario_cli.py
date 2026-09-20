@@ -40,3 +40,51 @@ def test_scenario_schema_command_emits_formal_schema() -> None:
     assert result.exit_code == 0, result.stdout
     schema = json.loads(result.stdout)
     assert schema["properties"]["schema_version"]["const"] == "1.0"
+
+
+@pytest.mark.integration
+def test_scenario_resolve_cli_emits_provenance_complete_configuration(tmp_path: Path) -> None:
+    fixture = tmp_path / "values.yaml"
+    fixture.write_text(
+        """values:
+  example-bachelors.costs.tuition_and_fees:
+    value: 12000
+    source: ipeds
+    vintage: 2023-24-final
+    artifact_id: ipeds-sha256
+    transformation_ids: [select-unitid]
+  example-bachelors.costs.books_and_supplies:
+    value: 900
+    source: ipeds
+    vintage: 2023-24-final
+    artifact_id: ipeds-sha256
+  example-bachelors.costs.grants_and_scholarships:
+    value: 5000
+    source: college-scorecard
+    vintage: 2024-10
+    artifact_id: scorecard-sha256
+""",
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app,
+        [
+            "scenario",
+            "resolve",
+            str(EXAMPLES / "example-bachelors.yaml"),
+            str(EXAMPLES / "workforce-high-school.yaml"),
+            "--fixture-values",
+            str(fixture),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "INSUFFICIENT_DATA"
+    assert payload["topological_order"] == ["workforce-high-school", "example-bachelors"]
+    assert len(payload["resolution_hash"]) == 64
+    tuition = next(
+        item
+        for item in payload["scenarios"][1]["values"]
+        if item["path"] == "costs.tuition_and_fees"
+    )
+    assert tuition["artifact_id"] == "ipeds-sha256"

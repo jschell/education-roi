@@ -28,6 +28,20 @@ CIP and classification version, completion states, costs, financing, earnings qu
 counterfactuals, graduate-school references, monetary assumptions, horizon, and dataset pins.
 
 Graph resolution confirms that definitions form a coherent dependency graph. It does not download
-datasets or turn unresolved values into calculated cash flows. Dataset resolution and calculation
-orchestration are later Plan 08 slices. Until the Plan 07 evidence gate is resolved, scenario output
-remains provisional and must not be labeled decision-grade.
+datasets or turn unresolved values into calculated cash flows. The next boundary resolves numeric
+inputs through an explicit provider:
+
+```console
+edu-roi scenario resolve scenarios/examples/*.yaml --fixture-values values.yaml
+```
+
+The current provider is deliberately fixture-backed for deterministic development and integration
+testing. Each returned data value must identify the requested source and exact pinned vintage, an
+artifact ID, and any transformation IDs. A missing value becomes `INSUFFICIENT_DATA`; a provider may
+not substitute a newer or different release. Explicit `PROVIDED` values retain their source,
+including zero. Earnings remain a validated pinned dataset reference until the earnings-profile
+provider is connected; this command does not invent an earnings curve.
+
+Resolved scenarios are emitted in counterfactual-first order with canonical per-scenario and graph
+hashes. Until the Plan 07 evidence gate is resolved, scenario output remains provisional and must
+not be labeled decision-grade.
