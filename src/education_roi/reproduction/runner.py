@@ -162,10 +162,19 @@ def run_provisional_reproduction(
             request.target_observations, key=lambda item: item.target.target_id
         )
     )
+    sample_records: tuple[dict[str, object], ...] = tuple(
+        {
+            "step": record.step,
+            "description": record.description,
+            "unweighted_n": record.unweighted_n,
+            "weighted_n": record.weighted_n,
+        }
+        for record in sample_flow.records
+    )
     report = provisional_reproduction_report(
         configuration_hash=request.configuration_hash,
         dataset_hashes=request.dataset_hashes,
-        sample_flow=sample_flow.as_dict(),
+        sample_flow=sample_records,
         profiles=profiles,
         profile_validations=validations,
         cash_flows=cash_flows,
@@ -175,3 +184,4 @@ def run_provisional_reproduction(
     )
     bundle = write_reproduction_bundle(report, results_root=results_root, run_id=run_id)
     return ProvisionalRunResult(report, bundle)
+
