@@ -81,7 +81,5 @@ class IPEDSValueProvider:
             source="ipeds",
             vintage=request.vintage,
             artifact_id=manifest.artifact_id,
-            transformation_ids=(
-                f"ipeds:{request.vintage}:unitid:{institution.unitid}:{column}",
-            ),
+            transformation_ids=(f"ipeds:{request.vintage}:unitid:{institution.unitid}:{column}",),
         )

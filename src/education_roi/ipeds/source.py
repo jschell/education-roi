@@ -16,4 +16,3 @@ COST_COLUMNS = {
     "costs.books_and_supplies": "CHG4AY3",
 }
 REQUIRED_COLUMNS = frozenset({UNITID_COLUMN, *COST_COLUMNS.values()})
-

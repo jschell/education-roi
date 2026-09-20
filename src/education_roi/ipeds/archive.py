@@ -59,4 +59,3 @@ def parse_nonnegative_cost(cell: str) -> float | None:
     if value < 0:
         return None
     return value
-

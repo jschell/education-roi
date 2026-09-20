@@ -50,4 +50,3 @@ def register_ipeds_charges(
         return manifest
     finally:
         download.path.unlink(missing_ok=True)
-

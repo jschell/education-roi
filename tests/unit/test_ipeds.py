@@ -66,9 +66,7 @@ def test_missing_or_negative_sentinel_is_insufficient_not_zero(tmp_path: Path, c
 
 
 def test_unvalidated_artifact_is_not_eligible(tmp_path: Path) -> None:
-    resolver, _ = provider(
-        tmp_path, "UNITID,CHG2AY3,CHG4AY3\n236948,12000,900\n", validate=False
-    )
+    resolver, _ = provider(tmp_path, "UNITID,CHG2AY3,CHG4AY3\n236948,12000,900\n", validate=False)
     with pytest.raises(ScenarioResolutionError, match="no validated IPEDS artifact"):
         resolver.resolve(request())
 
