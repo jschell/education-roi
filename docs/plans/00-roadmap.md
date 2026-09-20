@@ -22,7 +22,7 @@ Only this roadmap remains directly in `docs/plans/`.
 | [04](complete/04-data-provenance.md) | Provenance system | 02–03 | — | **COMPLETE** |
 | [05](complete/05-acs-pums-pipeline.md) | ACS pipeline | 01–04 | — | **COMPLETE** |
 | [06](complete/06-financial-engine.md) | Financial engine | 01, 03–05 | — | **COMPLETE** |
-| [07](queue/07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Reproduction hard gate | QUEUED |
+| [07](active/07-zhang-reproduction.md) | Zhang reproduction | 01, 05–06 | Reproduction hard gate | **ACTIVE — provisional pending supplement** |
 | [08](queue/08-scenario-engine.md) | Scenario engine | 04, 06–07 | — | QUEUED |
 | [09](queue/09-ipeds-integration.md) | IPEDS | 02, 04, 08 | — | QUEUED |
 | [10](queue/10-scorecard-integration.md) | College Scorecard | 02, 04, 08–09 | — | QUEUED |
