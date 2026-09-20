@@ -126,3 +126,9 @@ cost uncertainty is explicit.
 When no candidate exists, the runner publishes an `UNAVAILABLE` cost-analysis record and a `REVIEW`
 comparison with no reproduced value. It does not construct a zero-cost scenario. Reproduction IDs
 must be unique, and caller ordering cannot change report ordering or bundle bytes.
+
+The installed `synthetic-run` command exercises both an available institution-level public fallback
+and a missing-cost request. Its clean-process integration test verifies low/base/high calculations,
+base-case deltas, the insufficient-data record, target comparisons, bundle integrity, and byte-for-
+byte equality across independent runs. These inputs are labeled synthetic and validate orchestration
+only.

@@ -50,3 +50,27 @@ def test_clean_process_reproduction_is_deterministic_and_verifiable(tmp_path: Pa
     report = json.loads((first_path / "report.json").read_text())
     assert report["certification_status"] == "PROVISIONAL"
     assert report["blockers"][0].startswith("SYNTHETIC FIXTURE")
+    cost_analysis = json.loads((first_path / "cost-analysis.json").read_text())
+    assert cost_analysis == report["cost_analysis"]
+    assert [item["case"] for item in cost_analysis] == [
+        "LOW",
+        "BASE",
+        "HIGH",
+        "UNAVAILABLE",
+    ]
+    base = next(item for item in cost_analysis if item["case"] == "BASE")
+    assert base["selection"]["estimate"]["actual_level"] == "INSTITUTION"
+    unavailable = next(item for item in cost_analysis if item["case"] == "UNAVAILABLE")
+    assert unavailable["status"] == "INSUFFICIENT_DATA"
+    assert unavailable["estimate"] is None
+
+    comparisons = {
+        item["target_id"]: item
+        for item in json.loads((first_path / "comparisons.json").read_text())
+    }
+    assert comparisons["synthetic-public-cost:base"]["status"] == "PASS"
+    assert comparisons["synthetic-public-cost:base"]["cost_irr_delta_from_base"] == 0
+    assert comparisons["synthetic-public-cost:base"]["cost_npv_delta_from_base"] == 0
+    assert comparisons["synthetic-public-cost:low"]["cost_irr_delta_from_base"] > 0
+    assert comparisons["synthetic-public-cost:high"]["cost_irr_delta_from_base"] < 0
+    assert comparisons["synthetic-missing-cost:unavailable"]["status"] == "REVIEW"
