@@ -120,15 +120,20 @@ class ReproductionReport:
             lines.append("- None")
         lines.extend(["", "## Cost evidence and sensitivity", ""])
         if self.cost_analysis:
-            lines.append("| Case | Evidence | Actual level | Net cost | Exact-input eligible |")
-            lines.append("|---|---|---|---:|---:|")
+            lines.append(
+                "| Reproduction | Case | Status | Evidence | Actual level | Net cost | "
+                "Exact-input eligible |"
+            )
+            lines.append("|---|---|---|---|---|---:|---:|")
             for cost_item in self.cost_analysis:
                 estimate = cost_item.get("estimate", {})
                 estimate = estimate if isinstance(estimate, dict) else {}
                 components = estimate.get("components", {})
                 components = components if isinstance(components, dict) else {}
                 lines.append(
-                    f"| {cost_item.get('case', '—')} | {estimate.get('evidence', '—')} | "
+                    f"| {cost_item.get('reproduction_id', '—')} | "
+                    f"{cost_item.get('case', '—')} | {cost_item.get('status', '—')} | "
+                    f"{estimate.get('evidence', '—')} | "
                     f"{estimate.get('actual_level', '—')} | {components.get('net_cost', '—')} | "
                     f"{'yes' if estimate.get('exact_input_eligible') else 'no'} |"
                 )

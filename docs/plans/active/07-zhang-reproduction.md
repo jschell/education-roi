@@ -88,6 +88,9 @@ For each target retain:
 - Public cost contracts, deterministic fallback selection, explicit insufficient-data handling,
   low/base/high NPV and IRR sensitivity, report provenance, and immutable bundle output are
   implemented with fixed fixtures. Live source adapters remain in Plans 09 and 10.
+- The provisional runner now selects public cost inputs and emits low/base/high target comparisons,
+  including the IRR and NPV change attributable to each cost case. An unavailable fallback remains
+  an explicit `INSUFFICIENT_DATA` analysis and `REVIEW` comparison rather than a zero-cost result.
 
 ## Acceptance criteria
 

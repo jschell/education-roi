@@ -115,3 +115,14 @@ Low, base, and high cost cases are evaluated against the same real-dollar cash f
 ages. Reports and immutable bundles retain each case's components, provenance, NPV, IRR, and
 exact-input eligibility. The initial tests use fixed public-data fixtures; live IPEDS and College
 Scorecard ingestion remains assigned to Plans 09 and 10.
+
+The end-to-end provisional runner accepts a public-cost reproduction fixture that names the requested
+aggregation, fallback candidates, low/base/high estimates, base earnings advantage, enrollment ages,
+and published target. It selects the narrowest candidate, requires that candidate to be the base
+case, evaluates all three cases, and creates a separate target comparison for each one. Comparisons
+retain the selected cost evidence plus IRR and NPV differences from the base case so the effect of
+cost uncertainty is explicit.
+
+When no candidate exists, the runner publishes an `UNAVAILABLE` cost-analysis record and a `REVIEW`
+comparison with no reproduced value. It does not construct a zero-cost scenario. Reproduction IDs
+must be unique, and caller ordering cannot change report ordering or bundle bytes.
