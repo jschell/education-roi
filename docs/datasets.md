@@ -56,6 +56,17 @@ absent from the new snapshot as `MISSING`. Every difference requires review: the
 construct a likely URL, mutate the reviewed catalog, download a newly observed artifact, or treat a
 missing page entry as proof that a release was withdrawn.
 
+Run the same comparison from automation or during review with:
+
+```console
+edu-roi ipeds compare-inventory reviewed.json observed.json --fail-on-change
+```
+
+Output is deterministic JSON. Identical snapshots report `UNCHANGED`; differences report
+`REVIEW_REQUIRED`. By default both states exit successfully so the JSON can be inspected. The
+optional `--fail-on-change` flag exits 1 for review-required differences, while an invalid snapshot
+exits 2.
+
 ### College Scorecard
 
 Official data home: https://collegescorecard.ed.gov/data/
