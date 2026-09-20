@@ -58,7 +58,10 @@ not be labeled decision-grade.
 
 Plan 09 also supplies an `IPEDSValueProvider` library boundary for validated registry artifacts.
 An institution scenario must declare `tuition_residency` as `in_district`, `in_state`, or
-`out_of_state`. The provider resolves `costs.tuition_and_fees` from the corresponding IPEDS
+`out_of_state`, and `attendance_basis` as `full_time` or `part_time`. The current provider resolves
+only full-time academic-year charges. Part-time requests remain insufficient data rather than being
+estimated by dividing or scaling an annual charge. For supported scenarios, the provider resolves
+`costs.tuition_and_fees` from the corresponding IPEDS
 `CHG1AY3`, `CHG2AY3`, or `CHG3AY3` column and `costs.books_and_supplies` from `CHG4AY3`, for the
 scenario's exact UNITID and pinned release. It never falls back to a different residency basis;
 an unavailable selected value remains insufficient data. It verifies the stored artifact hash and size

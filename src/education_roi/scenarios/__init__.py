@@ -28,6 +28,7 @@ from education_roi.scenarios.loader import (
 )
 from education_roi.scenarios.models import (
     AssumptionConfig,
+    AttendanceBasis,
     CompletionConfig,
     CostConfig,
     Credential,
@@ -69,6 +70,7 @@ __all__ = [
     "ComparisonBundleError",
     "ComparisonReport",
     "AssumptionConfig",
+    "AttendanceBasis",
     "CompletionConfig",
     "CostConfig",
     "Credential",

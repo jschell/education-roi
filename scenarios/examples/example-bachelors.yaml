@@ -10,6 +10,7 @@ scenario:
     institution:
       unitid: 236948
       tuition_residency: in_state
+      attendance_basis: full_time
       name: Example institution
     program:
       cip: "11"

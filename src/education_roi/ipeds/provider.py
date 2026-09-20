@@ -78,6 +78,8 @@ class IPEDSValueProvider:
         if scenario is None or scenario.education is None or scenario.education.institution is None:
             return None
         institution = scenario.education.institution
+        if institution.attendance_basis.value != "full_time":
+            return None
         manifest = self._manifest(request.vintage)
         row = self._rows(manifest).get(institution.unitid)
         if row is None:
