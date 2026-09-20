@@ -66,7 +66,9 @@ from education_roi.reproduction.runner import (
     ProfileFixture,
     ProvisionalRunRequest,
     ProvisionalRunResult,
+    PublicCostReproductionFixture,
     TargetObservation,
+    evaluate_public_cost_reproductions,
     run_provisional_reproduction,
 )
 from education_roi.reproduction.sample_flow import (
@@ -110,6 +112,7 @@ __all__ = [
     "QuantileSolverMetadata",
     "ProvisionalRunRequest",
     "ProvisionalRunResult",
+    "PublicCostReproductionFixture",
     "ReproductionReport",
     "ReproductionBundle",
     "ReproductionStatus",
@@ -124,6 +127,7 @@ __all__ = [
     "calculate_quantile_irrs",
     "compare_target",
     "evaluate_cost_sensitivity",
+    "evaluate_public_cost_reproductions",
     "provisional_reproduction_report",
     "published_zhang_configuration",
     "reproduce_aggregate_target",

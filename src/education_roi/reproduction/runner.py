@@ -1,17 +1,28 @@
 """Deterministic end-to-end orchestration for provisional Zhang reproduction runs."""
 
 from dataclasses import dataclass
+from hashlib import sha256
+from json import dumps
 from pathlib import Path
 
 import polars as pl
 
 from education_roi.acs.crosswalk import CrosswalkStatus
+from education_roi.cashflow import CashFlowSeries, IRRStatus
 from education_roi.reproduction.bundle import ReproductionBundle, write_reproduction_bundle
 from education_roi.reproduction.comparison import (
     ReproductionTarget,
     compare_target,
 )
-from education_roi.reproduction.costs import CostSensitivityResult
+from education_roi.reproduction.costs import (
+    CostLevel,
+    CostSelectionStatus,
+    CostSensitivityResult,
+    CostSensitivitySet,
+    EducationCostEstimate,
+    evaluate_cost_sensitivity,
+    select_cost_estimate,
+)
 from education_roi.reproduction.quantiles import (
     ProfileValidationReport,
     QuantileCashFlow,
@@ -68,6 +79,170 @@ class TargetObservation:
 
 
 @dataclass(frozen=True)
+class PublicCostReproductionFixture:
+    """One public-cost fallback request tied to a published reproduction target."""
+
+    reproduction_id: str
+    requested_level: CostLevel
+    candidates: tuple[EducationCostEstimate, ...]
+    sensitivity: CostSensitivitySet | None
+    base_incremental_cash_flow: CashFlowSeries | None
+    education_ages: tuple[int, ...]
+    discount_rate: float
+    target: ReproductionTarget
+    crosswalk_status: CrosswalkStatus
+
+    def __post_init__(self) -> None:
+        if not self.reproduction_id.strip():
+            raise ValueError("public cost reproduction ID cannot be empty")
+        selection = select_cost_estimate(self.requested_level, self.candidates)
+        if selection.status is CostSelectionStatus.INSUFFICIENT_DATA:
+            if self.sensitivity is not None or self.base_incremental_cash_flow is not None:
+                raise ValueError("insufficient cost selection cannot include modeled cost cases")
+            return
+        if self.sensitivity is None or self.base_incremental_cash_flow is None:
+            raise ValueError("available cost selection requires sensitivity and cash-flow inputs")
+        if selection.estimate != self.sensitivity.base:
+            raise ValueError("selected public fallback must be the base sensitivity estimate")
+
+
+def _cost_configuration_hash(
+    configuration_hash: str,
+    fixture: PublicCostReproductionFixture,
+    estimate: EducationCostEstimate | None,
+) -> str:
+    payload = {
+        "configuration_hash": configuration_hash,
+        "reproduction_id": fixture.reproduction_id,
+        "requested_level": fixture.requested_level.value,
+        "education_ages": list(fixture.education_ages),
+        "discount_rate": fixture.discount_rate,
+        "estimate": None if estimate is None else estimate.as_dict(),
+    }
+    return sha256(
+        dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    ).hexdigest()
+
+
+def _cost_target(
+    target: ReproductionTarget, suffix: str, paper_reference_suffix: str
+) -> ReproductionTarget:
+    return ReproductionTarget(
+        f"{target.target_id}:{suffix}",
+        f"{target.paper_reference}; {paper_reference_suffix}",
+        target.published_value,
+        target.absolute_tolerance,
+        target.relative_tolerance,
+        target.requires_verified_crosswalk,
+    )
+
+
+def evaluate_public_cost_reproductions(
+    fixtures: tuple[PublicCostReproductionFixture, ...],
+    *,
+    configuration_hash: str,
+    dataset_hashes: tuple[str, ...],
+) -> tuple[tuple[dict[str, object], ...], tuple[dict[str, object], ...]]:
+    """Select public fallbacks and compare each cost case with its published target."""
+    analyses: list[dict[str, object]] = []
+    comparisons: list[dict[str, object]] = []
+    identities = tuple(item.reproduction_id for item in fixtures)
+    if len(identities) != len(set(identities)):
+        raise ValueError("public cost reproduction IDs must be unique")
+    for fixture in sorted(fixtures, key=lambda item: item.reproduction_id):
+        selection = select_cost_estimate(fixture.requested_level, fixture.candidates)
+        if selection.status is CostSelectionStatus.INSUFFICIENT_DATA:
+            unavailable_analysis: dict[str, object] = {
+                "reproduction_id": fixture.reproduction_id,
+                "case": "UNAVAILABLE",
+                "status": CostSelectionStatus.INSUFFICIENT_DATA.value,
+                "selection": selection.as_dict(),
+                "estimate": None,
+                "exact_input_eligible": False,
+            }
+            analyses.append(unavailable_analysis)
+            comparison = compare_target(
+                _cost_target(fixture.target, "unavailable", "no defensible public cost estimate"),
+                None,
+                configuration_hash=_cost_configuration_hash(configuration_hash, fixture, None),
+                dataset_hashes=dataset_hashes,
+                crosswalk_status=fixture.crosswalk_status,
+                ambiguity_notes=("public cost fallback returned INSUFFICIENT_DATA",),
+            ).as_dict()
+            comparison.update(
+                {
+                    "cost_case": "UNAVAILABLE",
+                    "cost_selection_status": CostSelectionStatus.INSUFFICIENT_DATA.value,
+                    "cost_irr_delta_from_base": None,
+                    "cost_npv_delta_from_base": None,
+                }
+            )
+            comparisons.append(comparison)
+            continue
+        if fixture.sensitivity is None or fixture.base_incremental_cash_flow is None:
+            raise AssertionError("available public cost fixture contract was not enforced")
+        results = evaluate_cost_sensitivity(
+            fixture.base_incremental_cash_flow,
+            fixture.sensitivity,
+            education_ages=fixture.education_ages,
+            discount_rate=fixture.discount_rate,
+        )
+        base = next(result for result in results if result.case.value == "BASE")
+        base_irr = (
+            base.internal_rate_of_return.roots[0]
+            if base.internal_rate_of_return.status is IRRStatus.UNIQUE
+            else None
+        )
+        for result in results:
+            case_analysis: dict[str, object] = result.as_dict()
+            case_analysis.update(
+                {
+                    "reproduction_id": fixture.reproduction_id,
+                    "status": CostSelectionStatus.AVAILABLE.value,
+                    "selection": selection.as_dict(),
+                }
+            )
+            analyses.append(case_analysis)
+            reproduced = (
+                result.internal_rate_of_return.roots[0]
+                if result.internal_rate_of_return.status is IRRStatus.UNIQUE
+                else None
+            )
+            comparison = compare_target(
+                _cost_target(
+                    fixture.target,
+                    result.case.value.lower(),
+                    f"{result.case.value} public cost substitute",
+                ),
+                reproduced,
+                configuration_hash=_cost_configuration_hash(
+                    configuration_hash, fixture, result.estimate
+                ),
+                dataset_hashes=dataset_hashes,
+                crosswalk_status=fixture.crosswalk_status,
+                ambiguity_notes=(
+                    "methodologically aligned reproduction using a public cost substitute",
+                    f"requested {fixture.requested_level.value}; used "
+                    f"{result.estimate.actual_level.value}",
+                ),
+            ).as_dict()
+            comparison.update(
+                {
+                    "cost_case": result.case.value,
+                    "cost_selection_status": CostSelectionStatus.AVAILABLE.value,
+                    "cost_estimate_id": result.estimate.estimate_id,
+                    "cost_evidence": result.estimate.evidence.value,
+                    "cost_irr_delta_from_base": (
+                        None if reproduced is None or base_irr is None else reproduced - base_irr
+                    ),
+                    "cost_npv_delta_from_base": result.net_present_value - base.net_present_value,
+                }
+            )
+            comparisons.append(comparison)
+    return tuple(analyses), tuple(comparisons)
+
+
+@dataclass(frozen=True)
 class ProvisionalRunRequest:
     """All versioned inputs required to assemble one provisional reproduction run."""
 
@@ -80,6 +255,7 @@ class ProvisionalRunRequest:
     blockers: tuple[str, ...]
     ambiguity_notes: tuple[str, ...]
     cost_analysis: tuple[CostSensitivityResult, ...] = ()
+    public_cost_reproductions: tuple[PublicCostReproductionFixture, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.profile_fixtures:
@@ -164,6 +340,17 @@ def run_provisional_reproduction(
             request.target_observations, key=lambda item: item.target.target_id
         )
     )
+    public_cost_analysis, public_cost_comparisons = evaluate_public_cost_reproductions(
+        request.public_cost_reproductions,
+        configuration_hash=request.configuration_hash,
+        dataset_hashes=request.dataset_hashes,
+    )
+    comparisons = tuple(
+        sorted(
+            (*comparisons, *public_cost_comparisons),
+            key=lambda item: str(item.get("target_id", "")),
+        )
+    )
     sample_records: tuple[dict[str, object], ...] = tuple(
         {
             "step": record.step,
@@ -183,7 +370,10 @@ def run_provisional_reproduction(
         comparisons=comparisons,
         blockers=request.blockers,
         ambiguity_notes=request.ambiguity_notes,
-        cost_analysis=tuple(item.as_dict() for item in request.cost_analysis),
+        cost_analysis=(
+            *(item.as_dict() for item in request.cost_analysis),
+            *public_cost_analysis,
+        ),
     )
     bundle = write_reproduction_bundle(report, results_root=results_root, run_id=run_id)
     return ProvisionalRunResult(report, bundle)
