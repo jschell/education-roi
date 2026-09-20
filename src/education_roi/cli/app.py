@@ -18,6 +18,13 @@ from education_roi.reproduction.synthetic import (
     SYNTHETIC_FIXTURE_VERSION,
     synthetic_provisional_request,
 )
+from education_roi.scenarios import (
+    ScenarioDocument,
+    ScenarioGraphError,
+    ScenarioValidationError,
+    load_scenario_file,
+    resolve_scenario_graph,
+)
 
 app = typer.Typer(
     name="edu-roi",
@@ -26,8 +33,10 @@ app = typer.Typer(
 )
 data_app = typer.Typer(help="Discover, update, and validate source datasets.")
 reproduce_app = typer.Typer(help="Write and verify Zhang reproduction artifacts.")
+scenario_app = typer.Typer(help="Validate scenario definitions and reference graphs.")
 app.add_typer(data_app, name="data")
 app.add_typer(reproduce_app, name="reproduce")
+app.add_typer(scenario_app, name="scenario")
 
 
 def version_callback(value: bool) -> None:
@@ -192,6 +201,35 @@ def reproduce_synthetic_run(
             sort_keys=True,
         )
     )
+
+
+@scenario_app.command("schema")
+def scenario_schema() -> None:
+    """Print the canonical JSON Schema for scenario document version 1.0."""
+    typer.echo(
+        json.dumps(
+            ScenarioDocument.model_json_schema(),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
+
+
+@scenario_app.command("validate")
+def scenario_validate(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+) -> None:
+    """Validate scenario files, resolve references, and emit stable identities."""
+    try:
+        documents = tuple(load_scenario_file(path) for path in files)
+        graph = resolve_scenario_graph(documents)
+    except (ScenarioValidationError, ScenarioGraphError) as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(json.dumps({"status": "VALID", **graph.as_dict()}, sort_keys=True))
 
 
 if __name__ == "__main__":  # pragma: no cover

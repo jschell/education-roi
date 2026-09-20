@@ -1,17 +1,17 @@
 # Plan 08 — Scenario and Comparison Engine
 
-**Status:** QUEUED
+**Status:** ACTIVE — contract and validation implementation
 
 ## Objective
 
 Allow arbitrary education/workforce pathways to be defined in validated YAML and compared without changing calculation code.
 
-## Prerequisites
+## Prerequisite exception
 
-- Stable deterministic financial engine
-- Reproduction gate completed
-- Provenance contracts
-- Initial dataset interfaces
+The Plan 07 software infrastructure is complete, but authoritative evidence remains blocked. Plan 08
+contract engineering may proceed because it does not certify or publish institution-level results.
+All scenario outputs remain provisional and non-decision-grade until the reproduction gate is
+accepted.
 
 ## Schema areas
 
@@ -41,6 +41,19 @@ Allow arbitrary education/workforce pathways to be defined in validated YAML and
 10. Produce JSON and CSV outputs with provenance.
 11. Add structured insufficient-data behavior.
 12. Preserve input scenario files with each run.
+
+## Current implementation record
+
+- YAML schema version `1.0` is represented by strict, frozen Pydantic contracts.
+- Inputs distinguish provided, data-resolved, and insufficient states; a missing value never becomes
+  zero.
+- Education/workforce kind constraints, completion probabilities, CIP/SOC versions, money basis,
+  horizons, quantiles, graduate-school references, and dataset pins are validated.
+- Reference graphs reject missing targets, cycles, duplicate IDs, and incompatible money bases.
+- Scenario and graph hashes are canonical and independent of caller file ordering.
+- `edu-roi scenario validate` validates a connected file set; `edu-roi scenario schema` emits the
+  formal JSON Schema.
+- Example workforce and bachelor's scenarios and unit/integration tests are included.
 
 ## Validation rules
 
