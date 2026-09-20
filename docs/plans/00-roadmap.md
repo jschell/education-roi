@@ -39,6 +39,12 @@ Plan 01 produced the verified main-paper methodology, reproduction plan, and res
 
 The publisher supplement remains necessary to certify Table A1’s exact mapping of 173 ACS fields into ten major categories and confirm appendix details. This does not block foundation or provenance engineering. Any reconstructed crosswalk must remain visibly provisional and cannot support a claim of successful Zhang reproduction.
 
+[Decision 0001](../decisions/0001-proceed-without-restricted-npsas.md) records that the project will
+continue without restricted NPSAS microdata. Public IPEDS, College Scorecard, published aggregate,
+or scenario-specific cost inputs will be used with explicit fallbacks and sensitivity bounds. This
+permits methodologically aligned reproduction and project development, but not a claim of exact-input
+replication of the paper's restricted cost construction.
+
 ## Hard gates
 
 ### Gate A — Research target

@@ -8,6 +8,11 @@ The project exposes costs, earnings distributions, completion risk, uncertainty,
 
 Milestone 0 research remains active while the publisher supplement and exact Table A1 crosswalk are independently verified. That unresolved item blocks certification of the Zhang reproduction, but not foundation engineering.
 
+The project is proceeding without restricted NPSAS microdata. Public cost sources and explicitly
+documented fallbacks will support development and a methodologically aligned reproduction; results
+will not be represented as an exact-input replication of the paper. See
+[Decision 0001](docs/decisions/0001-proceed-without-restricted-npsas.md).
+
 Plan 03 establishes the tested Python package and CLI without implementing analytical assumptions.
 
 ## Quick start
