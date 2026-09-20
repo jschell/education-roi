@@ -42,6 +42,13 @@ from education_roi.cashflow.models import (
     ScenarioCashFlow,
     incremental_cash_flow,
 )
+from education_roi.cashflow.results import (
+    ComputationProvenance,
+    FinancialMetrics,
+    FinancialResult,
+    FinancialResultStatus,
+    calculate_financial_result,
+)
 
 __all__ = [
     "AnnualCashFlow",
@@ -55,10 +62,14 @@ __all__ = [
     "CPIConversion",
     "CompletionAssumptions",
     "CompletionReturnSet",
+    "ComputationProvenance",
     "CostAssumptions",
     "DollarMode",
     "EducationCostInput",
     "EducationCostResult",
+    "FinancialMetrics",
+    "FinancialResult",
+    "FinancialResultStatus",
     "IRRResult",
     "IRRStatus",
     "LoanSchedule",
@@ -69,6 +80,7 @@ __all__ = [
     "break_even_age",
     "build_education_cost_schedule",
     "build_loan_schedule",
+    "calculate_financial_result",
     "completion_return_branches",
     "incremental_cash_flow",
     "internal_rate_of_return",
