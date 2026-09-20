@@ -70,3 +70,16 @@ education versus workforce and option-versus-option comparisons with the same ca
   by bisection. Results are `UNIQUE`, `MULTIPLE`, `NO_ROOT`, or `INDETERMINATE` for an all-zero series.
   The result preserves the search bounds. Even-multiplicity roots are not claimed unless a grid point
   is itself within tolerance, so the method does not imply an exhaustive unbounded polynomial proof.
+
+## Complete results and computational provenance
+
+A complete financial result retains its labeled return perspective, NPV discount rate, NPV, IRR
+status and roots, lifetime net value, lifetime earnings, break-even status and age, exact annual cash
+flow, money basis, model name/version, dataset artifact identifiers, transformation identifiers, and
+all calculation assumptions. Missing branch evidence or lifetime earnings produces a structured
+`INSUFFICIENT_DATA` result rather than a partial value presented as complete.
+
+Every result has a SHA-256 configuration hash over canonical JSON containing the exact cash flow,
+money basis, discount rate, assumptions, model identity, and source identifiers. Identical inputs
+produce an identical hash; any material calculation input changes it. Results serialize to ordinary
+JSON-compatible objects for later report and reproduction workflows.

@@ -1,6 +1,6 @@
 # Plan 06 — Financial and Cash-Flow Engine
 
-**Status:** ACTIVE
+**Status:** COMPLETE
 
 ## Objective
 
