@@ -30,6 +30,18 @@ from education_roi.scenarios.models import (
     ValueStatus,
     WorkforceConfig,
 )
+from education_roi.scenarios.resolution import (
+    DatasetReference,
+    FixtureValueProvider,
+    ProviderValue,
+    ResolutionRequest,
+    ResolutionStatus,
+    ResolvedConfigurationGraph,
+    ResolvedScenario,
+    ResolvedValue,
+    ScenarioResolutionError,
+    resolve_configuration_graph,
+)
 
 __all__ = [
     "AssumptionConfig",
@@ -56,7 +68,17 @@ __all__ = [
     "ValueSpec",
     "ValueStatus",
     "WorkforceConfig",
+    "DatasetReference",
+    "FixtureValueProvider",
+    "ProviderValue",
+    "ResolutionRequest",
+    "ResolutionStatus",
+    "ResolvedConfigurationGraph",
+    "ResolvedScenario",
+    "ResolvedValue",
+    "ScenarioResolutionError",
     "load_scenario_file",
     "parse_scenario_yaml",
     "resolve_scenario_graph",
+    "resolve_configuration_graph",
 ]

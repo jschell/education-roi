@@ -1,6 +1,6 @@
 # Plan 08 — Scenario and Comparison Engine
 
-**Status:** ACTIVE — contract and validation implementation
+**Status:** ACTIVE — resolved configuration implementation
 
 ## Objective
 
@@ -54,6 +54,13 @@ accepted.
 - `edu-roi scenario validate` validates a connected file set; `edu-roi scenario schema` emits the
   formal JSON Schema.
 - Example workforce and bachelor's scenarios and unit/integration tests are included.
+- Numeric scenario inputs resolve through an explicit provider into immutable resolved values.
+- Resolution enforces exact scenario dataset pins and rejects source or vintage substitution.
+- Every data-resolved value records artifact and transformation identifiers; provider misses and
+  declared gaps remain `INSUFFICIENT_DATA` rather than becoming zero.
+- Resolved scenarios and graphs are counterfactual-first, canonical, and deterministically hashed.
+- `edu-roi scenario resolve` supports an explicitly fixture-backed provider for integration tests;
+  live IPEDS and Scorecard providers remain a later slice.
 
 ## Validation rules
 

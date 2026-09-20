@@ -19,10 +19,13 @@ from education_roi.reproduction.synthetic import (
     synthetic_provisional_request,
 )
 from education_roi.scenarios import (
+    FixtureValueProvider,
     ScenarioDocument,
     ScenarioGraphError,
+    ScenarioResolutionError,
     ScenarioValidationError,
     load_scenario_file,
+    resolve_configuration_graph,
     resolve_scenario_graph,
 )
 
@@ -230,6 +233,31 @@ def scenario_validate(
         typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
         raise typer.Exit(code=1) from None
     typer.echo(json.dumps({"status": "VALID", **graph.as_dict()}, sort_keys=True))
+
+
+@scenario_app.command("resolve")
+def scenario_resolve(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    fixture_values: Annotated[
+        Path,
+        typer.Option(
+            exists=True, dir_okay=False, readable=True, help="Synthetic/test fixture values."
+        ),
+    ],
+) -> None:
+    """Resolve scenario values from an explicit fixture provider."""
+    try:
+        documents = tuple(load_scenario_file(path) for path in files)
+        graph = resolve_scenario_graph(documents)
+        provider = FixtureValueProvider.from_file(fixture_values)
+        resolved = resolve_configuration_graph(graph, provider)
+    except (ScenarioValidationError, ScenarioGraphError, ScenarioResolutionError) as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(json.dumps(resolved.as_dict(), sort_keys=True))
 
 
 if __name__ == "__main__":  # pragma: no cover
