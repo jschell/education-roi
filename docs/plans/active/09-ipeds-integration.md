@@ -24,6 +24,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - explicit in-district/in-state/out-of-state tuition basis with no residency fallback.
 - deterministic inventory snapshot comparison with discovered/changed/missing review states and no
   guessed URLs or automatic promotion.
+- deterministic `ipeds compare-inventory` CLI output with optional CI failure on review-required
+  changes.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

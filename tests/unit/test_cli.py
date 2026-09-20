@@ -33,6 +33,12 @@ def test_data_contracts_are_visible() -> None:
     assert "validate" in result.stdout
 
 
+def test_ipeds_inventory_contract_is_visible() -> None:
+    result = runner.invoke(app, ["ipeds", "--help"])
+    assert result.exit_code == 0
+    assert "compare-inventory" in result.stdout
+
+
 def test_reproduction_bundle_contract_is_visible() -> None:
     result = runner.invoke(app, ["reproduce", "--help"])
     assert result.exit_code == 0

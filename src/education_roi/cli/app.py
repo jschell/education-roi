@@ -9,6 +9,11 @@ import typer
 from education_roi import __version__
 from education_roi.cashflow import ReturnPerspective
 from education_roi.config.paths import ProjectPaths
+from education_roi.ipeds import (
+    IPEDSCatalogError,
+    IPEDSReleaseCatalog,
+    compare_release_catalogs,
+)
 from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
@@ -46,9 +51,11 @@ app = typer.Typer(
 data_app = typer.Typer(help="Discover, update, and validate source datasets.")
 reproduce_app = typer.Typer(help="Write and verify Zhang reproduction artifacts.")
 scenario_app = typer.Typer(help="Validate scenario definitions and reference graphs.")
+ipeds_app = typer.Typer(help="Inspect and register authoritative IPEDS releases.")
 app.add_typer(data_app, name="data")
 app.add_typer(reproduce_app, name="reproduce")
 app.add_typer(scenario_app, name="scenario")
+app.add_typer(ipeds_app, name="ipeds")
 
 
 def version_callback(value: bool) -> None:
@@ -165,6 +172,37 @@ def data_validate(
             failures.append({"artifact_id": artifact.artifact_id, "error": "integrity mismatch"})
     typer.echo(json.dumps({"checked": len(artifacts), "failures": failures}, indent=2))
     if failures:
+        raise typer.Exit(code=1)
+
+
+@ipeds_app.command("compare-inventory")
+def ipeds_compare_inventory(
+    reviewed: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    observed: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Observed catalog JSON."),
+    ],
+    fail_on_change: Annotated[
+        bool,
+        typer.Option(help="Exit 1 when differences require review."),
+    ] = False,
+) -> None:
+    """Compare complete IPEDS inventory snapshots without promoting changes."""
+    try:
+        comparison = compare_release_catalogs(
+            IPEDSReleaseCatalog.from_file(reviewed),
+            IPEDSReleaseCatalog.from_file(observed),
+        )
+    except IPEDSCatalogError as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    payload = comparison.model_dump(mode="json")
+    payload["status"] = "REVIEW_REQUIRED" if comparison.review_required else "UNCHANGED"
+    typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    if comparison.review_required and fail_on_change:
         raise typer.Exit(code=1)
 
 
