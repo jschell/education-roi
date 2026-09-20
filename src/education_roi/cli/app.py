@@ -12,6 +12,7 @@ from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.store import ArtifactStore, Registry
+from education_roi.reproduction.bundle import BundleIntegrityError, verify_reproduction_bundle
 
 app = typer.Typer(
     name="edu-roi",
@@ -19,7 +20,9 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 data_app = typer.Typer(help="Discover, update, and validate source datasets.")
+reproduce_app = typer.Typer(help="Write and verify Zhang reproduction artifacts.")
 app.add_typer(data_app, name="data")
+app.add_typer(reproduce_app, name="reproduce")
 
 
 def version_callback(value: bool) -> None:
@@ -137,6 +140,29 @@ def data_validate(
     typer.echo(json.dumps({"checked": len(artifacts), "failures": failures}, indent=2))
     if failures:
         raise typer.Exit(code=1)
+
+
+@reproduce_app.command("verify-bundle")
+def reproduce_verify_bundle(
+    bundle: Annotated[Path, typer.Argument(exists=True, file_okay=False, readable=True)],
+) -> None:
+    """Verify a deterministic reproduction bundle and every recorded digest."""
+    try:
+        verified = verify_reproduction_bundle(bundle)
+    except BundleIntegrityError as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "VALID",
+                "run_id": verified.run_id,
+                "certification_status": verified.certification_status,
+                "files_checked": len(verified.artifacts),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

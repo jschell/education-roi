@@ -4,6 +4,14 @@ from education_roi.reproduction.aggregate import (
     AggregateReproductionResult,
     reproduce_aggregate_target,
 )
+from education_roi.reproduction.bundle import (
+    BUNDLE_SCHEMA_VERSION,
+    BundleArtifact,
+    BundleIntegrityError,
+    ReproductionBundle,
+    verify_reproduction_bundle,
+    write_reproduction_bundle,
+)
 from education_roi.reproduction.comparison import (
     ReproductionStatus,
     ReproductionTarget,
@@ -46,9 +54,12 @@ from education_roi.reproduction.sample_flow import (
 )
 
 __all__ = [
+    "BUNDLE_SCHEMA_VERSION",
     "DECILES",
     "RANK_INVARIANCE_WARNING",
     "AggregateReproductionResult",
+    "BundleArtifact",
+    "BundleIntegrityError",
     "CertificationStatus",
     "CovariateSlopeSpecification",
     "EarningsCoefficients",
@@ -64,6 +75,7 @@ __all__ = [
     "QuantileProfileFit",
     "QuantileSolverMetadata",
     "ReproductionReport",
+    "ReproductionBundle",
     "ReproductionStatus",
     "ReproductionTarget",
     "SampleFlowRecord",
@@ -78,5 +90,7 @@ __all__ = [
     "published_zhang_configuration",
     "reproduce_aggregate_target",
     "validate_profile_against_reference",
+    "verify_reproduction_bundle",
+    "write_reproduction_bundle",
     "zhang_sample_flow",
 ]
