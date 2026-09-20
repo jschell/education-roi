@@ -46,6 +46,13 @@ Resolved scenarios are emitted in counterfactual-first order with canonical per-
 hashes. Until the Plan 07 evidence gate is resolved, scenario output remains provisional and must
 not be labeled decision-grade.
 
+Plan 09 also supplies an `IPEDSValueProvider` library boundary for validated registry artifacts.
+It resolves only `costs.tuition_and_fees` (`CHG2AY3`) and `costs.books_and_supplies` (`CHG4AY3`)
+for the scenario's exact UNITID and pinned release. It verifies the stored artifact hash and size
+before reading it and emits the artifact and selection transformation identifiers. It deliberately
+returns no value for other inputs. CLI wiring and authoritative release discovery are later slices;
+fixture resolution remains the command-line path until those policies are complete.
+
 ## Synthetic analysis boundary
 
 `edu-roi scenario analyze` combines the resolved-value fixture with a separate, explicit
