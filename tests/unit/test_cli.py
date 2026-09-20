@@ -37,3 +37,4 @@ def test_reproduction_bundle_contract_is_visible() -> None:
     result = runner.invoke(app, ["reproduce", "--help"])
     assert result.exit_code == 0
     assert "verify-bundle" in result.stdout
+    assert "synthetic-run" in result.stdout
