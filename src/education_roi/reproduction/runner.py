@@ -184,4 +184,3 @@ def run_provisional_reproduction(
     )
     bundle = write_reproduction_bundle(report, results_root=results_root, run_id=run_id)
     return ProvisionalRunResult(report, bundle)
-
