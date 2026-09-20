@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from education_roi import __version__
+from education_roi.cashflow import ReturnPerspective
 from education_roi.config.paths import ProjectPaths
 from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
@@ -19,11 +20,14 @@ from education_roi.reproduction.synthetic import (
     synthetic_provisional_request,
 )
 from education_roi.scenarios import (
+    EarningsFixture,
     FixtureValueProvider,
+    ScenarioAnalysisError,
     ScenarioDocument,
     ScenarioGraphError,
     ScenarioResolutionError,
     ScenarioValidationError,
+    analyze_scenario,
     load_scenario_file,
     resolve_configuration_graph,
     resolve_scenario_graph,
@@ -258,6 +262,46 @@ def scenario_resolve(
         typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
         raise typer.Exit(code=1) from None
     typer.echo(json.dumps(resolved.as_dict(), sort_keys=True))
+
+
+@scenario_app.command("analyze")
+def scenario_analyze(
+    scenario_id: Annotated[str, typer.Option(help="Scenario ID to analyze.")],
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    fixture_values: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Resolved-value fixture."),
+    ],
+    earnings_fixture: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Age-earnings fixture."),
+    ],
+    perspective: Annotated[
+        ReturnPerspective, typer.Option(help="Return perspective.")
+    ] = ReturnPerspective.CONDITIONAL_GRADUATE,
+) -> None:
+    """Analyze a scenario against its counterfactual using explicit fixtures."""
+    try:
+        documents = tuple(load_scenario_file(path) for path in files)
+        source_graph = resolve_scenario_graph(documents)
+        provider = FixtureValueProvider.from_file(fixture_values)
+        resolved_graph = resolve_configuration_graph(source_graph, provider)
+        earnings = EarningsFixture.from_file(earnings_fixture)
+        analysis = analyze_scenario(
+            source_graph, resolved_graph, earnings, scenario_id, perspective
+        )
+    except (
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioResolutionError,
+        ScenarioAnalysisError,
+    ) as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(json.dumps(analysis.as_dict(), sort_keys=True))
 
 
 if __name__ == "__main__":  # pragma: no cover

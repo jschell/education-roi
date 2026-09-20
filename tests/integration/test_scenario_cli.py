@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from education_roi.cli.app import app
@@ -88,3 +89,103 @@ def test_scenario_resolve_cli_emits_provenance_complete_configuration(tmp_path: 
         if item["path"] == "costs.tuition_and_fees"
     )
     assert tuition["artifact_id"] == "ipeds-sha256"
+
+
+@pytest.mark.integration
+def test_scenario_analyze_cli_is_deterministic_for_complete_fixtures(tmp_path: Path) -> None:
+    workforce = EXAMPLES / "workforce-high-school.yaml"
+    bachelors = tmp_path / "bachelors.yaml"
+    text = (EXAMPLES / "example-bachelors.yaml").read_text(encoding="utf-8")
+    text = text.replace(
+        "annual_interest_rate: {status: INSUFFICIENT_DATA, source: federal-student-aid}",
+        "annual_interest_rate: {status: PROVIDED, value: 0.05, source: test-assumption}",
+    ).replace(
+        "origination_fee_rate: {status: INSUFFICIENT_DATA, source: federal-student-aid}",
+        "origination_fee_rate: {status: PROVIDED, value: 0.01, source: test-assumption}",
+    )
+    bachelors.write_text(text, encoding="utf-8")
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        yaml.safe_dump(
+            {
+                "values": {
+                    "example-bachelors.costs.tuition_and_fees": {
+                        "value": 12000,
+                        "source": "ipeds",
+                        "vintage": "2023-24-final",
+                        "artifact_id": "ipeds-sha",
+                    },
+                    "example-bachelors.costs.books_and_supplies": {
+                        "value": 1000,
+                        "source": "ipeds",
+                        "vintage": "2023-24-final",
+                        "artifact_id": "ipeds-sha",
+                    },
+                    "example-bachelors.costs.grants_and_scholarships": {
+                        "value": 4000,
+                        "source": "college-scorecard",
+                        "vintage": "2024-10",
+                        "artifact_id": "scorecard-sha",
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    ages = list(range(18, 66))
+    baseline = {age: 30000 + 1000 * (age - 18) for age in ages}
+    graduate = {age: 0 if age < 22 else 70000 + 2000 * (age - 22) for age in ages}
+    earnings = tmp_path / "earnings.yaml"
+    earnings.write_text(
+        yaml.safe_dump(
+            {
+                "profiles": {
+                    "workforce-high-school": {
+                        "base": {
+                            "source": "acs-pums",
+                            "vintage": "2024-5yr",
+                            "artifact_id": "acs-workforce-sha",
+                            "transformation_ids": ["wa-hs-p50"],
+                            "quantile": 0.5,
+                            "enrollment_years": 0,
+                            "earnings_by_age": baseline,
+                        }
+                    },
+                    "example-bachelors": {
+                        "graduate_on_time": {
+                            "source": "acs-pums",
+                            "vintage": "2024-5yr",
+                            "artifact_id": "acs-degree-sha",
+                            "transformation_ids": ["wa-cs-p50"],
+                            "quantile": 0.5,
+                            "enrollment_years": 4,
+                            "earnings_by_age": graduate,
+                        }
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    arguments = [
+        "scenario",
+        "analyze",
+        str(bachelors),
+        str(workforce),
+        "--scenario-id",
+        "example-bachelors",
+        "--fixture-values",
+        str(values),
+        "--earnings-fixture",
+        str(earnings),
+    ]
+    first = runner.invoke(app, arguments)
+    second = runner.invoke(app, arguments)
+    assert first.exit_code == 0, first.stdout
+    assert first.stdout == second.stdout
+    payload = json.loads(first.stdout)
+    assert payload["status"] == "AVAILABLE"
+    assert payload["perspective"] == "conditional_graduate"
+    assert payload["result"]["status"] == "AVAILABLE"
+    assert len(payload["annual_cash_flow"]) == 48
+    assert len(payload["analysis_hash"]) == 64

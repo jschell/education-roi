@@ -1,5 +1,14 @@
 """Validated, versioned scenario definitions and reference graphs."""
 
+from education_roi.scenarios.analysis import (
+    AnalysisStatus,
+    EarningsFixture,
+    EarningsProfile,
+    OutcomeName,
+    ScenarioAnalysis,
+    ScenarioAnalysisError,
+    analyze_scenario,
+)
 from education_roi.scenarios.graph import ScenarioGraphError, resolve_scenario_graph
 from education_roi.scenarios.loader import (
     ScenarioValidationError,
@@ -44,6 +53,7 @@ from education_roi.scenarios.resolution import (
 )
 
 __all__ = [
+    "AnalysisStatus",
     "AssumptionConfig",
     "CompletionConfig",
     "CostConfig",
@@ -68,6 +78,12 @@ __all__ = [
     "ValueSpec",
     "ValueStatus",
     "WorkforceConfig",
+    "EarningsFixture",
+    "EarningsProfile",
+    "OutcomeName",
+    "ScenarioAnalysis",
+    "ScenarioAnalysisError",
+    "analyze_scenario",
     "DatasetReference",
     "FixtureValueProvider",
     "ProviderValue",
