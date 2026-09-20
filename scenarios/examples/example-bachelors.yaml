@@ -23,11 +23,11 @@ scenario:
     tuition_and_fees:
       status: RESOLVE_FROM_DATA
       source: ipeds
-      vintage: 2023-24-final
+      vintage: 2023-24-provisional
     books_and_supplies:
       status: RESOLVE_FROM_DATA
       source: ipeds
-      vintage: 2023-24-final
+      vintage: 2023-24-provisional
     incremental_living_cost:
       status: PROVIDED
       value: 0
@@ -63,5 +63,5 @@ scenario:
     policy: pinned
     pins:
       - {dataset: acs-pums, release: 2024-5yr}
-      - {dataset: ipeds, release: 2023-24-final}
+      - {dataset: ipeds, release: 2023-24-provisional}
       - {dataset: college-scorecard, release: 2024-10}

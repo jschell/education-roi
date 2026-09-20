@@ -17,14 +17,14 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - deterministic ZIP fixtures and opt-in official-host smoke test.
 - strict reviewed release-catalog contract pairing data and dictionary URLs;
 - component-scoped newest-final selection and explicit nonfinal opt-in.
+- reviewed `IC2023_AY` data/dictionary URL pair and corrected provisional labeling.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
 ## Remaining implementation tasks
 
-1. Verify exact authoritative download and dictionary URLs and commit a reviewed catalog snapshot.
-2. Implement resilient inventory change detection without guessing download paths.
-3. Acquire and validate the paired dictionary artifact.
+1. Implement resilient inventory change detection without guessing download paths.
+2. Acquire and validate the paired dictionary artifact.
 4. Interpret and retain IPEDS imputation/status fields.
 5. Add residency and attendance-basis policies, including out-of-state charges.
 6. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.

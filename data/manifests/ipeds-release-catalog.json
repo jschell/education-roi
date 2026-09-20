@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-09-20",
+  "releases": [
+    {
+      "release_id": "2023-24-provisional",
+      "collection_year": 2023,
+      "component": "academic-year-charges",
+      "publication_status": "provisional",
+      "data_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
+      "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=1"
+    }
+  ]
+}

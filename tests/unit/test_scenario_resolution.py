@@ -30,14 +30,14 @@ def fixture_values() -> dict[str, ProviderValue]:
         "example-bachelors.costs.tuition_and_fees": ProviderValue(
             value=12000,
             source="ipeds",
-            vintage="2023-24-final",
+            vintage="2023-24-provisional",
             artifact_id="ipeds-artifact-sha256",
             transformation_ids=("select-unitid-236948",),
         ),
         "example-bachelors.costs.books_and_supplies": ProviderValue(
             value=900,
             source="ipeds",
-            vintage="2023-24-final",
+            vintage="2023-24-provisional",
             artifact_id="ipeds-artifact-sha256",
             transformation_ids=("select-unitid-236948",),
         ),
@@ -86,7 +86,7 @@ def test_provider_cannot_substitute_a_different_source_or_vintage() -> None:
         vintage="2024-25-provisional",
         artifact_id="wrong-release",
     )
-    with pytest.raises(ScenarioResolutionError, match="expected ipeds 2023-24-final"):
+    with pytest.raises(ScenarioResolutionError, match="expected ipeds 2023-24-provisional"):
         resolve_configuration_graph(graph(), FixtureValueProvider(values))
 
 
