@@ -39,6 +39,12 @@ def test_ipeds_inventory_contract_is_visible() -> None:
     assert "compare-inventory" in result.stdout
 
 
+def test_scenario_ipeds_resolution_contract_is_visible() -> None:
+    result = runner.invoke(app, ["scenario", "--help"])
+    assert result.exit_code == 0
+    assert "resolve-ipeds" in result.stdout
+
+
 def test_reproduction_bundle_contract_is_visible() -> None:
     result = runner.invoke(app, ["reproduce", "--help"])
     assert result.exit_code == 0

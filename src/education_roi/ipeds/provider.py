@@ -60,6 +60,9 @@ class IPEDSValueProvider:
         if cached is not None:
             return cached
         path = self._raw_root / manifest.storage_path
+        if not path.is_file():
+            message = f"immutable IPEDS artifact is missing: {manifest.artifact_id}"
+            raise ScenarioResolutionError(message)
         digest, size = sha256_file(path)
         if digest != manifest.sha256 or size != manifest.file_size:
             message = f"immutable IPEDS artifact failed integrity check: {manifest.artifact_id}"
