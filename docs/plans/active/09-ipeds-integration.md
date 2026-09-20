@@ -15,21 +15,24 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - exact-release and exact-UNITID resolution with machine-readable lineage;
 - unavailable/sentinel values preserved as insufficient data;
 - deterministic ZIP fixtures and opt-in official-host smoke test.
+- strict reviewed release-catalog contract pairing data and dictionary URLs;
+- component-scoped newest-final selection and explicit nonfinal opt-in.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
 ## Remaining implementation tasks
 
-1. Verify and implement authoritative release-page discovery and dictionary acquisition.
-2. Add explicit final/provisional selection policy and warnings.
-3. Interpret and retain IPEDS imputation/status fields.
-4. Add residency and attendance-basis policies, including out-of-state charges.
-5. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
-6. Preserve reported basis and population definitions.
-7. Map programs using versioned CIP and handle institution identity changes.
-8. Generate institution/year analytical Parquet tables.
-9. Add scenario completion resolution and release comparisons.
-10. Wire validated registry providers into production CLI commands.
+1. Verify exact authoritative download and dictionary URLs and commit a reviewed catalog snapshot.
+2. Implement resilient inventory change detection without guessing download paths.
+3. Acquire and validate the paired dictionary artifact.
+4. Interpret and retain IPEDS imputation/status fields.
+5. Add residency and attendance-basis policies, including out-of-state charges.
+6. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
+7. Preserve reported basis and population definitions.
+8. Map programs using versioned CIP and handle institution identity changes.
+9. Generate institution/year analytical Parquet tables.
+10. Add scenario completion resolution and release comparisons.
+11. Wire validated registry providers into production CLI commands.
 
 ## Tests still required
 
