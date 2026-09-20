@@ -19,6 +19,30 @@ coefficient source, and a deterministic coefficient hash. Aggregate integration 
 selection adjustment to annual earnings, builds four years of college costs and student earnings,
 and sends complete annual cash flows through the financial engine.
 
-Current aggregate comparisons remain provisional fixtures until exact coefficients, ACS artifacts,
-CPI observations, and restricted cost cells are registered. Paper-labeled major reproduction remains
-blocked until Table A1 is verified.
+## Quantile-profile and reporting infrastructure
+
+The supported distributional positions are the nine earnings deciles, P10 through P90. Every decile
+definition carries the same visible warning: it is an observed position in an earnings distribution,
+not an individual probability, and comparing the same position across education states invokes the
+paper's rank-invariance assumption.
+
+Quantile-profile inputs retain their coefficient source and hash. Fit results retain solver
+algorithm, implementation and version, convergence state, iterations, tolerance, objective value,
+and message. A failed solver cannot produce a profile. Converged profiles preserve unrounded annual
+earnings and can be checked at every age against fixed outputs from a named independent
+implementation.
+
+Median and nonmedian incremental cash-flow series use the same deterministic IRR engine. Each result
+retains the complete real/nominal basis, annual cash flows, profile hashes, cash-flow hash, bounded
+IRR search metadata, roots, and the decile interpretation label. These fixture calculations validate
+the infrastructure only; they are not estimates of the paper's results.
+
+The reproduction report has canonical JSON and deterministic Markdown forms. JSON retains sample
+flow, profile and convergence records, independent-profile checks, full cash flows, IRRs, and target
+comparisons. Markdown highlights evidence blockers, distributional IRRs, discrepancies, and
+methodological ambiguities. Provisional report construction requires at least one named blocker and
+cannot silently become certified.
+
+Current aggregate and quantile comparisons remain provisional fixtures until authoritative ACS
+inputs, exact coefficients, CPI observations, and restricted cost cells are registered. Paper-level
+major reproduction remains blocked until supplemental Table A1 is verified.

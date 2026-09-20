@@ -65,6 +65,16 @@ For each target retain:
 - comparison report
 - discrepancy log
 
+## Current implementation record
+
+- Aggregate quadratic earnings profiles and financial-engine integration are implemented with
+  provisional fixtures.
+- Decile definitions, rank-invariance labeling, quantile profile and solver contracts, independent
+  fixed-fixture validation, median/nonmedian IRRs, and deterministic JSON/Markdown reporting are
+  implemented.
+- Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
+  inputs, exact coefficients, restricted cost cells, and supplemental Table A1.
+
 ## Acceptance criteria
 
 One of the following is approved:
