@@ -20,17 +20,22 @@ from education_roi.reproduction.synthetic import (
     synthetic_provisional_request,
 )
 from education_roi.scenarios import (
+    ComparisonBundleError,
     EarningsFixture,
     FixtureValueProvider,
     ScenarioAnalysisError,
+    ScenarioComparisonError,
     ScenarioDocument,
     ScenarioGraphError,
     ScenarioResolutionError,
     ScenarioValidationError,
     analyze_scenario,
+    compare_scenarios,
     load_scenario_file,
     resolve_configuration_graph,
     resolve_scenario_graph,
+    verify_comparison_bundle,
+    write_comparison_bundle,
 )
 
 app = typer.Typer(
@@ -302,6 +307,95 @@ def scenario_analyze(
         typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
         raise typer.Exit(code=1) from None
     typer.echo(json.dumps(analysis.as_dict(), sort_keys=True))
+
+
+@app.command("compare")
+def scenario_compare(
+    scenario_ids: Annotated[
+        list[str], typer.Option("--scenario-id", help="Scenario ID; repeat at least twice.")
+    ],
+    files: Annotated[
+        list[Path],
+        typer.Argument(
+            exists=True, dir_okay=False, readable=True, help="Connected scenario YAML files."
+        ),
+    ],
+    fixture_values: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Resolved-value fixture."),
+    ],
+    earnings_fixture: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False, readable=True, help="Age-earnings fixture.")
+    ],
+    results_root: Annotated[Path, typer.Option(help="Parent directory for immutable runs.")],
+    run_id: Annotated[str, typer.Option(help="New immutable run identifier.")],
+    perspective: Annotated[
+        ReturnPerspective, typer.Option(help="Return perspective.")
+    ] = ReturnPerspective.CONDITIONAL_GRADUATE,
+) -> None:
+    """Compare scenarios and write a reproducible, integrity-protected run bundle."""
+    try:
+        documents = tuple(load_scenario_file(path) for path in files)
+        source_graph = resolve_scenario_graph(documents)
+        resolved = resolve_configuration_graph(
+            source_graph, FixtureValueProvider.from_file(fixture_values)
+        )
+        earnings = EarningsFixture.from_file(earnings_fixture)
+        report = compare_scenarios(
+            source_graph, resolved, earnings, tuple(scenario_ids), perspective
+        )
+        bundle = write_comparison_bundle(
+            results_root / run_id,
+            scenario_files=tuple(files),
+            source_graph=source_graph,
+            resolved_graph=resolved,
+            earnings_fixture=earnings,
+            report=report,
+        )
+    except (
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioResolutionError,
+        ScenarioAnalysisError,
+        ScenarioComparisonError,
+        ComparisonBundleError,
+    ) as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": report.status.value,
+                "provisional": report.provisional,
+                "run_id": run_id,
+                "bundle_path": str(bundle),
+                "report_hash": report.report_hash,
+            },
+            sort_keys=True,
+        )
+    )
+
+
+@scenario_app.command("verify-bundle")
+def scenario_verify_bundle(
+    bundle: Annotated[Path, typer.Argument(exists=True, file_okay=False, readable=True)],
+) -> None:
+    """Verify every recorded comparison-bundle byte and digest."""
+    try:
+        manifest = verify_comparison_bundle(bundle)
+    except ComparisonBundleError as error:
+        typer.echo(json.dumps({"status": "INVALID", "error": str(error)}, sort_keys=True))
+        raise typer.Exit(code=1) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "VALID",
+                "report_hash": manifest["report_hash"],
+                "files_checked": len(manifest["files"]),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

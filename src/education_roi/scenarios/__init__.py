@@ -9,6 +9,17 @@ from education_roi.scenarios.analysis import (
     ScenarioAnalysisError,
     analyze_scenario,
 )
+from education_roi.scenarios.bundle import (
+    ComparisonBundleError,
+    verify_comparison_bundle,
+    write_comparison_bundle,
+)
+from education_roi.scenarios.comparison import (
+    ComparisonReport,
+    PairwiseComparison,
+    ScenarioComparisonError,
+    compare_scenarios,
+)
 from education_roi.scenarios.graph import ScenarioGraphError, resolve_scenario_graph
 from education_roi.scenarios.loader import (
     ScenarioValidationError,
@@ -54,6 +65,8 @@ from education_roi.scenarios.resolution import (
 
 __all__ = [
     "AnalysisStatus",
+    "ComparisonBundleError",
+    "ComparisonReport",
     "AssumptionConfig",
     "CompletionConfig",
     "CostConfig",
@@ -81,9 +94,12 @@ __all__ = [
     "EarningsFixture",
     "EarningsProfile",
     "OutcomeName",
+    "PairwiseComparison",
     "ScenarioAnalysis",
     "ScenarioAnalysisError",
+    "ScenarioComparisonError",
     "analyze_scenario",
+    "compare_scenarios",
     "DatasetReference",
     "FixtureValueProvider",
     "ProviderValue",
@@ -97,4 +113,6 @@ __all__ = [
     "parse_scenario_yaml",
     "resolve_scenario_graph",
     "resolve_configuration_graph",
+    "verify_comparison_bundle",
+    "write_comparison_bundle",
 ]
