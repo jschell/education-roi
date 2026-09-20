@@ -1,0 +1,67 @@
+schema_version: "1.0"
+scenario:
+  id: example-bachelors
+  name: Example bachelor's program
+  description: Four-year bachelor's scenario using unresolved authoritative public cost data.
+  kind: education
+  education:
+    credential: bachelors
+    expected_duration_years: 4
+    institution:
+      unitid: 236948
+      name: Example institution
+    program:
+      cip: "11"
+      cip_version: "2020"
+      name: Computer and information sciences
+    completion:
+      graduate_on_time: {status: PROVIDED, value: 0.65, source: scenario-fixture}
+      graduate_late: {status: PROVIDED, value: 0.15, source: scenario-fixture}
+      transfer: {status: PROVIDED, value: 0.05, source: scenario-fixture}
+      leave_without_credential: {status: PROVIDED, value: 0.15, source: scenario-fixture}
+  costs:
+    tuition_and_fees:
+      status: RESOLVE_FROM_DATA
+      source: ipeds
+      vintage: 2023-24-final
+    books_and_supplies:
+      status: RESOLVE_FROM_DATA
+      source: ipeds
+      vintage: 2023-24-final
+    incremental_living_cost:
+      status: PROVIDED
+      value: 0
+      source: scenario-assumption
+      note: Explicit placeholder for later sensitivity; not silently inferred.
+    grants_and_scholarships:
+      status: RESOLVE_FROM_DATA
+      source: college-scorecard
+      vintage: 2024-10
+  financing:
+    family_contribution: {status: PROVIDED, value: 10000, source: scenario-assumption}
+    student_contribution: {status: PROVIDED, value: 0, source: scenario-assumption}
+    debt_principal: {status: PROVIDED, value: 20000, source: scenario-assumption}
+    annual_interest_rate: {status: INSUFFICIENT_DATA, source: federal-student-aid}
+    origination_fee_rate: {status: INSUFFICIENT_DATA, source: federal-student-aid}
+    repayment_years: {status: PROVIDED, value: 10, source: scenario-assumption}
+  earnings:
+    source: acs-pums
+    vintage: 2024-5yr
+    quantiles: [0.10, 0.25, 0.50, 0.75, 0.90]
+    geography: Washington
+  counterfactual: workforce-high-school
+  graduate_school:
+    mode: none
+  assumptions:
+    money_basis: {mode: real, dollar_year: 2024}
+    selection_adjustment: 0.25
+    real_discount_rate: 0.04
+    real_wage_growth: 0
+    start_age: 18
+    terminal_age: 65
+  data:
+    policy: pinned
+    pins:
+      - {dataset: acs-pums, release: 2024-5yr}
+      - {dataset: ipeds, release: 2023-24-final}
+      - {dataset: college-scorecard, release: 2024-10}

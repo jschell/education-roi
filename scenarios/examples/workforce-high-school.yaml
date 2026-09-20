@@ -1,0 +1,38 @@
+schema_version: "1.0"
+scenario:
+  id: workforce-high-school
+  name: High-school workforce
+  description: Enter the workforce at age 18 with a high-school credential.
+  kind: workforce
+  workforce:
+    entry_age: 18
+  costs:
+    tuition_and_fees: {status: PROVIDED, value: 0, source: scenario}
+    books_and_supplies: {status: PROVIDED, value: 0, source: scenario}
+    incremental_living_cost: {status: PROVIDED, value: 0, source: scenario}
+    grants_and_scholarships: {status: PROVIDED, value: 0, source: scenario}
+  financing:
+    family_contribution: {status: PROVIDED, value: 0, source: scenario}
+    student_contribution: {status: PROVIDED, value: 0, source: scenario}
+    debt_principal: {status: PROVIDED, value: 0, source: scenario}
+    annual_interest_rate: {status: PROVIDED, value: 0, source: scenario}
+    origination_fee_rate: {status: PROVIDED, value: 0, source: scenario}
+    repayment_years: {status: PROVIDED, value: 0, source: scenario}
+  earnings:
+    source: acs-pums
+    vintage: 2024-5yr
+    quantiles: [0.10, 0.25, 0.50, 0.75, 0.90]
+    geography: Washington
+  graduate_school:
+    mode: none
+  assumptions:
+    money_basis: {mode: real, dollar_year: 2024}
+    selection_adjustment: 0.25
+    real_discount_rate: 0.04
+    real_wage_growth: 0
+    start_age: 18
+    terminal_age: 65
+  data:
+    policy: pinned
+    pins:
+      - {dataset: acs-pums, release: 2024-5yr}
