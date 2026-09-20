@@ -1,6 +1,6 @@
 # Plan 07 — Zhang Reproduction
 
-**Status:** ACTIVE — provisional pending supplement
+**Status:** ACTIVE — implementation complete; authoritative evidence blocked
 
 ## Objective
 
@@ -80,7 +80,7 @@ For each target retain:
 - An explicitly synthetic installed-CLI smoke run and subprocess integration test now cover the
   clean-environment reproduction path without weakening the paper-data evidence gate.
 - Actual paper-level quantile and major estimates remain provisional pending authoritative ACS
-  inputs, exact coefficients, public cost-substitute implementation, and supplemental Table A1.
+  inputs, exact coefficients, CPI observations, and supplemental Table A1.
 - Per [Decision 0001](../../decisions/0001-proceed-without-restricted-npsas.md), restricted NPSAS
   microdata will not be pursued. Public substitutes require provenance, fallback disclosure, and
   sensitivity bounds; they can support a methodologically aligned reproduction but not an
@@ -91,6 +91,14 @@ For each target retain:
 - The provisional runner now selects public cost inputs and emits low/base/high target comparisons,
   including the IRR and NPV change attributable to each cost case. An unavailable fallback remains
   an explicit `INSUFFICIENT_DATA` analysis and `REVIEW` comparison rather than a zero-cost result.
+- The installed synthetic CLI now carries available and missing public-cost fixtures through the
+  complete runner and immutable bundle path. Independent subprocess runs verify byte-identical cost
+  analyses and comparisons.
+
+The planned reproduction infrastructure is implemented. Plan 07 remains active because its research
+acceptance criteria require authoritative ACS inputs, exact coefficients, CPI observations, and the
+supplemental Table A1 crosswalk. Restricted NPSAS cost cells are intentionally replaced by disclosed
+public substitutes under Decision 0001 and are not an implementation blocker.
 
 ## Acceptance criteria
 

@@ -8,6 +8,14 @@ import polars as pl
 from education_roi.acs.crosswalk import CrosswalkStatus
 from education_roi.cashflow import CashFlowPoint, CashFlowSeries, DollarMode, MoneyBasis
 from education_roi.reproduction.comparison import ReproductionTarget
+from education_roi.reproduction.costs import (
+    CostComponents,
+    CostEvidence,
+    CostLevel,
+    CostProvenance,
+    CostSensitivitySet,
+    EducationCostEstimate,
+)
 from education_roi.reproduction.quantiles import (
     QuantileCashFlow,
     QuantileDefinition,
@@ -18,10 +26,11 @@ from education_roi.reproduction.quantiles import (
 from education_roi.reproduction.runner import (
     ProfileFixture,
     ProvisionalRunRequest,
+    PublicCostReproductionFixture,
     TargetObservation,
 )
 
-SYNTHETIC_FIXTURE_VERSION = "synthetic-zhang-smoke-v1"
+SYNTHETIC_FIXTURE_VERSION = "synthetic-zhang-smoke-v2"
 
 
 def _hash(value: object) -> str:
@@ -59,6 +68,25 @@ def _profile(
         "independently frozen synthetic math fixture v1",
         1e-9,
         1e-12,
+    )
+
+
+def _cost_estimate(name: str, net_cost: float) -> EducationCostEstimate:
+    return EducationCostEstimate(
+        f"{SYNTHETIC_FIXTURE_VERSION}-{name}",
+        CostLevel.INSTITUTION_PROGRAM,
+        CostLevel.INSTITUTION,
+        CostEvidence.PUBLIC_SUBSTITUTE,
+        2021,
+        CostComponents(net_cost, 0, 0, 0),
+        CostProvenance(
+            "synthetic public-cost fixture; not observed data",
+            "Education ROI test suite",
+            SYNTHETIC_FIXTURE_VERSION,
+            _hash({"fixture": SYNTHETIC_FIXTURE_VERSION, "name": name, "cost": net_cost}),
+            "https://example.invalid/synthetic-public-cost-fixture",
+        ),
+        ("synthetic orchestration input; not a paper cost cell",),
     )
 
 
@@ -102,11 +130,54 @@ def synthetic_provisional_request() -> ProvisionalRunRequest:
         0.20,
         1e-8,
     )
+    low_cost = _cost_estimate("low", 100)
+    base_cost = _cost_estimate("base", 110)
+    high_cost = _cost_estimate("high", 115)
+    public_cost_target = ReproductionTarget(
+        "synthetic-public-cost",
+        "synthetic public-cost fixture; not a paper table",
+        120 / 110 - 1,
+        1e-8,
+    )
+    public_cost_reproductions = (
+        PublicCostReproductionFixture(
+            "available-public-cost",
+            CostLevel.INSTITUTION_PROGRAM,
+            (base_cost,),
+            CostSensitivitySet(low_cost, base_cost, high_cost),
+            CashFlowSeries(
+                "synthetic earnings advantage before education costs",
+                MoneyBasis(DollarMode.REAL, 2021),
+                (CashFlowPoint(18, 0), CashFlowPoint(19, 120)),
+            ),
+            (18,),
+            0.04,
+            public_cost_target,
+            CrosswalkStatus.PROVISIONAL,
+        ),
+        PublicCostReproductionFixture(
+            "missing-public-cost",
+            CostLevel.INSTITUTION_PROGRAM,
+            (),
+            None,
+            None,
+            (),
+            0.04,
+            ReproductionTarget(
+                "synthetic-missing-cost",
+                "synthetic missing-cost fixture; not a paper table",
+                0.10,
+                1e-8,
+            ),
+            CrosswalkStatus.PROVISIONAL,
+        ),
+    )
     configuration = {
         "fixture_version": SYNTHETIC_FIXTURE_VERSION,
         "ages": [18, 19],
         "quantile": 0.50,
         "money_basis": {"mode": "real", "dollar_year": 2021},
+        "public_cost_fixture": "available and insufficient-data cases",
     }
     return ProvisionalRunRequest(
         _hash(configuration),
@@ -121,4 +192,5 @@ def synthetic_provisional_request() -> ProvisionalRunRequest:
             "are not exact paper inputs",
         ),
         ("smoke-test values validate orchestration only",),
+        public_cost_reproductions=public_cost_reproductions,
     )
