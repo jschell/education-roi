@@ -479,6 +479,8 @@ def scenario_verify_bundle(
             sort_keys=True,
         )
     )
+
+
 @data_app.command("bootstrap-zhang")
 def data_bootstrap_zhang(
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
