@@ -31,6 +31,7 @@ def test_data_contracts_are_visible() -> None:
     assert "check" in result.stdout
     assert "update" in result.stdout
     assert "validate" in result.stdout
+    assert "bootstrap-zhang" in result.stdout
 
 
 def test_ipeds_inventory_contract_is_visible() -> None:

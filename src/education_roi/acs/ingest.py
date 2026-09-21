@@ -5,7 +5,7 @@ from pathlib import Path
 
 import polars as pl
 
-from education_roi.acs.archive import materialize_person_csv
+from education_roi.acs.archive import materialize_person_csvs
 from education_roi.acs.source import REPLICATE_WEIGHT_COLUMNS, REQUIRED_PERSON_COLUMNS
 from education_roi.acs.transform import validate_person_schema
 
@@ -27,6 +27,11 @@ def read_person_csv(path: Path, extra_columns: Collection[str] = ()) -> pl.DataF
     """Lazily select only required and explicitly requested person columns."""
     scan = pl.scan_csv(path, infer_schema_length=10_000, null_values=["", "N/A"])
     available = scan.collect_schema().names()
+    normalized = {column: column.upper() for column in available}
+    if len(set(normalized.values())) != len(normalized):
+        raise ValueError("ACS columns collide when normalized to upper case")
+    scan = scan.rename(normalized)
+    available = list(normalized.values())
     validate_person_schema(available)
     extras = tuple(dict.fromkeys(extra_columns))
     missing_extras = sorted(set(extras).difference(available))
@@ -41,8 +46,9 @@ def read_person_csv(path: Path, extra_columns: Collection[str] = ()) -> pl.DataF
 
 def read_person_archive(archive: Path, extra_columns: Collection[str] = ()) -> pl.DataFrame:
     """Read selected columns from a validated ACS person archive."""
-    with materialize_person_csv(archive) as csv_path:
-        return read_person_csv(csv_path, extra_columns)
+    with materialize_person_csvs(archive) as csv_paths:
+        frames = [read_person_csv(csv_path, extra_columns) for csv_path in csv_paths]
+        return pl.concat(frames, how="vertical")
 
 
 def read_person_archive_with_replicates(archive: Path) -> pl.DataFrame:

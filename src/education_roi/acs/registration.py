@@ -1,6 +1,7 @@
 """Validated download and registration of an exact ACS release bundle."""
 
 import csv
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -51,10 +52,16 @@ def validate_dictionary(path: Path) -> frozenset[str]:
     variables: set[str] = set()
     try:
         with path.open("r", encoding="utf-8-sig", newline="") as source:
-            for row in csv.reader(source):
-                if len(row) >= 2 and row[0] == "NAME":
-                    variables.add(row[1])
-    except (OSError, UnicodeError, csv.Error) as error:
+            first = source.read(1)
+            source.seek(0)
+            if first == "{":
+                payload = json.load(source)
+                variables.update(payload.get("variables", {}).keys())
+            else:
+                for row in csv.reader(source):
+                    if len(row) >= 2 and row[0] == "NAME":
+                        variables.add(row[1])
+    except (OSError, UnicodeError, csv.Error, json.JSONDecodeError) as error:
         raise ACSDictionaryError(f"could not parse ACS dictionary: {error}") from error
     required = REQUIRED_PERSON_COLUMNS.union(REPLICATE_WEIGHT_COLUMNS)
     missing = sorted(required.difference(variables))

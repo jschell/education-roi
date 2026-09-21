@@ -1,3 +1,4 @@
+import gzip
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -29,6 +30,25 @@ def test_streamed_download_and_allowed_redirect(tmp_path: Path) -> None:
     assert result.final_url == "https://files.example.gov/data"
     assert result.bytes_received == 6
     assert result.path.suffix == ".partial"
+
+
+@pytest.mark.integration
+def test_compressed_response_compares_no_encoded_content_length(tmp_path: Path) -> None:
+    payload = b'{"variables":{"AGEP":{}}}'
+    encoded = gzip.compress(payload)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=encoded,
+            headers={"content-encoding": "gzip", "content-length": str(len(encoded))},
+        )
+
+    result = HttpDownloader(transport=httpx.MockTransport(handler)).download(
+        "https://example.gov/data", tmp_path, ("example.gov",)
+    )
+    assert result.path.read_bytes() == payload
+    assert result.bytes_received == len(payload)
 
 
 @pytest.mark.integration
