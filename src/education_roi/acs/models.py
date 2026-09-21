@@ -43,6 +43,8 @@ class ACSRelease(BaseModel):
 
     @property
     def dictionary_url(self) -> str:
+        if self.vintage < 2017:
+            return self.variables_url
         root = "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict"
         if self.product is ACSProduct.ONE_YEAR:
             name = f"PUMS_Data_Dictionary_{self.vintage}.csv"

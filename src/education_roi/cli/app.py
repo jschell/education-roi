@@ -20,6 +20,7 @@ from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.store import ArtifactStore, Registry
+from education_roi.reproduction.bootstrap import bootstrap_zhang_sources, resolve_vintages
 from education_roi.reproduction.bundle import BundleIntegrityError, verify_reproduction_bundle
 from education_roi.reproduction.runner import run_provisional_reproduction
 from education_roi.reproduction.synthetic import (
@@ -478,6 +479,41 @@ def scenario_verify_bundle(
             sort_keys=True,
         )
     )
+@data_app.command("bootstrap-zhang")
+def data_bootstrap_zhang(
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    vintage: Annotated[
+        list[int] | None,
+        typer.Option(help="ACS vintage to include; repeat for multiple years."),
+    ] = None,
+    from_year: Annotated[
+        int | None, typer.Option(help="First ACS vintage in an inclusive update range.")
+    ] = None,
+    to_year: Annotated[
+        int | None, typer.Option(help="Last ACS vintage in an inclusive update range.")
+    ] = None,
+    execute: Annotated[
+        bool,
+        typer.Option("--execute", help="Download, register, and transform instead of dry-run."),
+    ] = False,
+    minimum_free_gb: Annotated[
+        float, typer.Option(help="Required free space before execute mode starts.")
+    ] = 70.0,
+) -> None:
+    """Plan or execute the resumable Zhang source bootstrap."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        vintages = resolve_vintages(tuple(vintage or ()), from_year, to_year)
+        report = bootstrap_zhang_sources(
+            paths,
+            vintages=vintages,
+            execute=execute,
+            minimum_free_gb=minimum_free_gb,
+        )
+    except (OSError, ValueError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(report.as_dict(), indent=2))
 
 
 if __name__ == "__main__":  # pragma: no cover

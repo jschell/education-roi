@@ -132,3 +132,18 @@ and a missing-cost request. Its clean-process integration test verifies low/base
 base-case deltas, the insufficient-data record, target comparisons, bundle integrity, and byte-for-
 byte equality across independent runs. These inputs are labeled synthetic and validate orchestration
 only.
+## Source bootstrap
+
+`edu-roi data bootstrap-zhang` performs a dry-run plan by default. Add `--execute` to download,
+validate, immutably register, and transform supported ACS releases. The workflow checks free space,
+continues across per-release failures, recognizes already transformed releases, and can be rerun
+safely after interruption.
+
+Select individual years with repeatable `--vintage`, or an inclusive update range with
+`--from-year` and `--to-year`. For example, an annual update can run
+`edu-roi data bootstrap-zhang --vintage 2024 --execute`; a backfill can use
+`--from-year 2018 --to-year 2021 --execute`. Registered bytes are content-addressed and never
+overwritten. A publisher replacement under the same release is retained separately for review.
+
+The 2020 experimental ACS release and BLS CPI snapshot currently remain explicit `BLOCKED` items;
+they require dedicated source policies before the complete Zhang bundle can report ready.

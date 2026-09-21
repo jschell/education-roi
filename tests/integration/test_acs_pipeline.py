@@ -82,6 +82,32 @@ def test_archive_read_selects_only_requested_columns(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+def test_nationwide_archive_combines_a_and_b_parts(tmp_path: Path) -> None:
+    archive = tmp_path / "us.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for suffix, serial in (("a", "one"), ("b", "two")):
+            row = [serial, 1, 1_000_000, 1, 30, 1, 21, 10, 1101, 1, *([1] * 80), "x"]
+            bundle.writestr(
+                f"psam_pus{suffix}.csv",
+                ",".join(COLUMNS) + "\n" + ",".join(map(str, row)) + "\n",
+            )
+    assert read_person_archive(archive).get_column("SERIALNO").to_list() == ["one", "two"]
+
+
+@pytest.mark.integration
+def test_legacy_nationwide_archive_names_are_supported(tmp_path: Path) -> None:
+    archive = tmp_path / "us-legacy.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for suffix, serial in (("a", "one"), ("b", "two")):
+            row = [serial, 1, 1_000_000, 1, 30, 1, 21, 10, 1101, 1, *([1] * 80), "x"]
+            bundle.writestr(
+                f"ss09pus{suffix}.csv",
+                ",".join(COLUMNS) + "\n" + ",".join(map(str, row)) + "\n",
+            )
+    assert read_person_archive(archive).height == 2
+
+
+@pytest.mark.integration
 def test_archive_rejects_traversal_and_ambiguous_person_files(tmp_path: Path) -> None:
     traversal = tmp_path / "traversal.zip"
     write_archive(traversal, "../psam_p53.csv")

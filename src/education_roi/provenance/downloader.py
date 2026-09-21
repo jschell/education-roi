@@ -70,7 +70,12 @@ class HttpDownloader:
                         raise DownloadError("download exceeded configured maximum size")
                     output.write(chunk)
                 expected_length = response.headers.get("content-length")
-                if expected_length is not None and received != int(expected_length):
+                content_encoding = response.headers.get("content-encoding", "identity").lower()
+                if (
+                    expected_length is not None
+                    and content_encoding == "identity"
+                    and received != int(expected_length)
+                ):
                     message = f"content length mismatch: expected {expected_length}, got {received}"
                     raise DownloadError(message)
                 output.flush()

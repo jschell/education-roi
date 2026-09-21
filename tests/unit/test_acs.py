@@ -47,6 +47,11 @@ def test_release_constructs_authoritative_urls() -> None:
         ACSRelease(vintage=2024, product=ACSProduct.ONE_YEAR, geography="washington")
 
 
+def test_legacy_release_uses_machine_readable_variable_metadata() -> None:
+    release = ACSRelease(vintage=2016, product=ACSProduct.ONE_YEAR, geography="us")
+    assert release.dictionary_url == release.variables_url
+
+
 def test_five_year_dictionary_names_full_vintage_window() -> None:
     release = ACSRelease(vintage=2024, product=ACSProduct.FIVE_YEAR, geography="us")
     assert release.dictionary_url.endswith("/PUMS_Data_Dictionary_2020-2024.csv")
