@@ -31,6 +31,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   part-time conversion or fallback.
 - immutable institution/release charge Parquet tables retaining reporting basis, residency cells,
   raw status cells, publication status, raw artifact lineage, and transformation version.
+- deterministic cross-release charge comparison with configurable anomaly thresholds, availability
+  changes, raw-status changes, and unresolved UNITID additions/removals routed to manual review.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -42,7 +44,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 4. Preserve reported basis and population definitions.
 5. Map programs using versioned CIP and handle institution identity changes.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
-7. Add scenario completion resolution and release comparisons.
+7. Add scenario completion resolution and extend release comparisons beyond charges.
 
 ## Tests still required
 
@@ -51,7 +53,6 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 - CIP-version mismatch and UNITID history;
 - residency/attendance-basis policy;
 - completion cohort definitions;
-- cross-release anomaly review.
 
 ## Acceptance criteria
 

@@ -51,6 +51,13 @@ artifact ID, and transformation version. Negative sentinels and blanks remain nu
 path is content-addressed by the raw SHA-256 and is immutable; a sidecar manifest records the input
 artifact, parameters, output hash, columns, and row count.
 
+Cross-release charge comparison operates only on normalized tables with matching reporting and
+attendance bases. It records every numeric change, flags availability changes and zero-denominator
+changes for review, and uses a configurable 25% default threshold for nonzero numeric changes.
+Added or missing UNITIDs always require review because the framework does not infer an institution
+closure, merger, or identity change. Any raw source-status change also requires review and remains
+uninterpreted until its authoritative code definition is available.
+
 Blank cells, negative sentinel values, absent UNITIDs, and absent exact releases remain unavailable. They are never converted to zero. Release-page discovery, dictionaries, imputation-status interpretation, residency policy beyond in-state charges, completion, aid, program production, and release comparison remain subsequent Plan 09 slices.
 
 The live NCES release-information table reviewed on 2026-09-20 showed that release availability differs by component: Institutional Characteristics displayed 2025–26 provisional availability and final data through 2023–24, while **Pricing and Tuition (IC) displayed 2023–24 as provisional and final data only for 2009–10 through 2011–12**. Accordingly, `IC2023_AY` must be labeled `2023-24-provisional`; the broader IC final range does not make its pricing cells final. The release catalog treats component, collection year, publication status, data URL, dictionary URL, and inventory URL as one reviewed record. Default selection chooses the newest final release for the exact component. Preliminary or provisional data require both an exact release ID and explicit opt-in.
