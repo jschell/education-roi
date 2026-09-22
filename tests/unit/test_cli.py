@@ -31,13 +31,14 @@ def test_data_contracts_are_visible() -> None:
     assert "check" in result.stdout
     assert "update" in result.stdout
     assert "validate" in result.stdout
-    assert "bootstrap-zhang" in result.stdout
 
 
 def test_ipeds_inventory_contract_is_visible() -> None:
     result = runner.invoke(app, ["ipeds", "--help"])
     assert result.exit_code == 0
     assert "compare-inventory" in result.stdout
+    assert "build-charges" in result.stdout
+    assert "compare-charges" in result.stdout
 
 
 def test_scenario_ipeds_resolution_contract_is_visible() -> None:
