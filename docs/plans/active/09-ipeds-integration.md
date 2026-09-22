@@ -33,6 +33,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   raw status cells, publication status, raw artifact lineage, and transformation version.
 - deterministic cross-release charge comparison with configurable anomaly thresholds, availability
   changes, raw-status changes, and unresolved UNITID additions/removals routed to manual review.
+- production CLI commands for exact-release charge-table construction and scheduled cross-release
+  review, including explicit nonfinal opt-in and machine-readable exit states.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
