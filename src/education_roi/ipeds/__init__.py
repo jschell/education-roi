@@ -13,6 +13,13 @@ from education_roi.ipeds.catalog import (
     compare_release_catalogs,
     select_release,
 )
+from education_roi.ipeds.comparison import (
+    IPEDSChargeChange,
+    IPEDSChargeChangeType,
+    IPEDSChargeComparison,
+    IPEDSReleaseComparisonError,
+    compare_charge_tables,
+)
 from education_roi.ipeds.dictionary import (
     IPEDSDictionaryError,
     IPEDSVariableDefinition,
@@ -48,6 +55,9 @@ __all__ = [
     "COST_COLUMNS",
     "COST_STATUS_COLUMNS",
     "IPEDSArchiveError",
+    "IPEDSChargeChange",
+    "IPEDSChargeChangeType",
+    "IPEDSChargeComparison",
     "IPEDSCatalogError",
     "IPEDSComponent",
     "IPEDSInventoryChange",
@@ -56,6 +66,7 @@ __all__ = [
     "IPEDSPublicationStatus",
     "IPEDSRelease",
     "IPEDSReleaseCatalog",
+    "IPEDSReleaseComparisonError",
     "IPEDSDictionaryError",
     "IPEDSVariableDefinition",
     "IPEDSValueProvider",
@@ -67,6 +78,7 @@ __all__ = [
     "RegisteredIPEDSRelease",
     "ProcessedIPEDSCharges",
     "compare_release_catalogs",
+    "compare_charge_tables",
     "parse_nonnegative_cost",
     "read_charge_rows",
     "read_dictionary",
