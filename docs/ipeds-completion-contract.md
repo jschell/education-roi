@@ -83,6 +83,16 @@ or duplicate keys and counts above the adjusted cohort fail validation.
    reads the exact validated registry pair and returns the observed rate, population, source row
    keys, raw status codes, and both artifact IDs. It returns `INSUFFICIENT_DATA` for absent
    institution rows and `INVALID` for missing or ambiguous validated artifacts or failed hashes.
+   `edu-roi ipeds build-gr2023 --catalog data/manifests/ipeds-release-catalog.json`
+   builds an immutable, zstd-compressed bachelor’s cohort Parquet table and transformation
+   manifest from that exact validated pair. It keeps raw count cells, imputation status codes,
+   row keys, population definition, both artifact IDs, and an unavailable reason. It never
+   converts blank, negative, or zero-denominator cells into a graduation rate. A rerun with
+   identical inputs verifies the existing bytes and lineage; conflicting output fails.
+
+   On 2026-09-23 the documented official ZIP hashes yielded 2,003 institution rows, of which
+   1,926 had a computable rate and 77 were unavailable. UNITID 236948 yielded 5,619 / 6,713.
+   These are validation observations for this release, not an estimate for every institution.
 2. Verify separate 2-year, any-award, GR200, aid subgroup, transfer, and imputation meanings
    against their own official files and survey forms before extending the mappings.
 3. Recompute published institution rates, document discrepancies, and normalize rows to Parquet.
