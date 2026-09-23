@@ -5,6 +5,7 @@ from pathlib import Path
 from shutil import copyfile
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import polars as pl
 import pytest
 from typer.testing import CliRunner
 
@@ -91,6 +92,9 @@ def test_resolve_gr2023_cli_uses_only_validated_paired_registry_artifacts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr("education_roi.ipeds.graduation._verify_dictionary", lambda path: None)
+    monkeypatch.setattr(
+        "education_roi.ipeds.graduation_pipeline._verify_dictionary", lambda path: None
+    )
     archive = tmp_path / "GR2023.zip"
     dictionary = tmp_path / "GR2023_Dict.zip"
     with ZipFile(archive, "w", ZIP_DEFLATED) as output:
@@ -151,6 +155,22 @@ def test_resolve_gr2023_cli_uses_only_validated_paired_registry_artifacts(
     assert absent.exit_code == 0
     assert json.loads(absent.stdout)["status"] == "INSUFFICIENT_DATA"
 
+    built = cli.invoke(
+        app, ["ipeds", "build-gr2023", "--catalog", str(CATALOG), "--root", str(tmp_path)]
+    )
+    assert built.exit_code == 0, built.stdout
+    report = json.loads(built.stdout)
+    assert report["status"] == "WRITTEN"
+    assert report["manifest"]["transformation"]["input_artifact_ids"]
+    table = pl.read_parquet(report["parquet_path"])
+    assert table.height == 1
+    assert table["observed_rate"][0] == pytest.approx(5619 / 6713)
+    again = cli.invoke(
+        app, ["ipeds", "build-gr2023", "--catalog", str(CATALOG), "--root", str(tmp_path)]
+    )
+    assert again.exit_code == 0, again.stdout
+    assert json.loads(again.stdout)["manifest"] == report["manifest"]
+
     stored = tmp_path / "data/raw" / registry.list_artifacts(GR2023_DATASET_ID)[0].storage_path
     stored.chmod(0o600)
     with stored.open("ab") as output:
@@ -158,3 +178,7 @@ def test_resolve_gr2023_cli_uses_only_validated_paired_registry_artifacts(
     invalid = cli.invoke(app, command)
     assert invalid.exit_code == 2
     assert json.loads(invalid.stdout)["status"] == "INVALID"
+    invalid_build = cli.invoke(
+        app, ["ipeds", "build-gr2023", "--catalog", str(CATALOG), "--root", str(tmp_path)]
+    )
+    assert invalid_build.exit_code == 2
