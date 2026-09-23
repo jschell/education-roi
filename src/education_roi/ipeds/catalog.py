@@ -44,6 +44,7 @@ class IPEDSRelease(BaseModel):
     component: IPEDSComponent
     publication_status: IPEDSPublicationStatus
     data_url: HttpUrl
+    data_member: str | None = None
     dictionary_url: HttpUrl
     inventory_url: HttpUrl
 
@@ -63,6 +64,13 @@ class IPEDSRelease(BaseModel):
             raise ValueError("release ID does not match collection year")
         if not self.release_id.endswith(f"-{self.publication_status.value}"):
             raise ValueError("release ID does not match publication status")
+        if self.data_member is not None and (
+            self.data_member in {"", ".", ".."}
+            or "/" in self.data_member
+            or "\\" in self.data_member
+            or not self.data_member.lower().endswith(".csv")
+        ):
+            raise ValueError("data member must name one CSV file within the archive")
         return self
 
 
