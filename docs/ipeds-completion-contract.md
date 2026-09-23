@@ -93,6 +93,17 @@ or duplicate keys and counts above the adjusted cohort fail validation.
    On 2026-09-23 the documented official ZIP hashes yielded 2,003 institution rows, of which
    1,926 had a computable rate and 77 were unavailable. UNITID 236948 yielded 5,619 / 6,713.
    These are validation observations for this release, not an estimate for every institution.
+
+   `edu-roi ipeds compare-graduation PREVIOUS.parquet CURRENT.parquet --fail-on-review`
+   compares two distinct final bachelor’s cohort tables with the same population and 150% window.
+   It reports both table SHA-256 hashes and raw source artifact IDs, entry years, institution
+   identity findings, availability/status changes, and absolute rate and relative count changes.
+   The default review thresholds are 10 percentage points for the observed rate and 25% for
+   cohort counts. An optional directional institution-history file can inform UNITID pairing;
+   `--history-source` verifies its cited bytes. An unusual change requires manual investigation,
+   not automatic rejection. These are different entry cohorts, so a rate change is not a causal
+   treatment effect or a forecast for a student. The reviewed catalog currently has only final
+   GR2023; cross-release tests use synthetic 2024–25 tables and do not certify that release.
 2. Verify separate 2-year, any-award, GR200, aid subgroup, transfer, and imputation meanings
    against their own official files and survey forms before extending the mappings.
 3. Recompute published institution rates, document discrepancies, and normalize rows to Parquet.
