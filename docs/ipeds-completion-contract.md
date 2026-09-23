@@ -72,6 +72,35 @@ dictionary manifest hashes, dictionary row meanings, and unique row keys. It pre
 among other codes. A missing row or negative count yields explicit insufficient data. Unknown
 or duplicate keys and counts above the adjusted cohort fail validation.
 
+## Verified earlier final source: GR2022 (catalog only)
+
+On 2026-09-23 NCES's [2022 complete data inventory](https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2022&surveyNumber=8)
+was identified alongside directly downloadable official files at the older
+`/ipeds/datacenter/data/` paths. `GR2022.zip` contains `gr2022.csv` and
+`gr2022_rv.csv`; `GR2022_Dict.zip` contains `gr2022.xlsx`. The dictionary labels
+the revised file final, dates that release September 2024, and describes the
+2016 four-year entry cohort. The observed artifact hashes are:
+
+| Artifact | SHA-256 at inspection |
+| --- | --- |
+| `GR2022.zip` | `c164e8706fce663ee1bfd382a6b21b0129dfaee977906bf730ca4b2b6f686bfe` |
+| `GR2022_Dict.zip` | `05a6e3f181e510d80ef3fded0a9cd15caf7e4f3fa3f68ca1389afe7ed16cd7b4` |
+
+The final workbook identifies the same bachelor's-seeking `COHORT=2`, `SECTION=2`
+and selected count cells: adjusted cohort `GRTYPE=8`, `CHRTSTAT=12`, `LINE=50`,
+versus bachelor's awards `GRTYPE=12`, `CHRTSTAT=16`, `LINE=18A`, both `GRTOTLT`
+with `XGRTOTLT` source status. The final revised UW rows (`UNITID=236948`)
+contain 6,411 and 5,409 respectively; these are different entrants from GR2023.
+
+**Compatibility gate:** GR2022's revised CSV uses padded text in code cells
+(for example `GRTYPE` is `" 8"`), lowercase `_rv` in the archive member, and an
+older six-column workbook frequency layout. The GR2023 registration, resolver,
+and transformer deliberately reject this release. The catalog records its
+official source, but there is no validated GR2022 processed table yet. A future
+slice must implement release-specific cell normalization, workbook validation,
+and cohort-year handling before a live cross-release comparison can run. The
+existing synthetic later-release comparison tests do not meet that gate.
+
 ## Gate before ingestion or scenario use
 
 1. Run `edu-roi ipeds register-gr2023 --catalog data/manifests/ipeds-release-catalog.json`
@@ -102,14 +131,15 @@ or duplicate keys and counts above the adjusted cohort fail validation.
    cohort counts. An optional directional institution-history file can inform UNITID pairing;
    `--history-source` verifies its cited bytes. An unusual change requires manual investigation,
    not automatic rejection. These are different entry cohorts, so a rate change is not a causal
-   treatment effect or a forecast for a student. The reviewed catalog currently has only final
-   GR2023; cross-release tests use synthetic 2024–25 tables and do not certify that release.
+   treatment effect or a forecast for a student. Only GR2023 has a production transformer;
+   GR2022 is source-reviewed but not yet ingested. Cross-release tests use synthetic 2024–25
+   tables and do not certify that release.
 2. Verify separate 2-year, any-award, GR200, aid subgroup, transfer, and imputation meanings
    against their own official files and survey forms before extending the mappings.
 3. Recompute published institution rates, document discrepancies, and normalize rows to Parquet.
 4. Connect a validated institutional observation to a scenario with explicit applicability and
    sensitivity assumptions; do not treat the raw cohort rate as causal or person-specific.
 
-The repository catalogs the final GR2023 archive and its dictionary, but no government data ZIP
-is committed. GR200 and other cohort definitions remain unimplemented. Missing or inapplicable
+The repository catalogs the final GR2022 and GR2023 sources, but no government data ZIP is
+committed. GR200 and other cohort definitions remain unimplemented. Missing or inapplicable
 completion evidence remains insufficient data.

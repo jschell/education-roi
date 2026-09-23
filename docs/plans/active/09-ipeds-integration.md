@@ -59,6 +59,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - cross-release graduation cohort comparison with population compatibility, table hashes,
   source IDs, configurable rate/count review thresholds, and identity-aware coverage findings;
   newer GR releases still require authoritative dictionary review before production use.
+- reviewed final GR2022 source URL pair and exact revised member, dictionary cohort semantics,
+  and a documented compatibility gate for padded legacy CSV codes and older workbook layout;
+  GR2022 is not yet ingested or comparable in production.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -72,6 +75,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
    institution history to program production.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
+8. Implement GR2022-specific normalization and dictionary validation, then register and
+   transform that final cohort to run a live GR2022-to-GR2023 comparison.
 
 ## Tests still required
 
