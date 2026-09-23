@@ -1,0 +1,169 @@
+"""Versioned institution identity history without inferred UNITID continuity."""
+
+from enum import StrEnum
+from pathlib import Path
+from typing import Self
+from urllib.parse import urlparse
+
+from pydantic import Field, HttpUrl, field_validator, model_validator
+
+from education_roi.scenarios.models import StrictModel
+
+
+class InstitutionHistoryError(ValueError):
+    """Institution identity evidence is missing, incompatible, or ambiguous."""
+
+
+class InstitutionRelationship(StrEnum):
+    CONTINUING = "continuing"
+    ID_CHANGED = "id_changed"
+    MERGED = "merged"
+    SPLIT = "split"
+    CLOSED = "closed"
+
+
+class InstitutionMappingConfidence(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class InstitutionHistoryEntry(StrictModel):
+    source_unitid: int = Field(gt=0)
+    target_unitid: int | None = Field(default=None, gt=0)
+    relationship: InstitutionRelationship
+    confidence: InstitutionMappingConfidence
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def target_matches_relationship(self) -> Self:
+        if self.relationship is InstitutionRelationship.CLOSED:
+            if self.target_unitid is not None:
+                raise ValueError("closed institution history entries cannot have a target UNITID")
+        elif self.target_unitid is None:
+            raise ValueError("non-closure institution history entries require a target UNITID")
+        return self
+
+
+class InstitutionHistory(StrictModel):
+    """One immutable, directional history between exact IPEDS releases."""
+
+    history_id: str = Field(min_length=1)
+    source_release: str = Field(min_length=1)
+    target_release: str = Field(min_length=1)
+    source_url: HttpUrl
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    entries: tuple[InstitutionHistoryEntry, ...] = Field(min_length=1)
+
+    @field_validator("source_url")
+    @classmethod
+    def require_official_nces_source(cls, value: HttpUrl) -> HttpUrl:
+        parsed = urlparse(str(value))
+        host = (parsed.hostname or "").lower().rstrip(".")
+        if parsed.scheme != "https" or not (host == "nces.ed.gov" or host.endswith(".nces.ed.gov")):
+            raise ValueError("institution history source must use HTTPS on an official NCES domain")
+        return value
+
+    @model_validator(mode="after")
+    def validate_direction_and_entries(self) -> Self:
+        if self.source_release == self.target_release:
+            raise ValueError("institution history source and target releases must differ")
+        keys = [
+            (entry.source_unitid, entry.target_unitid, entry.relationship) for entry in self.entries
+        ]
+        if len(keys) != len(set(keys)):
+            raise ValueError("institution history contains duplicate entries")
+        return self
+
+    @classmethod
+    def from_file(cls, path: Path) -> Self:
+        try:
+            return cls.model_validate_json(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            raise InstitutionHistoryError(f"invalid institution history {path}: {error}") from error
+
+
+class InstitutionResolutionStatus(StrEnum):
+    ACTIVE = "active"
+    CLOSED = "closed"
+
+
+class InstitutionResolution(StrictModel):
+    source_unitid: int = Field(gt=0)
+    source_release: str
+    target_unitid: int | None = Field(default=None, gt=0)
+    target_release: str
+    relationship: InstitutionRelationship
+    confidence: InstitutionMappingConfidence
+    status: InstitutionResolutionStatus
+    history_id: str | None = None
+    history_sha256: str | None = None
+    review_required: bool
+
+
+def resolve_unitid(
+    source_unitid: int,
+    source_release: str,
+    target_release: str,
+    *,
+    history: InstitutionHistory | None = None,
+    target_unitid: int | None = None,
+) -> InstitutionResolution:
+    """Resolve one UNITID using exact directional history and explicit disambiguation."""
+    if source_release == target_release:
+        if history is not None or (target_unitid is not None and target_unitid != source_unitid):
+            raise InstitutionHistoryError(
+                "same-release institution resolution must preserve the source UNITID"
+            )
+        return InstitutionResolution(
+            source_unitid=source_unitid,
+            source_release=source_release,
+            target_unitid=source_unitid,
+            target_release=target_release,
+            relationship=InstitutionRelationship.CONTINUING,
+            confidence=InstitutionMappingConfidence.HIGH,
+            status=InstitutionResolutionStatus.ACTIVE,
+            review_required=False,
+        )
+    if history is None:
+        raise InstitutionHistoryError(
+            f"UNITID resolution from {source_release} to {target_release} requires explicit history"
+        )
+    if (history.source_release, history.target_release) != (source_release, target_release):
+        raise InstitutionHistoryError(
+            "institution history direction does not match requested releases"
+        )
+    matches = tuple(entry for entry in history.entries if entry.source_unitid == source_unitid)
+    if target_unitid is not None:
+        matches = tuple(entry for entry in matches if entry.target_unitid == target_unitid)
+    if not matches:
+        raise InstitutionHistoryError(
+            f"institution history has no entry for UNITID {source_unitid}"
+        )
+    if len(matches) != 1:
+        targets = ", ".join(
+            "closed" if entry.target_unitid is None else str(entry.target_unitid)
+            for entry in sorted(matches, key=lambda item: item.target_unitid or 0)
+        )
+        raise InstitutionHistoryError(
+            f"UNITID {source_unitid} history is ambiguous; choose one target: {targets}"
+        )
+    entry = matches[0]
+    closed = entry.relationship is InstitutionRelationship.CLOSED
+    return InstitutionResolution(
+        source_unitid=source_unitid,
+        source_release=source_release,
+        target_unitid=entry.target_unitid,
+        target_release=target_release,
+        relationship=entry.relationship,
+        confidence=entry.confidence,
+        status=(
+            InstitutionResolutionStatus.CLOSED if closed else InstitutionResolutionStatus.ACTIVE
+        ),
+        history_id=history.history_id,
+        history_sha256=history.source_sha256,
+        review_required=(
+            entry.relationship is not InstitutionRelationship.CONTINUING
+            or entry.confidence is not InstitutionMappingConfidence.HIGH
+        ),
+    )
