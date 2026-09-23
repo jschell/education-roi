@@ -88,10 +88,7 @@ def _verify_dictionary(path: Path) -> None:
         and (REQUIRED_GR_COLUMNS - {"XGRTOTLT"}).issubset(
             {row[1] for row in rows if len(row) >= 2 and row[0].isdigit()}
         )
-        and any(
-            len(row) >= 6 and row[1] == "GRTOTLT" and row[5] == "XGRTOTLT"
-            for row in rows
-        )
+        and any(len(row) >= 6 and row[1] == "GRTOTLT" and row[5] == "XGRTOTLT" for row in rows)
     ):
         raise IPEDSGraduationError("GR2023 dictionary does not support the selected final rows")
 
