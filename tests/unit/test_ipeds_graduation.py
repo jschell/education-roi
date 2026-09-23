@@ -13,6 +13,7 @@ from education_roi.ipeds import (
     IPEDSReleaseCatalog,
     resolve_gr2023_bachelors,
     select_release,
+    validate_gr2023_archive,
 )
 from education_roi.provenance.models import ApprovalState, ArtifactManifest, DatasetDefinition
 from education_roi.provenance.store import ArtifactStore, Registry
@@ -194,3 +195,17 @@ def test_dictionary_must_document_final_codes(
     rows[-1][7] = "Any degree or certificate"
     with pytest.raises(IPEDSGraduationError, match="does not support"):
         _verify_dictionary(dictionary)
+
+
+def test_archive_validation_checks_final_member_and_all_matching_cohorts(tmp_path: Path) -> None:
+    archive = tmp_path / "GR2023.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr("gr2023_RV.csv", HEADER + "236948,8,12,2,2,50,R,10\n")
+    assert validate_gr2023_archive(archive, "gr2023_RV.csv") == 1
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr(
+            "gr2023_RV.csv",
+            HEADER + "236948,8,12,2,2,50,R,10\n236948,8,12,2,2,50,R,11\n",
+        )
+    with pytest.raises(IPEDSGraduationError, match="duplicate"):
+        validate_gr2023_archive(archive, "gr2023_RV.csv")

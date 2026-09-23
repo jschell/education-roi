@@ -74,8 +74,11 @@ or duplicate keys and counts above the adjusted cohort fail validation.
 
 ## Gate before ingestion or scenario use
 
-1. Register the exact GR archive and dictionary in immutable raw storage with validated source
-   manifests and paired-release checks. Broaden dataset validation beyond this one cohort.
+1. Run `edu-roi ipeds register-gr2023 --catalog data/manifests/ipeds-release-catalog.json`
+   to download and validate the paired final data and dictionary into immutable raw storage.
+   Registration checks the final CSV member, required columns, and all matching bachelor's
+   cohort keys and duplicates, plus dictionary meanings. It does not validate all GR fields,
+   statistical distributions, or every other cohort. Broaden validation before publication.
 2. Verify separate 2-year, any-award, GR200, aid subgroup, transfer, and imputation meanings
    against their own official files and survey forms before extending the mappings.
 3. Recompute published institution rates, document discrepancies, and normalize rows to Parquet.

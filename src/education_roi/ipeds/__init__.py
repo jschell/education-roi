@@ -46,6 +46,7 @@ from education_roi.ipeds.graduation import (
     IPEDSGraduationResolution,
     IPEDSGraduationStatus,
     resolve_gr2023_bachelors,
+    validate_gr2023_archive,
 )
 from education_roi.ipeds.identity import (
     InstitutionHistory,
@@ -70,7 +71,9 @@ from education_roi.ipeds.pipeline import (
 )
 from education_roi.ipeds.provider import IPEDSValueProvider
 from education_roi.ipeds.registration import (
+    RegisteredIPEDSGraduation,
     RegisteredIPEDSRelease,
+    register_gr2023_release,
     register_ipeds_charges,
     register_ipeds_release,
 )
@@ -138,6 +141,7 @@ __all__ = [
     "InstitutionResolution",
     "InstitutionResolutionStatus",
     "RegisteredIPEDSRelease",
+    "RegisteredIPEDSGraduation",
     "ProcessedIPEDSCharges",
     "compare_release_catalogs",
     "compare_charge_tables",
@@ -147,11 +151,13 @@ __all__ = [
     "read_dictionary",
     "register_ipeds_charges",
     "register_ipeds_release",
+    "register_gr2023_release",
     "resolve_cip",
     "resolve_gr2023_bachelors",
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",
+    "validate_gr2023_archive",
     "TUITION_COLUMNS",
     "TUITION_STATUS_COLUMNS",
 ]

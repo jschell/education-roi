@@ -22,6 +22,7 @@ from education_roi.ipeds import (
     IPEDSValueProvider,
     compare_charge_tables,
     compare_release_catalogs,
+    register_gr2023_release,
     select_release,
     transform_charges_archive,
 )
@@ -29,7 +30,7 @@ from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ApprovalState
-from education_roi.provenance.store import ArtifactStore, Registry
+from education_roi.provenance.store import ArtifactStore, ProvenanceError, Registry
 from education_roi.reproduction.bootstrap import bootstrap_zhang_sources, resolve_vintages
 from education_roi.reproduction.bundle import BundleIntegrityError, verify_reproduction_bundle
 from education_roi.reproduction.runner import run_provisional_reproduction
@@ -217,6 +218,37 @@ def ipeds_compare_inventory(
     typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     if comparison.review_required and fail_on_change:
         raise typer.Exit(code=1)
+
+
+@ipeds_app.command("register-gr2023")
+def ipeds_register_gr2023(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Register the paired final GR2023 data archive and dictionary."""
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.GRADUATION_RATES,
+            release_id="2023-24-final",
+        )
+        registered = register_gr2023_release(release, ProjectPaths.from_environment(root))
+    except (IPEDSCatalogError, ProvenanceError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "data": registered.data.model_dump(mode="json"),
+                "dictionary": registered.dictionary.model_dump(mode="json"),
+                "status": "VALIDATED",
+            },
+            sort_keys=True,
+        )
+    )
 
 
 @ipeds_app.command("build-charges")
