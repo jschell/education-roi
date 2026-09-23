@@ -10,9 +10,16 @@ from typer.testing import CliRunner
 
 from education_roi.cli.app import app
 from education_roi.config.paths import ProjectPaths
-from education_roi.ipeds import IPEDSComponent, IPEDSReleaseCatalog, register_gr2023_release
+from education_roi.ipeds import (
+    GR2023_DATASET_ID,
+    GR2023_DICTIONARY_DATASET_ID,
+    IPEDSComponent,
+    IPEDSReleaseCatalog,
+    register_gr2023_release,
+)
 from education_roi.provenance.downloader import DownloadResult
-from education_roi.provenance.models import ApprovalState
+from education_roi.provenance.models import ApprovalState, DatasetDefinition
+from education_roi.provenance.store import ArtifactStore, Registry
 
 CATALOG = Path(__file__).parents[2] / "data/manifests/ipeds-release-catalog.json"
 HEADER = "UNITID,GRTYPE,CHRTSTAT,SECTION,COHORT,LINE,XGRTOTLT,GRTOTLT\n"
@@ -78,3 +85,76 @@ def test_gr2023_cli_rejects_unreviewed_catalog(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["ipeds", "register-gr2023", "--catalog", str(catalog)])
     assert result.exit_code == 2
     assert json.loads(result.stdout)["status"] == "INVALID"
+
+
+def test_resolve_gr2023_cli_uses_only_validated_paired_registry_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("education_roi.ipeds.graduation._verify_dictionary", lambda path: None)
+    archive = tmp_path / "GR2023.zip"
+    dictionary = tmp_path / "GR2023_Dict.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr("gr2023_RV.csv", HEADER + ROWS)
+    with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
+        output.writestr("gr2023.xlsx", b"synthetic dictionary")
+    cli = CliRunner()
+    command = [
+        "ipeds",
+        "resolve-gr2023",
+        "236948",
+        "--catalog",
+        str(CATALOG),
+        "--root",
+        str(tmp_path),
+    ]
+    no_registry = cli.invoke(app, command)
+    assert no_registry.exit_code == 2
+    assert json.loads(no_registry.stdout)["status"] == "INVALID"
+
+    release = next(
+        item
+        for item in IPEDSReleaseCatalog.from_file(CATALOG).releases
+        if item.component is IPEDSComponent.GRADUATION_RATES
+    )
+    registry = Registry(tmp_path / "data/manifests/registry.sqlite")
+    store = ArtifactStore(tmp_path / "data/raw", registry)
+    for path, dataset_id, url in (
+        (archive, GR2023_DATASET_ID, str(release.data_url)),
+        (dictionary, GR2023_DICTIONARY_DATASET_ID, str(release.dictionary_url)),
+    ):
+        definition = DatasetDefinition(
+            dataset_id=dataset_id,
+            publisher="NCES",
+            name="Fixture",
+            allowed_domains=("nces.ed.gov",),
+        )
+        registry.add_dataset(definition)
+        manifest = store.register(
+            path,
+            definition,
+            release=release.release_id,
+            source_url=url,
+            final_url=url,
+            publication_status="final",
+            schema_version="ipeds-gr2023-v1",
+        )
+        registry.transition(manifest.artifact_id, ApprovalState.VALIDATED)
+    available = cli.invoke(app, command)
+    assert available.exit_code == 0, available.stdout
+    payload = json.loads(available.stdout)
+    assert payload["status"] == "AVAILABLE"
+    assert payload["observed_rate"] == pytest.approx(5619 / 6713)
+    assert payload["observation"]["dictionary_artifact_id"]
+    assert "not individual completion probability" in payload["interpretation"]
+
+    absent = cli.invoke(app, [*command[:2], "123456", *command[3:]])
+    assert absent.exit_code == 0
+    assert json.loads(absent.stdout)["status"] == "INSUFFICIENT_DATA"
+
+    stored = tmp_path / "data/raw" / registry.list_artifacts(GR2023_DATASET_ID)[0].storage_path
+    stored.chmod(0o600)
+    with stored.open("ab") as output:
+        output.write(b"tampered")
+    invalid = cli.invoke(app, command)
+    assert invalid.exit_code == 2
+    assert json.loads(invalid.stdout)["status"] == "INVALID"
