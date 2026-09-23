@@ -15,6 +15,11 @@ class GraduationCohortScope(StrEnum):
     ALL_DEGREE_OR_CERTIFICATE_SEEKING = "all_degree_or_certificate_seeking"
 
 
+class GraduationAwardOutcome(StrEnum):
+    ANY_AWARD = "any_award"
+    BACHELORS_DEGREE = "bachelors_degree"
+
+
 class IPEDSGraduationObservation(StrictModel):
     """One observed rate cell; no inference of a student's eventual completion chance."""
 
@@ -24,11 +29,15 @@ class IPEDSGraduationObservation(StrictModel):
     component: IPEDSComponent
     cohort_year: int = Field(ge=1900, le=2200)
     cohort_scope: GraduationCohortScope
+    award_outcome: GraduationAwardOutcome = GraduationAwardOutcome.ANY_AWARD
     normal_time_percent: int
     adjusted_cohort: int = Field(ge=0)
     completers: int = Field(ge=0)
     source_artifact_id: str = Field(min_length=1)
+    dictionary_artifact_id: str | None = None
     source_columns: tuple[str, ...] = Field(min_length=2)
+    source_row_keys: tuple[str, ...] = ()
+    source_statuses: tuple[str | None, ...] = ()
 
     @model_validator(mode="after")
     def validate_cohort(self) -> Self:
