@@ -1,6 +1,7 @@
 """Review across distinct bachelor’s entry cohorts with explicit limitations."""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
@@ -49,6 +50,62 @@ def table(path: Path, release: str, cohort_year: int, rows: list[dict[str, objec
         )
     pl.DataFrame(records).write_parquet(path)
     return path
+
+
+def manifest(path: Path, *, release: str, year: int) -> Path:
+    frame = pl.read_parquet(path)
+    payload = {
+        "transformation": {
+            "transformation_id": "synthetic-fixture",
+            "created_at": datetime(2026, 1, 1, tzinfo=UTC).isoformat(),
+            "software_version": "test",
+            "output_sha256": sha256_file(path)[0],
+            "input_artifact_ids": ["data:" + release, "dictionary:" + release],
+            "parameters": {"transformation_version": GR_TRANSFORMATION_VERSION},
+        },
+        "release_id": release,
+        "publication_status": "final",
+        "cohort_year": year,
+        "cohort_scope": "bachelors_seeking_first_time_full_time",
+        "award_outcome": "bachelors_degree",
+        "normal_time_percent": 150,
+        "row_count": frame.height,
+        "columns": frame.columns,
+        "output_path": path.name,
+    }
+    sidecar = path.with_suffix(".manifest.json")
+    sidecar.write_text(json.dumps(payload), encoding="utf-8")
+    return sidecar
+
+
+def test_comparison_verifies_both_input_manifests_and_detects_tampering(tmp_path: Path) -> None:
+    before = table(
+        tmp_path / "before.parquet",
+        "2023-24-final",
+        2017,
+        [{"unitid": 1, "adjusted_cohort": 100, "bachelors_awards": 60}],
+    )
+    after = table(
+        tmp_path / "after.parquet",
+        "2024-25-final",
+        2018,
+        [{"unitid": 1, "adjusted_cohort": 100, "bachelors_awards": 70}],
+    )
+    prior_manifest = manifest(before, release="2023-24-final", year=2017)
+    later_manifest = manifest(after, release="2024-25-final", year=2018)
+    report = compare_graduation_tables(before, after, require_manifests=True)
+    assert report.previous_manifest_sha256 == sha256_file(prior_manifest)[0]
+    assert report.current_manifest_sha256 == sha256_file(later_manifest)[0]
+    altered = pl.read_parquet(after).with_columns(pl.lit("Z").alias("award_status"))
+    altered.write_parquet(after)
+    with pytest.raises(IPEDSGraduationComparisonError, match="lineage mismatch"):
+        compare_graduation_tables(before, after, require_manifests=True)
+    manifest(after, release="2024-25-final", year=2018)
+    payload = json.loads(later_manifest.read_text(encoding="utf-8"))
+    payload["cohort_year"] = 2019
+    later_manifest.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(IPEDSGraduationComparisonError, match="population/release mismatch"):
+        compare_graduation_tables(before, after, require_manifests=True)
 
 
 def test_cohort_comparison_flags_changes_and_keeps_distinct_years(tmp_path: Path) -> None:
@@ -155,14 +212,26 @@ def test_compare_graduation_cli_exposes_review_and_invalid_states(tmp_path: Path
         [{"unitid": 1, "adjusted_cohort": 100, "bachelors_awards": 80}],
     )
     cli = CliRunner()
-    args = ["ipeds", "compare-graduation", str(previous), str(current), "--fail-on-review"]
+    args = [
+        "ipeds",
+        "compare-graduation",
+        str(previous),
+        str(current),
+        "--fail-on-review",
+        "--allow-unverified-inputs",
+    ]
     report = cli.invoke(app, args)
     assert report.exit_code == 1
     payload = json.loads(report.stdout)
     assert payload["status"] == "REVIEW_REQUIRED"
     assert payload["history_source_status"] == "NOT_APPLICABLE"
+    assert payload["input_provenance_status"] == "UNVERIFIED"
     assert payload["changes"][0]["reason"]
 
     invalid = cli.invoke(app, [*args, "--threshold", "2"])
     assert invalid.exit_code == 2
     assert json.loads(invalid.stdout)["status"] == "INVALID"
+
+    missing = cli.invoke(app, ["ipeds", "compare-graduation", str(previous), str(current)])
+    assert missing.exit_code == 2
+    assert "processing manifest" in json.loads(missing.stdout)["error"]
