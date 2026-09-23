@@ -29,6 +29,7 @@ from education_roi.ipeds.comparison import (
     IPEDSReleaseComparisonError,
     compare_charge_tables,
 )
+from education_roi.ipeds.completion import GraduationCohortScope, IPEDSGraduationObservation
 from education_roi.ipeds.dictionary import (
     IPEDSDictionaryError,
     IPEDSVariableDefinition,
@@ -84,12 +85,14 @@ __all__ = [
     "CIPMappingConfidence",
     "CIPRelationship",
     "CIPResolution",
+    "GraduationCohortScope",
     "IPEDSArchiveError",
     "IPEDSChargeChange",
     "IPEDSChargeChangeType",
     "IPEDSChargeComparison",
     "IPEDSCatalogError",
     "IPEDSComponent",
+    "IPEDSGraduationObservation",
     "IPEDSInventoryChange",
     "IPEDSInventoryChangeType",
     "IPEDSInventoryComparison",
