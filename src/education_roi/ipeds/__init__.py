@@ -13,6 +13,15 @@ from education_roi.ipeds.catalog import (
     compare_release_catalogs,
     select_release,
 )
+from education_roi.ipeds.cip import (
+    CIPCrosswalk,
+    CIPCrosswalkError,
+    CIPMapping,
+    CIPMappingConfidence,
+    CIPRelationship,
+    CIPResolution,
+    resolve_cip,
+)
 from education_roi.ipeds.comparison import (
     IPEDSChargeChange,
     IPEDSChargeChangeType,
@@ -54,6 +63,12 @@ __all__ = [
     "BOOKS_STATUS_COLUMN",
     "COST_COLUMNS",
     "COST_STATUS_COLUMNS",
+    "CIPCrosswalk",
+    "CIPCrosswalkError",
+    "CIPMapping",
+    "CIPMappingConfidence",
+    "CIPRelationship",
+    "CIPResolution",
     "IPEDSArchiveError",
     "IPEDSChargeChange",
     "IPEDSChargeChangeType",
@@ -84,6 +99,7 @@ __all__ = [
     "read_dictionary",
     "register_ipeds_charges",
     "register_ipeds_release",
+    "resolve_cip",
     "select_release",
     "transform_charges_archive",
     "TUITION_COLUMNS",

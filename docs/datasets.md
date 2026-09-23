@@ -137,6 +137,14 @@ Official taxonomy: https://nces.ed.gov/ipeds/cipcode/
 
 Pin complete edition, code level (2/4/6 digit), title/description, and crosswalk. Program aggregation must retain the originating CIP vintage.
 
+The implemented CIP contract treats crosswalks as immutable, directional evidence. Each crosswalk
+pins source and target editions, an official NCES URL, source SHA-256, relationship, confidence, and
+optional explanation. Same-edition resolution is an explicit identity operation. Cross-edition
+resolution fails without a matching crosswalk, never reverses a crosswalk implicitly, and refuses
+many-to-many results until a target code is explicitly selected. Non-exact or less-than-high-
+confidence mappings remain review-required. No mapping rows are bundled until an authoritative
+crosswalk artifact is acquired and registered.
+
 ### SOC
 
 Official 2018 SOC: https://www.bls.gov/soc/2018/home.htm

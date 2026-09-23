@@ -35,6 +35,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   changes, raw-status changes, and unresolved UNITID additions/removals routed to manual review.
 - production CLI commands for exact-release charge-table construction and scheduled cross-release
   review, including explicit nonfinal opt-in and machine-readable exit states.
+- immutable directional CIP crosswalk contracts with official-source hashes, explicit many-to-many
+  selection, confidence, and no silent cross-version or reverse mapping.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -44,7 +46,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
 3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
 4. Preserve reported basis and population definitions.
-5. Map programs using versioned CIP and handle institution identity changes.
+5. Register authoritative CIP mapping rows, connect them to program production, and handle
+   institution identity changes.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
 
@@ -52,7 +55,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 - live exact-release download and dictionary pairing;
 - final/provisional selection;
-- CIP-version mismatch and UNITID history;
+- UNITID history;
 - residency/attendance-basis policy;
 - completion cohort definitions;
 
