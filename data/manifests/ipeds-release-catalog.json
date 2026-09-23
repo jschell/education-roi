@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "reviewed_at": "2026-09-20",
+  "reviewed_at": "2026-09-23",
   "releases": [
     {
       "release_id": "2023-24-provisional",
@@ -10,6 +10,16 @@
       "data_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
       "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY_Dict.zip",
       "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=1"
+    },
+    {
+      "release_id": "2022-23-final",
+      "collection_year": 2022,
+      "component": "graduation-rates",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/datacenter/data/GR2022.zip",
+      "data_member": "gr2022_rv.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/datacenter/data/GR2022_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2022&surveyNumber=8"
     },
     {
       "release_id": "2023-24-final",
