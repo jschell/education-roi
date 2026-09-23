@@ -130,6 +130,50 @@ def _target_rows(archive_path: Path, member: str, unitid: int) -> dict[str, dict
         raise IPEDSGraduationError(f"could not read GR2023 archive: {error}") from error
 
 
+def validate_gr2023_archive(path: Path, member: str) -> int:
+    """Stream and validate the final bachelor's cohort rows before registration."""
+    seen: set[tuple[int, str]] = set()
+    try:
+        with ZipFile(path) as archive:
+            if member not in archive.namelist():
+                raise IPEDSGraduationError(f"GR2023 archive is missing {member}")
+            with archive.open(member) as stream:
+                reader = csv.DictReader(io.TextIOWrapper(stream, encoding="utf-8-sig", newline=""))
+                missing = REQUIRED_GR_COLUMNS.difference(reader.fieldnames or ())
+                if missing:
+                    raise IPEDSGraduationError(
+                        "GR2023 archive is missing columns: " + ", ".join(sorted(missing))
+                    )
+                for number, row in enumerate(reader, start=2):
+                    if row["GRTYPE"] not in ROW_CODES or row["SECTION"] != "2":
+                        continue
+                    try:
+                        unitid = int(row["UNITID"])
+                    except (TypeError, ValueError) as error:
+                        raise IPEDSGraduationError(
+                            f"invalid GR2023 UNITID on row {number}"
+                        ) from error
+                    if unitid <= 0:
+                        raise IPEDSGraduationError(f"invalid GR2023 UNITID on row {number}")
+                    code = row["GRTYPE"]
+                    status, line = ROW_CODES[code]
+                    if (row["CHRTSTAT"], row["COHORT"], row["LINE"]) != (status, "2", line):
+                        raise IPEDSGraduationError(
+                            f"incompatible GR2023 cohort keys on row {number}"
+                        )
+                    key = (unitid, code)
+                    if key in seen:
+                        raise IPEDSGraduationError(
+                            f"duplicate GR2023 row {code} for UNITID {unitid}"
+                        )
+                    seen.add(key)
+    except (OSError, BadZipFile, UnicodeError, csv.Error) as error:
+        raise IPEDSGraduationError(f"could not read GR2023 archive: {error}") from error
+    if not seen:
+        raise IPEDSGraduationError("GR2023 archive has no bachelor's cohort rows")
+    return len(seen)
+
+
 def resolve_gr2023_bachelors(
     archive_path: Path,
     dictionary_path: Path,
