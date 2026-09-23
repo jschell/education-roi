@@ -10,12 +10,15 @@ from education_roi import __version__
 from education_roi.cashflow import ReturnPerspective
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds import (
+    GR2023_DATASET_ID,
+    GR2023_DICTIONARY_DATASET_ID,
     IPEDS_CHARGES_DATASET,
     InstitutionHistory,
     InstitutionHistoryError,
     IPEDSArchiveError,
     IPEDSCatalogError,
     IPEDSComponent,
+    IPEDSGraduationError,
     IPEDSProcessedArtifactConflict,
     IPEDSReleaseCatalog,
     IPEDSReleaseComparisonError,
@@ -23,6 +26,7 @@ from education_roi.ipeds import (
     compare_charge_tables,
     compare_release_catalogs,
     register_gr2023_release,
+    resolve_gr2023_bachelors,
     select_release,
     transform_charges_archive,
 )
@@ -249,6 +253,61 @@ def ipeds_register_gr2023(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-gr2023")
+def ipeds_resolve_gr2023(
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Report one observed institutional bachelor's cohort; no probability inference."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.GRADUATION_RATES,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        registry = Registry(registry_path)
+        manifests = []
+        for dataset_id in (GR2023_DATASET_ID, GR2023_DICTIONARY_DATASET_ID):
+            matching = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matching) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact for {release.release_id}; "
+                    f"found {len(matching)}"
+                )
+            manifests.append(matching[0])
+        result = resolve_gr2023_bachelors(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            release,
+            manifests[0],
+            manifests[1],
+            unitid,
+        )
+    except (IPEDSCatalogError, IPEDSGraduationError, ProvenanceError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    payload = result.model_dump(mode="json")
+    payload["observed_rate"] = (
+        result.observation.observed_rate if result.observation is not None else None
+    )
+    payload["interpretation"] = (
+        "observed institutional cohort, not individual completion probability"
+    )
+    typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("build-charges")
