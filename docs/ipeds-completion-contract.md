@@ -79,6 +79,10 @@ or duplicate keys and counts above the adjusted cohort fail validation.
    Registration checks the final CSV member, required columns, and all matching bachelor's
    cohort keys and duplicates, plus dictionary meanings. It does not validate all GR fields,
    statistical distributions, or every other cohort. Broaden validation before publication.
+   `edu-roi ipeds resolve-gr2023 UNITID --catalog data/manifests/ipeds-release-catalog.json`
+   reads the exact validated registry pair and returns the observed rate, population, source row
+   keys, raw status codes, and both artifact IDs. It returns `INSUFFICIENT_DATA` for absent
+   institution rows and `INVALID` for missing or ambiguous validated artifacts or failed hashes.
 2. Verify separate 2-year, any-award, GR200, aid subgroup, transfer, and imputation meanings
    against their own official files and survey forms before extending the mappings.
 3. Recompute published institution rates, document discrepancies, and normalize rows to Parquet.
