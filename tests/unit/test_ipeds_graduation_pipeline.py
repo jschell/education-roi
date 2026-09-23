@@ -15,7 +15,7 @@ def test_bulk_table_preserves_unavailable_count_and_source_status(tmp_path: Path
     release = next(
         item
         for item in IPEDSReleaseCatalog.from_file(CATALOG).releases
-        if item.component is IPEDSComponent.GRADUATION_RATES
+        if item.component is IPEDSComponent.GRADUATION_RATES and item.release_id == "2023-24-final"
     )
     archive = tmp_path / "data.zip"
     with ZipFile(archive, "w", ZIP_DEFLATED) as output:
