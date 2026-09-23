@@ -310,6 +310,16 @@ def ipeds_compare_charges(
             help="Versioned directional UNITID history JSON for these exact releases.",
         ),
     ] = None,
+    history_source: Annotated[
+        Path | None,
+        typer.Option(
+            "--history-source",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Local authoritative source artifact to verify against history source_sha256.",
+        ),
+    ] = None,
     fail_on_review: Annotated[
         bool,
         typer.Option(help="Exit 1 when the report requires manual review."),
@@ -317,7 +327,13 @@ def ipeds_compare_charges(
 ) -> None:
     """Compare normalized charge releases and emit a deterministic review report."""
     try:
+        if history_source is not None and history is None:
+            raise ValueError("--history-source requires --history")
         institution_history = InstitutionHistory.from_file(history) if history is not None else None
+        if history_source is not None:
+            assert institution_history is not None
+            if sha256_file(history_source)[0] != institution_history.source_sha256:
+                raise ValueError("history source SHA-256 does not match the supplied artifact")
         report = compare_charge_tables(
             previous,
             current,
@@ -328,6 +344,13 @@ def ipeds_compare_charges(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     payload = report.model_dump(mode="json")
+    payload["history_source_status"] = (
+        "HASH_VERIFIED"
+        if history_source is not None
+        else "UNVERIFIED"
+        if history is not None
+        else "NOT_APPLICABLE"
+    )
     payload["status"] = "REVIEW_REQUIRED" if report.review_required else "ACCEPTABLE"
     typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     if report.review_required and fail_on_review:

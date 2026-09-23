@@ -45,6 +45,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   refuses numeric comparison for closures, splits, collisions, or unresolved history.
 - optional directional UNITID history input on the production charge-comparison CLI, with explicit
   invalid-input states and machine-readable history provenance.
+- optional verification of the history source artifact against its declared SHA-256, with explicit
+  verified/unverified states; authoritative mapping rows remain a separate review task.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
