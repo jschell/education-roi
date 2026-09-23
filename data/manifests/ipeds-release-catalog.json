@@ -10,6 +10,16 @@
       "data_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY.zip",
       "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/IC2023_AY_Dict.zip",
       "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=1"
+    },
+    {
+      "release_id": "2023-24-final",
+      "collection_year": 2023,
+      "component": "graduation-rates",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/complete-data-files/GR2023.zip",
+      "data_member": "gr2023_RV.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/GR2023_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=8"
     }
   ]
 }
