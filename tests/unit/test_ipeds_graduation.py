@@ -165,8 +165,13 @@ def test_dictionary_must_document_final_codes(
         ["(Final/revised release)"],
         *[
             [
-                "1", variable, "N", "2", "Disc",
-                "XGRTOTLT" if variable == "GRTOTLT" else "", variable,
+                "1",
+                variable,
+                "N",
+                "2",
+                "Disc",
+                "XGRTOTLT" if variable == "GRTOTLT" else "",
+                variable,
             ]
             for variable in sorted(
                 {"UNITID", "GRTYPE", "CHRTSTAT", "SECTION", "COHORT", "LINE", "GRTOTLT"}
