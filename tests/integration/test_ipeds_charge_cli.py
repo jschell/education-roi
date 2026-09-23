@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from education_roi.cli.app import app
 from education_roi.ipeds import IPEDS_CHARGES_DATASET
+from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ApprovalState
 from education_roi.provenance.store import ArtifactStore, Registry
 
@@ -106,6 +107,7 @@ def test_compare_charges_supports_scheduled_review_failure(tmp_path: Path) -> No
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
     assert payload["status"] == "REVIEW_REQUIRED"
+    assert payload["history_source_status"] == "NOT_APPLICABLE"
     assert payload["changes"][0]["percent_change"] == 0.4
 
 
@@ -140,6 +142,7 @@ def test_compare_charges_accepts_directional_history_file(tmp_path: Path) -> Non
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert payload["status"] == "REVIEW_REQUIRED"
+    assert payload["history_source_status"] == "UNVERIFIED"
     assert payload["institution_pairing"]["history_id"] == "nces-2022-2023"
     assert payload["institution_pairing"]["history_sha256"] == "a" * 64
     assert {item["change_type"] for item in payload["changes"]} == {
@@ -162,3 +165,57 @@ def test_compare_charges_accepts_directional_history_file(tmp_path: Path) -> Non
     )
     assert malformed.exit_code == 2
     assert json.loads(malformed.stdout)["status"] == "INVALID"
+
+
+def test_compare_charges_verifies_history_source_bytes(tmp_path: Path) -> None:
+    previous = table(tmp_path / "previous.parquet", "2022-23-final", 10000, unitid=1)
+    current = table(tmp_path / "current.parquet", "2023-24-final", 14000, unitid=10)
+    source = tmp_path / "source.csv"
+    source.write_text("source,target\n1,10\n", encoding="utf-8")
+    history = tmp_path / "history.json"
+    history.write_text(
+        json.dumps(
+            {
+                "history_id": "nces-2022-2023",
+                "source_release": "2022-23-final",
+                "target_release": "2023-24-final",
+                "source_url": "https://nces.ed.gov/ipeds/history.csv",
+                "source_sha256": sha256_file(source)[0],
+                "entries": [
+                    {
+                        "source_unitid": 1,
+                        "target_unitid": 10,
+                        "relationship": "id_changed",
+                        "confidence": "high",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    args = [
+        "ipeds",
+        "compare-charges",
+        str(previous),
+        str(current),
+        "--history",
+        str(history),
+        "--history-source",
+        str(source),
+    ]
+    verified = runner.invoke(app, args)
+    assert verified.exit_code == 0, verified.stdout
+    assert json.loads(verified.stdout)["history_source_status"] == "HASH_VERIFIED"
+
+    source.write_text("source,target\n1,11\n", encoding="utf-8")
+    mismatch = runner.invoke(app, args)
+    assert mismatch.exit_code == 2
+    assert json.loads(mismatch.stdout)["status"] == "INVALID"
+    assert "SHA-256" in json.loads(mismatch.stdout)["error"]
+
+    no_history = runner.invoke(
+        app,
+        ["ipeds", "compare-charges", str(previous), str(current), "--history-source", str(source)],
+    )
+    assert no_history.exit_code == 2
+    assert json.loads(no_history.stdout)["status"] == "INVALID"
