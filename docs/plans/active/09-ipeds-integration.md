@@ -49,12 +49,14 @@ Add versioned institution-level costs, characteristics, program production, aid,
   verified/unverified states; authoritative mapping rows remain a separate review task.
 - reviewed final GR2023 data/dictionary pair with explicit `gr2023_RV.csv` selection and the
   four-year bachelor's-seeking adjusted cohort versus bachelor's-award row mapping.
+- paired immutable final GR2023 registration with final-member cohort-key validation and a
+  production `ipeds register-gr2023` command; other cohorts remain unvalidated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
 ## Remaining implementation tasks
 
-1. Verify dictionary parsing against official workbook bytes in an enabled live environment.
+1. Extend official workbook validation beyond the final four-year bachelor's mapping.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
 3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
 4. Preserve reported basis and population definitions.
