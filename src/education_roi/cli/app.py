@@ -29,11 +29,12 @@ from education_roi.ipeds import (
     resolve_gr2023_bachelors,
     select_release,
     transform_charges_archive,
+    transform_gr2023_archive,
 )
 from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
-from education_roi.provenance.models import ApprovalState
+from education_roi.provenance.models import ApprovalState, ArtifactManifest
 from education_roi.provenance.store import ArtifactStore, ProvenanceError, Registry
 from education_roi.reproduction.bootstrap import bootstrap_zhang_sources, resolve_vintages
 from education_roi.reproduction.bundle import BundleIntegrityError, verify_reproduction_bundle
@@ -275,26 +276,15 @@ def ipeds_resolve_gr2023(
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
             raise ValueError(f"artifact registry not found: {registry_path}")
-        registry = Registry(registry_path)
-        manifests = []
-        for dataset_id in (GR2023_DATASET_ID, GR2023_DICTIONARY_DATASET_ID):
-            matching = tuple(
-                item
-                for item in registry.list_artifacts(dataset_id, release.release_id)
-                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
-            )
-            if len(matching) != 1:
-                raise ValueError(
-                    f"expected one validated {dataset_id} artifact for {release.release_id}; "
-                    f"found {len(matching)}"
-                )
-            manifests.append(matching[0])
+        data_manifest, dictionary_manifest = _gr2023_manifests(
+            Registry(registry_path), release.release_id
+        )
         result = resolve_gr2023_bachelors(
-            paths.data / "raw" / manifests[0].storage_path,
-            paths.data / "raw" / manifests[1].storage_path,
+            paths.data / "raw" / data_manifest.storage_path,
+            paths.data / "raw" / dictionary_manifest.storage_path,
             release,
-            manifests[0],
-            manifests[1],
+            data_manifest,
+            dictionary_manifest,
             unitid,
         )
     except (IPEDSCatalogError, IPEDSGraduationError, ProvenanceError, ValueError) as error:
@@ -308,6 +298,77 @@ def ipeds_resolve_gr2023(
         "observed institutional cohort, not individual completion probability"
     )
     typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+def _gr2023_manifests(
+    registry: Registry, release_id: str
+) -> tuple[ArtifactManifest, ArtifactManifest]:
+    manifests = []
+    for dataset_id in (GR2023_DATASET_ID, GR2023_DICTIONARY_DATASET_ID):
+        matching = tuple(
+            item
+            for item in registry.list_artifacts(dataset_id, release_id)
+            if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+        )
+        if len(matching) != 1:
+            raise ValueError(
+                f"expected one validated {dataset_id} artifact for {release_id}; "
+                f"found {len(matching)}"
+            )
+        manifests.append(matching[0])
+    return manifests[0], manifests[1]
+
+
+@ipeds_app.command("build-gr2023")
+def ipeds_build_gr2023(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build an immutable final GR2023 bachelor's cohort table from validated inputs."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.GRADUATION_RATES,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        data_manifest, dictionary_manifest = _gr2023_manifests(
+            Registry(registry_path), release.release_id
+        )
+        processed = transform_gr2023_archive(
+            paths.data / "raw" / data_manifest.storage_path,
+            paths.data / "raw" / dictionary_manifest.storage_path,
+            paths.data / "processed",
+            data_manifest,
+            dictionary_manifest,
+            release,
+        )
+    except (
+        IPEDSCatalogError,
+        IPEDSGraduationError,
+        IPEDSProcessedArtifactConflict,
+        ProvenanceError,
+        ValueError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "manifest": processed.manifest.model_dump(mode="json"),
+                "manifest_path": str(processed.manifest_path),
+                "parquet_path": str(processed.parquet_path),
+                "status": "WRITTEN",
+            },
+            sort_keys=True,
+        )
+    )
 
 
 @ipeds_app.command("build-charges")
