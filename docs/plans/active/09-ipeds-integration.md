@@ -43,6 +43,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   emits explicit findings for closures, additions, missing targets, and missing history.
 - history-aware charge comparison that follows unique UNITID changes while preserving both IDs and
   refuses numeric comparison for closures, splits, collisions, or unresolved history.
+- optional directional UNITID history input on the production charge-comparison CLI, with explicit
+  invalid-input states and machine-readable history provenance.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

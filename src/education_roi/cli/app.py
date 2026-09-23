@@ -11,6 +11,8 @@ from education_roi.cashflow import ReturnPerspective
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds import (
     IPEDS_CHARGES_DATASET,
+    InstitutionHistory,
+    InstitutionHistoryError,
     IPEDSArchiveError,
     IPEDSCatalogError,
     IPEDSComponent,
@@ -298,6 +300,16 @@ def ipeds_compare_charges(
         float,
         typer.Option(help="Absolute fractional change requiring review."),
     ] = 0.25,
+    history: Annotated[
+        Path | None,
+        typer.Option(
+            "--history",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Versioned directional UNITID history JSON for these exact releases.",
+        ),
+    ] = None,
     fail_on_review: Annotated[
         bool,
         typer.Option(help="Exit 1 when the report requires manual review."),
@@ -305,12 +317,14 @@ def ipeds_compare_charges(
 ) -> None:
     """Compare normalized charge releases and emit a deterministic review report."""
     try:
+        institution_history = InstitutionHistory.from_file(history) if history is not None else None
         report = compare_charge_tables(
             previous,
             current,
             percent_change_threshold=threshold,
+            institution_history=institution_history,
         )
-    except (IPEDSReleaseComparisonError, ValueError) as error:
+    except (IPEDSReleaseComparisonError, InstitutionHistoryError, ValueError) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     payload = report.model_dump(mode="json")
