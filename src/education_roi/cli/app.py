@@ -507,6 +507,10 @@ def ipeds_compare_graduation(
         typer.Option("--history-source", exists=True, dir_okay=False, readable=True),
     ] = None,
     fail_on_review: Annotated[bool, typer.Option()] = False,
+    allow_unverified_inputs: Annotated[
+        bool,
+        typer.Option(help="Allow fixtures without manifests; provenance is unverified."),
+    ] = False,
 ) -> None:
     """Compare two distinct final bachelor’s entry cohorts for manual release review."""
     try:
@@ -523,11 +527,15 @@ def ipeds_compare_graduation(
             absolute_rate_threshold=threshold,
             relative_count_threshold=count_threshold,
             institution_history=institution_history,
+            require_manifests=not allow_unverified_inputs,
         )
     except (IPEDSGraduationComparisonError, InstitutionHistoryError, ValueError) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     payload = report.model_dump(mode="json")
+    payload["input_provenance_status"] = (
+        "UNVERIFIED" if allow_unverified_inputs else "MANIFEST_VERIFIED"
+    )
     payload["history_source_status"] = (
         "HASH_VERIFIED"
         if history_source is not None
