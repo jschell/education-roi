@@ -47,6 +47,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   invalid-input states and machine-readable history provenance.
 - optional verification of the history source artifact against its declared SHA-256, with explicit
   verified/unverified states; authoritative mapping rows remain a separate review task.
+- reviewed final GR2023 data/dictionary pair with explicit `gr2023_RV.csv` selection and the
+  four-year bachelor's-seeking adjusted cohort versus bachelor's-award row mapping.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
