@@ -37,6 +37,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   review, including explicit nonfinal opt-in and machine-readable exit states.
 - immutable directional CIP crosswalk contracts with official-source hashes, explicit many-to-many
   selection, confidence, and no silent cross-version or reverse mapping.
+- directional, source-hashed UNITID history contracts for continuation, ID changes, mergers, splits,
+  and explicit closures, with ambiguity and all non-continuation events routed to review.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -46,8 +48,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
 3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
 4. Preserve reported basis and population definitions.
-5. Register authoritative CIP mapping rows, connect them to program production, and handle
-   institution identity changes.
+5. Register authoritative CIP mapping and UNITID history rows, then connect them to program
+   production and release comparison.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
 
@@ -55,7 +57,6 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 - live exact-release download and dictionary pairing;
 - final/provisional selection;
-- UNITID history;
 - residency/attendance-basis policy;
 - completion cohort definitions;
 

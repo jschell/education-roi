@@ -58,6 +58,14 @@ Added or missing UNITIDs always require review because the framework does not in
 closure, merger, or identity change. Any raw source-status change also requires review and remains
 uninterpreted until its authoritative code definition is available.
 
+UNITID history uses the same evidence discipline. A history artifact is directional between two
+exact releases and pins an official NCES URL plus source SHA-256. Entries distinguish continuing
+institutions, identifier changes, mergers, splits, and explicit closures with a confidence and note.
+Cross-release resolution fails without matching history, never reverses history implicitly, and
+requires a target for one-to-many splits. A UNITID absent from a later table is not a closure unless
+an explicit closure entry supports that conclusion. No historical entries are bundled until an
+authoritative artifact is acquired and registered.
+
 Production commands expose both steps:
 
 ```console

@@ -34,6 +34,16 @@ from education_roi.ipeds.dictionary import (
     IPEDSVariableDefinition,
     read_dictionary,
 )
+from education_roi.ipeds.identity import (
+    InstitutionHistory,
+    InstitutionHistoryEntry,
+    InstitutionHistoryError,
+    InstitutionMappingConfidence,
+    InstitutionRelationship,
+    InstitutionResolution,
+    InstitutionResolutionStatus,
+    resolve_unitid,
+)
 from education_roi.ipeds.pipeline import (
     IPEDSChargesProcessingManifest,
     IPEDSProcessedArtifactConflict,
@@ -90,6 +100,13 @@ __all__ = [
     "IPEDS_CHARGES_DATASET",
     "IPEDS_DICTIONARY_DATASET",
     "IPEDS_SCHEMA_VERSION",
+    "InstitutionHistory",
+    "InstitutionHistoryEntry",
+    "InstitutionHistoryError",
+    "InstitutionMappingConfidence",
+    "InstitutionRelationship",
+    "InstitutionResolution",
+    "InstitutionResolutionStatus",
     "RegisteredIPEDSRelease",
     "ProcessedIPEDSCharges",
     "compare_release_catalogs",
@@ -100,6 +117,7 @@ __all__ = [
     "register_ipeds_charges",
     "register_ipeds_release",
     "resolve_cip",
+    "resolve_unitid",
     "select_release",
     "transform_charges_archive",
     "TUITION_COLUMNS",
