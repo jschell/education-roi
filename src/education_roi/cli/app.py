@@ -27,10 +27,12 @@ from education_roi.ipeds import (
     compare_charge_tables,
     compare_graduation_tables,
     compare_release_catalogs,
+    register_gr2022_release,
     register_gr2023_release,
     resolve_gr2023_bachelors,
     select_release,
     transform_charges_archive,
+    transform_gr2022_archive,
     transform_gr2023_archive,
 )
 from education_roi.provenance.adapters import SourceConfiguration
@@ -236,13 +238,32 @@ def ipeds_register_gr2023(
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
 ) -> None:
     """Register the paired final GR2023 data archive and dictionary."""
+    _register_gr_release(catalog, root, "2023-24-final")
+
+
+@ipeds_app.command("register-gr2022")
+def ipeds_register_gr2022(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Register the paired final GR2022 data archive and legacy dictionary."""
+    _register_gr_release(catalog, root, "2022-23-final")
+
+
+def _register_gr_release(catalog: Path, root: Path | None, release_id: str) -> None:
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.GRADUATION_RATES,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
-        registered = register_gr2023_release(release, ProjectPaths.from_environment(root))
+        register = (
+            register_gr2022_release if release_id == "2022-23-final" else register_gr2023_release
+        )
+        registered = register(release, ProjectPaths.from_environment(root))
     except (IPEDSCatalogError, ProvenanceError, ValueError) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
@@ -330,12 +351,28 @@ def ipeds_build_gr2023(
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
 ) -> None:
     """Build an immutable final GR2023 bachelor's cohort table from validated inputs."""
+    _build_gr_table(catalog, root, "2023-24-final")
+
+
+@ipeds_app.command("build-gr2022")
+def ipeds_build_gr2022(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build an immutable final GR2022 bachelor's cohort table from validated inputs."""
+    _build_gr_table(catalog, root, "2022-23-final")
+
+
+def _build_gr_table(catalog: Path, root: Path | None, release_id: str) -> None:
     paths = ProjectPaths.from_environment(root)
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.GRADUATION_RATES,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
@@ -343,7 +380,10 @@ def ipeds_build_gr2023(
         data_manifest, dictionary_manifest = _gr2023_manifests(
             Registry(registry_path), release.release_id
         )
-        processed = transform_gr2023_archive(
+        transform = (
+            transform_gr2022_archive if release_id == "2022-23-final" else transform_gr2023_archive
+        )
+        processed = transform(
             paths.data / "raw" / data_manifest.storage_path,
             paths.data / "raw" / dictionary_manifest.storage_path,
             paths.data / "processed",

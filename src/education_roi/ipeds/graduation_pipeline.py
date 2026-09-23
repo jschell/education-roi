@@ -24,11 +24,30 @@ from education_roi.ipeds.graduation import (
     _verify_dictionary,
     _verify_manifest,
 )
+from education_roi.ipeds.graduation_2022 import (
+    GR2022_COHORT_YEAR,
+    GR2022_MEMBER,
+    GR2022_RELEASE,
+    verify_gr2022_dictionary,
+)
 from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict, _publish_immutable
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ArtifactManifest, TransformationManifest
 
 GR_TRANSFORMATION_VERSION = "ipeds-gr2023-bachelors-v1"
+GR2022_TRANSFORMATION_VERSION = "ipeds-gr2022-bachelors-v1"
+
+
+def _release_config(release: IPEDSRelease) -> tuple[int, str, bool]:
+    if release.component is not IPEDSComponent.GRADUATION_RATES or (
+        release.publication_status is not IPEDSPublicationStatus.FINAL
+    ):
+        raise IPEDSGraduationError("graduation table requires a reviewed final GR release")
+    if release.release_id == GR2022_RELEASE and release.data_member == GR2022_MEMBER:
+        return GR2022_COHORT_YEAR, GR2022_TRANSFORMATION_VERSION, True
+    if release.release_id == "2023-24-final" and release.data_member == "gr2023_RV.csv":
+        return 2017, GR_TRANSFORMATION_VERSION, False
+    raise IPEDSGraduationError("graduation table requires an implemented exact GR release")
 
 
 class IPEDSGraduationProcessingManifest(BaseModel):
@@ -64,6 +83,7 @@ def _count(cell: str | None) -> int | None:
 
 
 def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: str) -> pl.DataFrame:
+    cohort_year, transformation_version, strip_codes = _release_config(release)
     selected: dict[int, dict[str, dict[str, str]]] = {}
     try:
         with ZipFile(archive) as source:
@@ -77,7 +97,9 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                         "GR2023 archive is missing columns: " + ", ".join(sorted(missing))
                     )
                 for number, row in enumerate(reader, start=2):
-                    if row["GRTYPE"] not in ROW_CODES or row["SECTION"] != "2":
+                    code = (row["GRTYPE"] or "").strip() if strip_codes else row["GRTYPE"]
+                    section = (row["SECTION"] or "").strip() if strip_codes else row["SECTION"]
+                    if code not in ROW_CODES or section != "2":
                         continue
                     try:
                         unitid = int(row["UNITID"])
@@ -87,9 +109,15 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                         ) from error
                     if unitid <= 0:
                         raise IPEDSGraduationError(f"invalid UNITID on GR2023 row {number}")
-                    code = row["GRTYPE"]
                     status, line = ROW_CODES[code]
-                    if (row["CHRTSTAT"], row["COHORT"], row["LINE"]) != (status, "2", line):
+                    row_keys = (row["CHRTSTAT"], row["COHORT"], row["LINE"])
+                    if strip_codes:
+                        row_keys = (
+                            (row_keys[0] or "").strip(),
+                            (row_keys[1] or "").strip(),
+                            (row_keys[2] or "").strip(),
+                        )
+                    if row_keys != (status, "2", line):
                         raise IPEDSGraduationError(f"incompatible GR2023 keys on row {number}")
                     group = selected.setdefault(unitid, {})
                     if code in group:
@@ -122,7 +150,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                 "unitid": unitid,
                 "release_id": release.release_id,
                 "publication_status": release.publication_status.value,
-                "cohort_year": 2017,
+                "cohort_year": cohort_year,
                 "cohort_scope": "bachelors_seeking_first_time_full_time",
                 "award_outcome": "bachelors_degree",
                 "normal_time_percent": 150,
@@ -142,7 +170,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                 "award_row_key": "COHORT=2;SECTION=2;GRTYPE=12" if award else None,
                 "data_artifact_id": data_id,
                 "dictionary_artifact_id": dictionary_id,
-                "transformation_version": GR_TRANSFORMATION_VERSION,
+                "transformation_version": transformation_version,
             }
         )
     schema = {
@@ -170,7 +198,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
     return pl.DataFrame(records, schema=schema)
 
 
-def transform_gr2023_archive(
+def _transform_graduation_archive(
     archive: Path,
     dictionary: Path,
     output_root: Path,
@@ -178,14 +206,8 @@ def transform_gr2023_archive(
     dictionary_manifest: ArtifactManifest,
     release: IPEDSRelease,
 ) -> ProcessedIPEDSGraduation:
-    """Build an immutable final cohort table from exactly paired validated inputs."""
-    if (
-        release.component is not IPEDSComponent.GRADUATION_RATES
-        or release.release_id != "2023-24-final"
-        or release.publication_status is not IPEDSPublicationStatus.FINAL
-        or release.data_member != "gr2023_RV.csv"
-    ):
-        raise IPEDSGraduationError("requires reviewed final GR2023_RV release")
+    """Build an immutable cohort table from an explicitly supported final release."""
+    cohort_year, transformation_version, legacy = _release_config(release)
     _verify_manifest(archive, data_manifest, release, GR2023_DATASET_ID, str(release.data_url))
     _verify_manifest(
         dictionary,
@@ -194,20 +216,23 @@ def transform_gr2023_archive(
         GR2023_DICTIONARY_DATASET_ID,
         str(release.dictionary_url),
     )
-    _verify_dictionary(dictionary)
+    if legacy:
+        verify_gr2022_dictionary(dictionary)
+    else:
+        _verify_dictionary(dictionary)
     frame = _frame(archive, release, data_manifest.artifact_id, dictionary_manifest.artifact_id)
     relative_directory = (
         Path(GR2023_DATASET_ID)
         / release.release_id
         / data_manifest.sha256
         / dictionary_manifest.sha256
-        / GR_TRANSFORMATION_VERSION
+        / transformation_version
     )
     relative = relative_directory / "bachelors.parquet"
     destination = output_root / relative
     output_root.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
-        prefix="ipeds-gr2023-", suffix=".partial", dir=output_root
+        prefix="ipeds-gr-", suffix=".partial", dir=output_root
     )
     os.close(descriptor)
     temporary = Path(temporary_name)
@@ -220,7 +245,7 @@ def transform_gr2023_archive(
 
     transformation = TransformationManifest(
         transformation_id=(
-            f"{GR_TRANSFORMATION_VERSION}:{release.release_id}:"
+            f"{transformation_version}:{release.release_id}:"
             f"{data_manifest.sha256}:{dictionary_manifest.sha256}:{output_hash}"
         ),
         created_at=datetime.now(UTC),
@@ -229,18 +254,18 @@ def transform_gr2023_archive(
         input_artifact_ids=(data_manifest.artifact_id, dictionary_manifest.artifact_id),
         parameters={
             "data_member": release.data_member,
-            "cohort_year": 2017,
+            "cohort_year": cohort_year,
             "cohort_scope": "bachelors_seeking_first_time_full_time",
             "award_outcome": "bachelors_degree",
             "normal_time_percent": 150,
-            "transformation_version": GR_TRANSFORMATION_VERSION,
+            "transformation_version": transformation_version,
         },
     )
     processing = IPEDSGraduationProcessingManifest(
         transformation=transformation,
         release_id=release.release_id,
         publication_status=release.publication_status.value,
-        cohort_year=2017,
+        cohort_year=cohort_year,
         cohort_scope="bachelors_seeking_first_time_full_time",
         award_outcome="bachelors_degree",
         normal_time_percent=150,
@@ -275,3 +300,35 @@ def transform_gr2023_archive(
     finally:
         temp_manifest.unlink(missing_ok=True)
     return ProcessedIPEDSGraduation(destination, manifest_path, processing)
+
+
+def transform_gr2023_archive(
+    archive: Path,
+    dictionary: Path,
+    output_root: Path,
+    data_manifest: ArtifactManifest,
+    dictionary_manifest: ArtifactManifest,
+    release: IPEDSRelease,
+) -> ProcessedIPEDSGraduation:
+    """Preserve the pinned GR2023 entry point; reject legacy releases."""
+    if release.release_id != "2023-24-final":
+        raise IPEDSGraduationError("requires reviewed final GR2023_RV release")
+    return _transform_graduation_archive(
+        archive, dictionary, output_root, data_manifest, dictionary_manifest, release
+    )
+
+
+def transform_gr2022_archive(
+    archive: Path,
+    dictionary: Path,
+    output_root: Path,
+    data_manifest: ArtifactManifest,
+    dictionary_manifest: ArtifactManifest,
+    release: IPEDSRelease,
+) -> ProcessedIPEDSGraduation:
+    """Transform the earlier final 2016 entry cohort with legacy code trimming."""
+    if release.release_id != GR2022_RELEASE:
+        raise IPEDSGraduationError("requires reviewed final GR2022 revised release")
+    return _transform_graduation_archive(
+        archive, dictionary, output_root, data_manifest, dictionary_manifest, release
+    )

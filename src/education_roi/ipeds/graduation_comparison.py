@@ -7,7 +7,10 @@ from typing import Any
 import polars as pl
 from pydantic import Field
 
-from education_roi.ipeds.graduation_pipeline import GR_TRANSFORMATION_VERSION
+from education_roi.ipeds.graduation_pipeline import (
+    GR2022_TRANSFORMATION_VERSION,
+    GR_TRANSFORMATION_VERSION,
+)
 from education_roi.ipeds.identity import (
     InstitutionHistory,
     InstitutionPairingFindingType,
@@ -127,8 +130,13 @@ def _table(path: Path) -> tuple[dict[int, dict[str, Any]], dict[str, Any]]:
         if len(values) != 1 or values[0] is None:
             raise IPEDSGraduationComparisonError(f"cohort table needs one nonnull {key}")
         metadata[key] = values[0]
+    allowed_version = (
+        GR2022_TRANSFORMATION_VERSION
+        if metadata["release_id"] == "2022-23-final"
+        else GR_TRANSFORMATION_VERSION
+    )
     if metadata["publication_status"] != "final" or (
-        metadata["transformation_version"] != GR_TRANSFORMATION_VERSION
+        metadata["transformation_version"] != allowed_version
     ):
         raise IPEDSGraduationComparisonError(
             "cohort table requires the reviewed final transformation"

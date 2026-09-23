@@ -48,6 +48,7 @@ from education_roi.ipeds.graduation import (
     resolve_gr2023_bachelors,
     validate_gr2023_archive,
 )
+from education_roi.ipeds.graduation_2022 import verify_gr2022_dictionary
 from education_roi.ipeds.graduation_comparison import (
     GraduationChange,
     GraduationChangeType,
@@ -56,9 +57,11 @@ from education_roi.ipeds.graduation_comparison import (
     compare_graduation_tables,
 )
 from education_roi.ipeds.graduation_pipeline import (
+    GR2022_TRANSFORMATION_VERSION,
     GR_TRANSFORMATION_VERSION,
     IPEDSGraduationProcessingManifest,
     ProcessedIPEDSGraduation,
+    transform_gr2022_archive,
     transform_gr2023_archive,
 )
 from education_roi.ipeds.identity import (
@@ -86,6 +89,7 @@ from education_roi.ipeds.provider import IPEDSValueProvider
 from education_roi.ipeds.registration import (
     RegisteredIPEDSGraduation,
     RegisteredIPEDSRelease,
+    register_gr2022_release,
     register_gr2023_release,
     register_ipeds_charges,
     register_ipeds_release,
@@ -118,6 +122,7 @@ __all__ = [
     "GraduationChangeType",
     "GraduationComparison",
     "GR_TRANSFORMATION_VERSION",
+    "GR2022_TRANSFORMATION_VERSION",
     "GraduationAwardOutcome",
     "GR2023_DATASET_ID",
     "GR2023_DICTIONARY_DATASET_ID",
@@ -173,13 +178,16 @@ __all__ = [
     "register_ipeds_charges",
     "register_ipeds_release",
     "register_gr2023_release",
+    "register_gr2022_release",
     "resolve_cip",
     "resolve_gr2023_bachelors",
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",
     "transform_gr2023_archive",
+    "transform_gr2022_archive",
     "validate_gr2023_archive",
+    "verify_gr2022_dictionary",
     "TUITION_COLUMNS",
     "TUITION_STATUS_COLUMNS",
 ]
