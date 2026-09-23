@@ -61,10 +61,10 @@ def test_build_charges_requires_nonfinal_opt_in_and_writes_lineage(tmp_path: Pat
     assert payload["manifest"]["publication_status"] == "provisional"
 
 
-def table(path: Path, release: str, value: float) -> Path:
+def table(path: Path, release: str, value: float, unitid: int = 236948) -> Path:
     pl.DataFrame(
         {
-            "unitid": [236948],
+            "unitid": [unitid],
             "release_id": [release],
             "reporting_basis": ["academic_year"],
             "attendance_basis": ["full_time"],
@@ -107,3 +107,58 @@ def test_compare_charges_supports_scheduled_review_failure(tmp_path: Path) -> No
     payload = json.loads(result.stdout)
     assert payload["status"] == "REVIEW_REQUIRED"
     assert payload["changes"][0]["percent_change"] == 0.4
+
+
+def test_compare_charges_accepts_directional_history_file(tmp_path: Path) -> None:
+    previous = table(tmp_path / "previous.parquet", "2022-23-final", 10000, unitid=1)
+    current = table(tmp_path / "current.parquet", "2023-24-final", 14000, unitid=10)
+    history = tmp_path / "history.json"
+    history.write_text(
+        json.dumps(
+            {
+                "history_id": "nces-2022-2023",
+                "source_release": "2022-23-final",
+                "target_release": "2023-24-final",
+                "source_url": "https://nces.ed.gov/ipeds/history.json",
+                "source_sha256": "a" * 64,
+                "entries": [
+                    {
+                        "source_unitid": 1,
+                        "target_unitid": 10,
+                        "relationship": "id_changed",
+                        "confidence": "high",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app,
+        ["ipeds", "compare-charges", str(previous), str(current), "--history", str(history)],
+    )
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "REVIEW_REQUIRED"
+    assert payload["institution_pairing"]["history_id"] == "nces-2022-2023"
+    assert payload["institution_pairing"]["history_sha256"] == "a" * 64
+    assert {item["change_type"] for item in payload["changes"]} == {
+        "institution_identity_changed",
+        "value_changed",
+    }
+    assert all(item["current_unitid"] == 10 for item in payload["changes"])
+
+    invalid = runner.invoke(
+        app,
+        ["ipeds", "compare-charges", str(current), str(previous), "--history", str(history)],
+    )
+    assert invalid.exit_code == 2
+    assert json.loads(invalid.stdout)["status"] == "INVALID"
+
+    history.write_text("not JSON", encoding="utf-8")
+    malformed = runner.invoke(
+        app,
+        ["ipeds", "compare-charges", str(previous), str(current), "--history", str(history)],
+    )
+    assert malformed.exit_code == 2
+    assert json.loads(malformed.stdout)["status"] == "INVALID"

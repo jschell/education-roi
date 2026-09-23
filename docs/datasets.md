@@ -87,12 +87,18 @@ edu-roi ipeds build-charges \
   --allow-nonfinal
 
 edu-roi ipeds compare-charges previous.parquet current.parquet --fail-on-review
+edu-roi ipeds compare-charges previous.parquet current.parquet \
+  --history institution-history.json --fail-on-review
 ```
 
 The build command requires exactly one validated or approved artifact for the exact reviewed catalog
 release. Preliminary and provisional releases require `--allow-nonfinal`. The comparison command
 returns `ACCEPTABLE`, `REVIEW_REQUIRED`, or `INVALID`; `--fail-on-review` makes review-required
 reports exit 1 for scheduled jobs, while invalid inputs exit 2.
+The optional `--history` file is a directional, source-hashed UNITID history for the exact previous
+and current releases. An incompatible or malformed history returns `INVALID`; the report retains the
+history ID and source hash. Without history, unchanged IDs compare directly and unmatched IDs
+require review. A history file does not itself validate the cited NCES artifact or approve its rows.
 
 Blank cells, negative sentinel values, absent UNITIDs, and absent exact releases remain unavailable. They are never converted to zero. Release-page discovery, dictionaries, imputation-status interpretation, residency policy beyond in-state charges, completion, aid, program production, and release comparison remain subsequent Plan 09 slices.
 
