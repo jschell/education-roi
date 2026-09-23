@@ -41,6 +41,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   and explicit closures, with ambiguity and all non-continuation events routed to review.
 - deterministic cross-release UNITID pairing that refuses automatic split/merge aggregation and
   emits explicit findings for closures, additions, missing targets, and missing history.
+- history-aware charge comparison that follows unique UNITID changes while preserving both IDs and
+  refuses numeric comparison for closures, splits, collisions, or unresolved history.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -50,8 +52,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
 3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
 4. Preserve reported basis and population definitions.
-5. Register authoritative CIP mapping and UNITID history rows, then connect them to program
-   production and release comparison.
+5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and
+   institution history to program production.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
 
