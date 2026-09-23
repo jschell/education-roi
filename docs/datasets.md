@@ -72,6 +72,12 @@ closures, missing targets, missing history, and newly unmatched target IDs becom
 review findings. The pairing layer never sums or averages institutions involved in a merger or
 split; downstream release comparison must wait for an explicit aggregation policy.
 
+Charge-release comparison consumes that pairing report. A unique history-backed identity change is
+compared row to row, with both the source and current UNITIDs retained and the identity event routed
+to review. Closures, splits, target collisions, missing targets, and missing history are reported as
+identity findings; their monetary cells are not compared or aggregated. The comparison output embeds
+the complete pairing report, including the history identifier and source hash when supplied.
+
 Production commands expose both steps:
 
 ```console

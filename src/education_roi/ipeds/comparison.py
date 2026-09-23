@@ -6,6 +6,13 @@ from pathlib import Path
 import polars as pl
 from pydantic import Field
 
+from education_roi.ipeds.identity import (
+    InstitutionHistory,
+    InstitutionPairingFindingType,
+    InstitutionPairingReport,
+    InstitutionRelationship,
+    pair_unitids,
+)
 from education_roi.scenarios.models import StrictModel
 
 CHARGE_FIELDS = (
@@ -34,6 +41,8 @@ class IPEDSReleaseComparisonError(ValueError):
 class IPEDSChargeChangeType(StrEnum):
     INSTITUTION_ADDED = "institution_added"
     INSTITUTION_MISSING = "institution_missing"
+    INSTITUTION_CLOSED = "institution_closed"
+    INSTITUTION_IDENTITY_CHANGED = "institution_identity_changed"
     AVAILABILITY_CHANGED = "availability_changed"
     VALUE_CHANGED = "value_changed"
     SOURCE_STATUS_CHANGED = "source_status_changed"
@@ -41,6 +50,7 @@ class IPEDSChargeChangeType(StrEnum):
 
 class IPEDSChargeChange(StrictModel):
     unitid: int = Field(gt=0)
+    current_unitid: int | None = Field(default=None, gt=0)
     field: str
     change_type: IPEDSChargeChangeType
     previous_value: float | None = None
@@ -61,6 +71,7 @@ class IPEDSChargeComparison(StrictModel):
     percent_change_threshold: float = Field(gt=0)
     previous_institution_count: int = Field(ge=0)
     current_institution_count: int = Field(ge=0)
+    institution_pairing: InstitutionPairingReport
     changes: tuple[IPEDSChargeChange, ...]
     review_required: bool
 
@@ -94,6 +105,7 @@ def compare_charge_tables(
     current_path: Path,
     *,
     percent_change_threshold: float = 0.25,
+    institution_history: InstitutionHistory | None = None,
 ) -> IPEDSChargeComparison:
     """Compare exact normalized releases and flag changes requiring review."""
     if percent_change_threshold <= 0:
@@ -107,34 +119,68 @@ def compare_charge_tables(
 
     previous_rows = {int(row["unitid"]): row for row in previous.to_dicts()}
     current_rows = {int(row["unitid"]): row for row in current.to_dicts()}
+    pairing = pair_unitids(
+        tuple(previous_rows),
+        tuple(current_rows),
+        previous_release,
+        current_release,
+        history=institution_history,
+    )
     changes: list[IPEDSChargeChange] = []
-    for unitid in sorted(previous_rows.keys() | current_rows.keys()):
-        prior = previous_rows.get(unitid)
-        latest = current_rows.get(unitid)
-        if prior is None:
+    for finding in pairing.findings:
+        if finding.finding_type is InstitutionPairingFindingType.ADDED:
+            for target_unitid in finding.target_unitids:
+                changes.append(
+                    IPEDSChargeChange(
+                        unitid=target_unitid,
+                        current_unitid=target_unitid,
+                        field="*",
+                        change_type=IPEDSChargeChangeType.INSTITUTION_ADDED,
+                        review_required=True,
+                        reason=finding.reason,
+                    )
+                )
+            continue
+        change_type = (
+            IPEDSChargeChangeType.INSTITUTION_CLOSED
+            if finding.finding_type is InstitutionPairingFindingType.CLOSED
+            else IPEDSChargeChangeType.INSTITUTION_MISSING
+        )
+        current_unitid = finding.target_unitids[0] if len(finding.target_unitids) == 1 else None
+        for source_unitid in finding.source_unitids:
             changes.append(
                 IPEDSChargeChange(
-                    unitid=unitid,
+                    unitid=source_unitid,
+                    current_unitid=current_unitid,
                     field="*",
-                    change_type=IPEDSChargeChangeType.INSTITUTION_ADDED,
+                    change_type=change_type,
                     review_required=True,
-                    reason="UNITID appears only in the current release",
+                    reason=finding.reason,
                 )
             )
-            continue
-        if latest is None:
+
+    for institution_pair in pairing.pairings:
+        unitid = institution_pair.source_unitid
+        current_unitid = institution_pair.target_unitid
+        prior = previous_rows[unitid]
+        latest = current_rows[current_unitid]
+        if (
+            unitid != current_unitid
+            or institution_pair.relationship is not InstitutionRelationship.CONTINUING
+        ):
             changes.append(
                 IPEDSChargeChange(
                     unitid=unitid,
+                    current_unitid=current_unitid,
                     field="*",
-                    change_type=IPEDSChargeChangeType.INSTITUTION_MISSING,
+                    change_type=IPEDSChargeChangeType.INSTITUTION_IDENTITY_CHANGED,
                     review_required=True,
                     reason=(
-                        "UNITID is absent from the current release; identity history is unresolved"
+                        "authoritative history pairs the source institution with a different "
+                        f"target identity ({institution_pair.relationship.value})"
                     ),
                 )
             )
-            continue
         for field in CHARGE_FIELDS:
             previous_value = prior[field]
             current_value = latest[field]
@@ -143,6 +189,7 @@ def compare_charge_tables(
                     changes.append(
                         IPEDSChargeChange(
                             unitid=unitid,
+                            current_unitid=current_unitid,
                             field=field,
                             change_type=IPEDSChargeChangeType.AVAILABILITY_CHANGED,
                             previous_value=previous_value,
@@ -158,6 +205,7 @@ def compare_charge_tables(
                     changes.append(
                         IPEDSChargeChange(
                             unitid=unitid,
+                            current_unitid=current_unitid,
                             field=field,
                             change_type=IPEDSChargeChangeType.VALUE_CHANGED,
                             previous_value=previous_value,
@@ -177,6 +225,7 @@ def compare_charge_tables(
                 changes.append(
                     IPEDSChargeChange(
                         unitid=unitid,
+                        current_unitid=current_unitid,
                         field=field,
                         change_type=IPEDSChargeChangeType.SOURCE_STATUS_CHANGED,
                         previous_source_status=prior[status_field],
@@ -197,6 +246,9 @@ def compare_charge_tables(
         percent_change_threshold=percent_change_threshold,
         previous_institution_count=previous.height,
         current_institution_count=current.height,
+        institution_pairing=pairing,
         changes=ordered,
-        review_required=any(change.review_required for change in ordered),
+        review_required=(
+            pairing.review_required or any(change.review_required for change in ordered)
+        ),
     )

@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 from education_roi.ipeds import (
+    InstitutionHistory,
     IPEDSChargeChangeType,
     IPEDSReleaseComparisonError,
     compare_charge_tables,
@@ -109,3 +110,100 @@ def test_comparison_rejects_same_release_or_incompatible_basis(tmp_path: Path) -
     frame.write_parquet(current)
     with pytest.raises(IPEDSReleaseComparisonError, match="bases must match"):
         compare_charge_tables(previous, current)
+
+
+def history(entries: list[dict[str, object]]) -> InstitutionHistory:
+    return InstitutionHistory.model_validate(
+        {
+            "history_id": "hd-2022-2023",
+            "source_release": "2022-23-final",
+            "target_release": "2023-24-final",
+            "source_url": "https://nces.ed.gov/ipeds/history.json",
+            "source_sha256": "a" * 64,
+            "entries": entries,
+        }
+    )
+
+
+def test_comparison_follows_unique_unitid_change(tmp_path: Path) -> None:
+    previous = write_table(
+        tmp_path / "previous.parquet",
+        "2022-23-final",
+        [{"unitid": 1, "tuition_in_state": 10000.0}],
+    )
+    current = write_table(
+        tmp_path / "current.parquet",
+        "2023-24-final",
+        [{"unitid": 10, "tuition_in_state": 14000.0}],
+    )
+
+    report = compare_charge_tables(
+        previous,
+        current,
+        institution_history=history(
+            [
+                {
+                    "source_unitid": 1,
+                    "target_unitid": 10,
+                    "relationship": "id_changed",
+                    "confidence": "high",
+                }
+            ]
+        ),
+    )
+
+    kinds = [change.change_type for change in report.changes]
+    assert kinds == [
+        IPEDSChargeChangeType.INSTITUTION_IDENTITY_CHANGED,
+        IPEDSChargeChangeType.VALUE_CHANGED,
+    ]
+    assert all(change.unitid == 1 for change in report.changes)
+    assert all(change.current_unitid == 10 for change in report.changes)
+    assert report.institution_pairing.pairings[0].source_unitid == 1
+    assert report.institution_pairing.pairings[0].target_unitid == 10
+
+
+def test_comparison_does_not_aggregate_ambiguous_split(tmp_path: Path) -> None:
+    previous = write_table(
+        tmp_path / "previous.parquet",
+        "2022-23-final",
+        [{"unitid": 1, "tuition_in_state": 10000.0}],
+    )
+    current = write_table(
+        tmp_path / "current.parquet",
+        "2023-24-final",
+        [
+            {"unitid": 10, "tuition_in_state": 6000.0},
+            {"unitid": 11, "tuition_in_state": 7000.0},
+        ],
+    )
+
+    report = compare_charge_tables(
+        previous,
+        current,
+        institution_history=history(
+            [
+                {
+                    "source_unitid": 1,
+                    "target_unitid": 10,
+                    "relationship": "split",
+                    "confidence": "high",
+                },
+                {
+                    "source_unitid": 1,
+                    "target_unitid": 11,
+                    "relationship": "split",
+                    "confidence": "high",
+                },
+            ]
+        ),
+    )
+
+    assert not report.institution_pairing.pairings
+    assert {change.change_type for change in report.changes} == {
+        IPEDSChargeChangeType.INSTITUTION_ADDED,
+        IPEDSChargeChangeType.INSTITUTION_MISSING,
+    }
+    assert not any(
+        change.change_type is IPEDSChargeChangeType.VALUE_CHANGED for change in report.changes
+    )
