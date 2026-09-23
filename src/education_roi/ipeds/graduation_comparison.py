@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from education_roi.ipeds.graduation_pipeline import (
     GR2022_TRANSFORMATION_VERSION,
     GR_TRANSFORMATION_VERSION,
+    IPEDSGraduationProcessingManifest,
 )
 from education_roi.ipeds.identity import (
     InstitutionHistory,
@@ -84,6 +85,8 @@ class GraduationComparison(StrictModel):
     relative_count_threshold: float = Field(gt=0)
     previous_table_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     current_table_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    previous_manifest_sha256: str | None = None
+    current_manifest_sha256: str | None = None
     previous_data_artifact_id: str
     current_data_artifact_id: str
     previous_dictionary_artifact_id: str
@@ -94,6 +97,40 @@ class GraduationComparison(StrictModel):
     changes: tuple[GraduationChange, ...]
     review_required: bool
     interpretation: str = "different entry cohorts; observed institution rates are not causal"
+
+
+def _verify_processing_manifest(path: Path, metadata: dict[str, Any], row_count: int) -> str:
+    sidecar = path.with_suffix(".manifest.json")
+    try:
+        manifest = IPEDSGraduationProcessingManifest.model_validate_json(
+            sidecar.read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeError, ValidationError) as error:
+        raise IPEDSGraduationComparisonError(
+            f"missing or invalid graduation processing manifest for {path}: {error}"
+        ) from error
+    expected = {
+        "release_id": manifest.release_id,
+        "publication_status": manifest.publication_status,
+        "cohort_year": manifest.cohort_year,
+        "cohort_scope": manifest.cohort_scope,
+        "award_outcome": manifest.award_outcome,
+        "normal_time_percent": manifest.normal_time_percent,
+    }
+    if any(metadata[key] != value for key, value in expected.items()):
+        raise IPEDSGraduationComparisonError(f"manifest population/release mismatch for {path}")
+    if (
+        manifest.row_count != row_count
+        or manifest.transformation.output_sha256 != sha256_file(path)[0]
+        or manifest.transformation.input_artifact_ids
+        != (metadata["data_artifact_id"], metadata["dictionary_artifact_id"])
+        or manifest.transformation.parameters.get("transformation_version")
+        != metadata["transformation_version"]
+        or manifest.output_path != path.name
+        and not path.as_posix().endswith("/" + manifest.output_path)
+    ):
+        raise IPEDSGraduationComparisonError(f"processing manifest lineage mismatch for {path}")
+    return sha256_file(sidecar)[0]
 
 
 def _table(path: Path) -> tuple[dict[int, dict[str, Any]], dict[str, Any]]:
@@ -186,6 +223,7 @@ def compare_graduation_tables(
     absolute_rate_threshold: float = 0.10,
     relative_count_threshold: float = 0.25,
     institution_history: InstitutionHistory | None = None,
+    require_manifests: bool = False,
 ) -> GraduationComparison:
     """Flag cross-cohort changes; never treat an observed rate as a forecast."""
     if not 0 < absolute_rate_threshold <= 1:
@@ -194,6 +232,11 @@ def compare_graduation_tables(
         raise ValueError("relative count threshold must be positive")
     previous, before = _table(previous_path)
     current, after = _table(current_path)
+    previous_manifest_hash = None
+    current_manifest_hash = None
+    if require_manifests:
+        previous_manifest_hash = _verify_processing_manifest(previous_path, before, len(previous))
+        current_manifest_hash = _verify_processing_manifest(current_path, after, len(current))
     if before["release_id"] == after["release_id"]:
         raise IPEDSGraduationComparisonError("comparison requires distinct releases")
     if str(before["release_id"]) >= str(after["release_id"]) or (
@@ -311,6 +354,8 @@ def compare_graduation_tables(
         relative_count_threshold=relative_count_threshold,
         previous_table_sha256=sha256_file(previous_path)[0],
         current_table_sha256=sha256_file(current_path)[0],
+        previous_manifest_sha256=previous_manifest_hash,
+        current_manifest_sha256=current_manifest_hash,
         previous_data_artifact_id=str(before["data_artifact_id"]),
         current_data_artifact_id=str(after["data_artifact_id"]),
         previous_dictionary_artifact_id=str(before["dictionary_artifact_id"]),
