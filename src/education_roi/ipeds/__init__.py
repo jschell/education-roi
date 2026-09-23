@@ -29,11 +29,23 @@ from education_roi.ipeds.comparison import (
     IPEDSReleaseComparisonError,
     compare_charge_tables,
 )
-from education_roi.ipeds.completion import GraduationCohortScope, IPEDSGraduationObservation
+from education_roi.ipeds.completion import (
+    GraduationAwardOutcome,
+    GraduationCohortScope,
+    IPEDSGraduationObservation,
+)
 from education_roi.ipeds.dictionary import (
     IPEDSDictionaryError,
     IPEDSVariableDefinition,
     read_dictionary,
+)
+from education_roi.ipeds.graduation import (
+    GR2023_DATASET_ID,
+    GR2023_DICTIONARY_DATASET_ID,
+    IPEDSGraduationError,
+    IPEDSGraduationResolution,
+    IPEDSGraduationStatus,
+    resolve_gr2023_bachelors,
 )
 from education_roi.ipeds.identity import (
     InstitutionHistory,
@@ -86,6 +98,9 @@ __all__ = [
     "CIPRelationship",
     "CIPResolution",
     "GraduationCohortScope",
+    "GraduationAwardOutcome",
+    "GR2023_DATASET_ID",
+    "GR2023_DICTIONARY_DATASET_ID",
     "IPEDSArchiveError",
     "IPEDSChargeChange",
     "IPEDSChargeChangeType",
@@ -93,6 +108,9 @@ __all__ = [
     "IPEDSCatalogError",
     "IPEDSComponent",
     "IPEDSGraduationObservation",
+    "IPEDSGraduationError",
+    "IPEDSGraduationResolution",
+    "IPEDSGraduationStatus",
     "IPEDSInventoryChange",
     "IPEDSInventoryChangeType",
     "IPEDSInventoryComparison",
@@ -130,6 +148,7 @@ __all__ = [
     "register_ipeds_charges",
     "register_ipeds_release",
     "resolve_cip",
+    "resolve_gr2023_bachelors",
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",
