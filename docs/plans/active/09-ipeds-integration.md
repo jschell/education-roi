@@ -51,6 +51,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   four-year bachelor's-seeking adjusted cohort versus bachelor's-award row mapping.
 - paired immutable final GR2023 registration with final-member cohort-key validation and a
   production `ipeds register-gr2023` command; other cohorts remain unvalidated.
+- registry-backed `ipeds resolve-gr2023` command with exact validated data/dictionary artifacts,
+  population labeling, and explicit insufficient/invalid states; no probability inference.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
