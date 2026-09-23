@@ -26,7 +26,7 @@ def _csv_rows(data: bytes) -> list[list[str]]:
     return [[cell.strip() for cell in row] for row in csv.reader(io.StringIO(text))]
 
 
-def _xlsx_rows(data: bytes) -> list[list[str]]:
+def _xlsx_rows(data: bytes, *, sheet_names: frozenset[str] | None = None) -> list[list[str]]:
     namespace = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
     try:
         with ZipFile(io.BytesIO(data)) as workbook:
@@ -39,6 +39,29 @@ def _xlsx_rows(data: bytes) -> list[list[str]]:
                 for name in workbook.namelist()
                 if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", name)
             )
+            if sheet_names is not None:
+                workbook_root = ElementTree.fromstring(workbook.read("xl/workbook.xml"))
+                relationship_root = ElementTree.fromstring(
+                    workbook.read("xl/_rels/workbook.xml.rels")
+                )
+                relationship_ids = {
+                    element.attrib["Id"]: element.attrib["Target"]
+                    for element in relationship_root.iter()
+                    if element.tag.endswith("}Relationship")
+                }
+                selected = set()
+                for element in workbook_root.iter():
+                    if element.tag.endswith("}sheet") and element.attrib.get("name") in sheet_names:
+                        identifier = element.attrib.get(
+                            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+                        )
+                        target = relationship_ids.get(identifier or "", "")
+                        path = target.lstrip("/") if target.startswith("/xl/") else "xl/" + target
+                        if path in sheets:
+                            selected.add(path)
+                if len(selected) != len(sheet_names):
+                    raise IPEDSDictionaryError("required workbook worksheet is missing")
+                sheets = sorted(selected)
             rows: list[list[str]] = []
             for sheet in sheets:
                 root = ElementTree.fromstring(workbook.read(sheet))
