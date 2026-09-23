@@ -18,12 +18,14 @@ from education_roi.ipeds import (
     IPEDSArchiveError,
     IPEDSCatalogError,
     IPEDSComponent,
+    IPEDSGraduationComparisonError,
     IPEDSGraduationError,
     IPEDSProcessedArtifactConflict,
     IPEDSReleaseCatalog,
     IPEDSReleaseComparisonError,
     IPEDSValueProvider,
     compare_charge_tables,
+    compare_graduation_tables,
     compare_release_catalogs,
     register_gr2023_release,
     resolve_gr2023_bachelors,
@@ -436,6 +438,67 @@ def ipeds_build_charges(
             separators=(",", ":"),
         )
     )
+
+
+@ipeds_app.command("compare-graduation")
+def ipeds_compare_graduation(
+    previous: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Earlier GR cohort table."),
+    ],
+    current: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Later GR cohort table."),
+    ],
+    threshold: Annotated[
+        float,
+        typer.Option(help="Absolute observed-rate difference requiring review (0 to 1)."),
+    ] = 0.10,
+    count_threshold: Annotated[
+        float,
+        typer.Option(help="Relative cohort-count difference requiring review."),
+    ] = 0.25,
+    history: Annotated[
+        Path | None,
+        typer.Option("--history", exists=True, dir_okay=False, readable=True),
+    ] = None,
+    history_source: Annotated[
+        Path | None,
+        typer.Option("--history-source", exists=True, dir_okay=False, readable=True),
+    ] = None,
+    fail_on_review: Annotated[bool, typer.Option()] = False,
+) -> None:
+    """Compare two distinct final bachelor’s entry cohorts for manual release review."""
+    try:
+        if history_source is not None and history is None:
+            raise ValueError("--history-source requires --history")
+        institution_history = InstitutionHistory.from_file(history) if history is not None else None
+        if history_source is not None:
+            assert institution_history is not None
+            if sha256_file(history_source)[0] != institution_history.source_sha256:
+                raise ValueError("history source SHA-256 does not match the supplied artifact")
+        report = compare_graduation_tables(
+            previous,
+            current,
+            absolute_rate_threshold=threshold,
+            relative_count_threshold=count_threshold,
+            institution_history=institution_history,
+        )
+    except (IPEDSGraduationComparisonError, InstitutionHistoryError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    payload = report.model_dump(mode="json")
+    payload["history_source_status"] = (
+        "HASH_VERIFIED"
+        if history_source is not None
+        else "UNVERIFIED"
+        if history is not None
+        else "NOT_APPLICABLE"
+    )
+    payload["status"] = "REVIEW_REQUIRED" if report.review_required else "ACCEPTABLE"
+    typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    if report.review_required and fail_on_review:
+        raise typer.Exit(code=1)
 
 
 @ipeds_app.command("compare-charges")

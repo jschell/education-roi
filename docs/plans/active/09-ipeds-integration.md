@@ -56,6 +56,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - immutable final GR2023 bachelor's cohort Parquet table with input-paired lineage, original
   count/status cells, explicit unavailable reasons, and `ipeds build-gr2023` CLI; no estimates
   are invented for absent cohort rows.
+- cross-release graduation cohort comparison with population compatibility, table hashes,
+  source IDs, configurable rate/count review thresholds, and identity-aware coverage findings;
+  newer GR releases still require authoritative dictionary review before production use.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

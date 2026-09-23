@@ -48,6 +48,13 @@ from education_roi.ipeds.graduation import (
     resolve_gr2023_bachelors,
     validate_gr2023_archive,
 )
+from education_roi.ipeds.graduation_comparison import (
+    GraduationChange,
+    GraduationChangeType,
+    GraduationComparison,
+    IPEDSGraduationComparisonError,
+    compare_graduation_tables,
+)
 from education_roi.ipeds.graduation_pipeline import (
     GR_TRANSFORMATION_VERSION,
     IPEDSGraduationProcessingManifest,
@@ -107,6 +114,9 @@ __all__ = [
     "CIPRelationship",
     "CIPResolution",
     "GraduationCohortScope",
+    "GraduationChange",
+    "GraduationChangeType",
+    "GraduationComparison",
     "GR_TRANSFORMATION_VERSION",
     "GraduationAwardOutcome",
     "GR2023_DATASET_ID",
@@ -118,6 +128,7 @@ __all__ = [
     "IPEDSCatalogError",
     "IPEDSComponent",
     "IPEDSGraduationObservation",
+    "IPEDSGraduationComparisonError",
     "IPEDSGraduationProcessingManifest",
     "IPEDSGraduationError",
     "IPEDSGraduationResolution",
@@ -154,6 +165,7 @@ __all__ = [
     "ProcessedIPEDSGraduation",
     "compare_release_catalogs",
     "compare_charge_tables",
+    "compare_graduation_tables",
     "parse_nonnegative_cost",
     "pair_unitids",
     "read_charge_rows",
