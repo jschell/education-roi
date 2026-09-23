@@ -53,6 +53,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   production `ipeds register-gr2023` command; other cohorts remain unvalidated.
 - registry-backed `ipeds resolve-gr2023` command with exact validated data/dictionary artifacts,
   population labeling, and explicit insufficient/invalid states; no probability inference.
+- immutable final GR2023 bachelor's cohort Parquet table with input-paired lineage, original
+  count/status cells, explicit unavailable reasons, and `ipeds build-gr2023` CLI; no estimates
+  are invented for absent cohort rows.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
