@@ -39,6 +39,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   selection, confidence, and no silent cross-version or reverse mapping.
 - directional, source-hashed UNITID history contracts for continuation, ID changes, mergers, splits,
   and explicit closures, with ambiguity and all non-continuation events routed to review.
+- deterministic cross-release UNITID pairing that refuses automatic split/merge aggregation and
+  emits explicit findings for closures, additions, missing targets, and missing history.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

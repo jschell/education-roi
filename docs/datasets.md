@@ -66,6 +66,12 @@ requires a target for one-to-many splits. A UNITID absent from a later table is 
 an explicit closure entry supports that conclusion. No historical entries are bundled until an
 authoritative artifact is acquired and registered.
 
+The pairing layer applies those records to two exact UNITID inventories. Direct continuations and
+unique history targets become deterministic pairs. Splits, many-to-one target collisions, explicit
+closures, missing targets, missing history, and newly unmatched target IDs become machine-readable
+review findings. The pairing layer never sums or averages institutions involved in a merger or
+split; downstream release comparison must wait for an explicit aggregation policy.
+
 Production commands expose both steps:
 
 ```console
