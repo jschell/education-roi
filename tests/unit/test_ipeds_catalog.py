@@ -123,6 +123,21 @@ def test_reviewed_catalog_pins_official_provisional_charge_pair() -> None:
         select_release(inventory, IPEDSComponent.ACADEMIC_YEAR_CHARGES)
 
 
+def test_reviewed_gr_sources_keep_legacy_final_distinct_from_default() -> None:
+    inventory = IPEDSReleaseCatalog.from_file(
+        PROJECT_ROOT / "data/manifests/ipeds-release-catalog.json"
+    )
+    legacy = select_release(inventory, IPEDSComponent.GRADUATION_RATES, release_id="2022-23-final")
+    assert str(legacy.data_url) == "https://nces.ed.gov/ipeds/datacenter/data/GR2022.zip"
+    assert str(legacy.dictionary_url) == (
+        "https://nces.ed.gov/ipeds/datacenter/data/GR2022_Dict.zip"
+    )
+    assert legacy.data_member == "gr2022_rv.csv"
+    assert select_release(inventory, IPEDSComponent.GRADUATION_RATES).release_id == (
+        "2023-24-final"
+    )
+
+
 def test_inventory_comparison_classifies_changes_without_promoting_them() -> None:
     retained = release(2023, IPEDSPublicationStatus.FINAL)
     changed_payload = retained.model_dump()
