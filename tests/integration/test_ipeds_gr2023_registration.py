@@ -34,7 +34,7 @@ def test_register_pair_and_reject_invalid_archive(
     release = next(
         item
         for item in IPEDSReleaseCatalog.from_file(CATALOG).releases
-        if item.component is IPEDSComponent.GRADUATION_RATES
+        if item.component is IPEDSComponent.GRADUATION_RATES and item.release_id == "2023-24-final"
     )
     source = tmp_path / "source"
     source.mkdir()
@@ -118,7 +118,7 @@ def test_resolve_gr2023_cli_uses_only_validated_paired_registry_artifacts(
     release = next(
         item
         for item in IPEDSReleaseCatalog.from_file(CATALOG).releases
-        if item.component is IPEDSComponent.GRADUATION_RATES
+        if item.component is IPEDSComponent.GRADUATION_RATES and item.release_id == "2023-24-final"
     )
     registry = Registry(tmp_path / "data/manifests/registry.sqlite")
     store = ArtifactStore(tmp_path / "data/raw", registry)
