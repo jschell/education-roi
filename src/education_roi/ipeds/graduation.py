@@ -130,8 +130,8 @@ def _target_rows(archive_path: Path, member: str, unitid: int) -> dict[str, dict
         raise IPEDSGraduationError(f"could not read GR2023 archive: {error}") from error
 
 
-def validate_gr2023_archive(path: Path, member: str) -> int:
-    """Stream and validate the final bachelor's cohort rows before registration."""
+def validate_gr2023_archive(path: Path, member: str, *, strip_codes: bool = False) -> int:
+    """Stream the selected cohort rows; legacy 2022 codes require explicit trimming."""
     seen: set[tuple[int, str]] = set()
     try:
         with ZipFile(path) as archive:
@@ -145,7 +145,9 @@ def validate_gr2023_archive(path: Path, member: str) -> int:
                         "GR2023 archive is missing columns: " + ", ".join(sorted(missing))
                     )
                 for number, row in enumerate(reader, start=2):
-                    if row["GRTYPE"] not in ROW_CODES or row["SECTION"] != "2":
+                    code = (row["GRTYPE"] or "").strip() if strip_codes else row["GRTYPE"]
+                    section = (row["SECTION"] or "").strip() if strip_codes else row["SECTION"]
+                    if code not in ROW_CODES or section != "2":
                         continue
                     try:
                         unitid = int(row["UNITID"])
@@ -155,9 +157,15 @@ def validate_gr2023_archive(path: Path, member: str) -> int:
                         ) from error
                     if unitid <= 0:
                         raise IPEDSGraduationError(f"invalid GR2023 UNITID on row {number}")
-                    code = row["GRTYPE"]
                     status, line = ROW_CODES[code]
-                    if (row["CHRTSTAT"], row["COHORT"], row["LINE"]) != (status, "2", line):
+                    row_keys = (row["CHRTSTAT"], row["COHORT"], row["LINE"])
+                    if strip_codes:
+                        row_keys = (
+                            (row_keys[0] or "").strip(),
+                            (row_keys[1] or "").strip(),
+                            (row_keys[2] or "").strip(),
+                        )
+                    if row_keys != (status, "2", line):
                         raise IPEDSGraduationError(
                             f"incompatible GR2023 cohort keys on row {number}"
                         )
