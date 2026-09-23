@@ -1,5 +1,6 @@
 """Download, validate, and register a pinned IPEDS charges release."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -13,6 +14,11 @@ from education_roi.ipeds.graduation import (
     GR2023_DICTIONARY_DATASET_ID,
     _verify_dictionary,
     validate_gr2023_archive,
+)
+from education_roi.ipeds.graduation_2022 import (
+    GR2022_MEMBER,
+    GR2022_RELEASE,
+    verify_gr2022_dictionary,
 )
 from education_roi.ipeds.source import (
     IPEDS_CHARGES_DATASET,
@@ -142,6 +148,33 @@ def register_gr2023_release(
         or release.data_member != "gr2023_RV.csv"
     ):
         raise ValueError("registration requires the reviewed final GR2023_RV release")
+    return _register_graduation_release(release, paths, downloader, _verify_dictionary, False)
+
+
+def register_gr2022_release(
+    release: IPEDSRelease,
+    paths: ProjectPaths,
+    *,
+    downloader: HttpDownloader | None = None,
+) -> RegisteredIPEDSGraduation:
+    """Register the earlier final GR release with its own dictionary and cell rules."""
+    if (
+        release.component is not IPEDSComponent.GRADUATION_RATES
+        or release.release_id != GR2022_RELEASE
+        or release.publication_status is not IPEDSPublicationStatus.FINAL
+        or release.data_member != GR2022_MEMBER
+    ):
+        raise ValueError("registration requires reviewed final GR2022 revised release")
+    return _register_graduation_release(release, paths, downloader, verify_gr2022_dictionary, True)
+
+
+def _register_graduation_release(
+    release: IPEDSRelease,
+    paths: ProjectPaths,
+    downloader: HttpDownloader | None,
+    dictionary_validator: Callable[[Path], None],
+    strip_codes: bool,
+) -> RegisteredIPEDSGraduation:
     definitions = (
         DatasetDefinition(
             dataset_id=GR2023_DATASET_ID,
@@ -161,8 +194,9 @@ def register_gr2023_release(
     try:
         for url in (str(release.data_url), str(release.dictionary_url)):
             downloads.append(downloader.download(url, paths.data / ".downloads", ("nces.ed.gov",)))
-        validate_gr2023_archive(downloads[0].path, release.data_member)
-        _verify_dictionary(downloads[1].path)
+        assert release.data_member is not None
+        validate_gr2023_archive(downloads[0].path, release.data_member, strip_codes=strip_codes)
+        dictionary_validator(downloads[1].path)
         registry = Registry(paths.data / "manifests" / "registry.sqlite")
         store = ArtifactStore(paths.data / "raw", registry)
         manifests: list[ArtifactManifest] = []
@@ -175,7 +209,7 @@ def register_gr2023_release(
                 source_url=download.source_url,
                 final_url=download.final_url,
                 publication_status=release.publication_status.value,
-                schema_version="ipeds-gr2023-v1",
+                schema_version=f"ipeds-gr{release.collection_year}-v1",
                 vintage=release.release_id,
                 artifact_name=Path(urlparse(download.final_url).path).name,
             )
@@ -183,7 +217,8 @@ def register_gr2023_release(
                 manifest = registry.transition(
                     manifest.artifact_id,
                     ApprovalState.VALIDATED,
-                    "final GR2023_RV cohort rows and paired dictionary validated",
+                    f"final GR{release.collection_year} cohort rows and paired "
+                    "dictionary validated",
                 )
             manifests.append(manifest)
         return RegisteredIPEDSGraduation(manifests[0], manifests[1])
