@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import polars as pl
 import pytest
 from typer.testing import CliRunner
 
@@ -19,6 +20,8 @@ from education_roi.ipeds import (
     select_release,
 )
 from education_roi.ipeds.expenses import EXPENSE_LABELS, _verify_dictionary
+from education_roi.ipeds.expenses_pipeline import transform_ic2023_expenses
+from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
 from education_roi.provenance.models import ApprovalState, ArtifactManifest
 from education_roi.provenance.store import ArtifactStore, Registry
 
@@ -122,3 +125,43 @@ def test_cli_requires_provisional_opt_in_and_validated_pair(
     payload = json.loads(result.stdout)
     assert payload["publication_status"] == "provisional"
     assert payload["on_campus_food_housing"] == 17982
+
+
+def test_expense_table_preserves_source_cells_and_paired_lineage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.expenses_pipeline._verify_dictionary", lambda path: None
+    )
+    args = fixture(
+        tmp_path,
+        "236948,12643,900,17982,R,3027,R,16000,R,3500,Z,-1,N\n236949,14000,900,,,,,,,,,,\n",
+    )
+    output = tmp_path / "data/processed"
+    result = transform_ic2023_expenses(args[0], args[1], output, args[3], args[4], args[2])
+    frame = pl.read_parquet(result.parquet_path)
+    assert frame.height == 2
+    first = frame.filter(pl.col("unitid") == 236948).to_dicts()[0]
+    assert first["off_campus_food_housing"] == 16000
+    assert first["raw_with_family_other"] == "-1"
+    assert first["with_family_other"] is None
+    assert first["status_with_family_other"] == "N"
+    assert first["dictionary_artifact_id"] == args[4].artifact_id
+    assert result.manifest.transformation.input_artifact_ids == (
+        args[3].artifact_id,
+        args[4].artifact_id,
+    )
+    assert result.manifest.source_columns["on_campus_other"] == "CHG6AY3"
+    repeated = transform_ic2023_expenses(args[0], args[1], output, args[3], args[4], args[2])
+    assert repeated.manifest_path.read_bytes() == result.manifest_path.read_bytes()
+    cli_args = ["ipeds", "build-expenses", "--catalog", str(CATALOG), "--root", str(tmp_path)]
+    blocked = CliRunner().invoke(app, cli_args)
+    assert blocked.exit_code == 2
+    accepted = CliRunner().invoke(app, [*cli_args, "--allow-nonfinal"])
+    assert accepted.exit_code == 0, accepted.stdout
+    assert json.loads(accepted.stdout)["manifest"]["row_count"] == 2
+    tampered = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+    tampered["row_count"] = 3
+    result.manifest_path.write_text(json.dumps(tampered), encoding="utf-8")
+    with pytest.raises(IPEDSProcessedArtifactConflict, match="manifest differs"):
+        transform_ic2023_expenses(args[0], args[1], output, args[3], args[4], args[2])
