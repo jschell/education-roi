@@ -5,6 +5,7 @@ from pathlib import Path
 from shutil import copyfile
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import polars as pl
 import pytest
 from typer.testing import CliRunner
 
@@ -26,6 +27,7 @@ from education_roi.ipeds.retention import (
     read_retention_rows,
     verify_retention_dictionary,
 )
+from education_roi.ipeds.retention_pipeline import transform_retention_archive
 from education_roi.provenance.downloader import DownloadResult
 from education_roi.provenance.models import ApprovalState, ArtifactManifest
 from education_roi.provenance.store import ArtifactStore, Registry
@@ -158,3 +160,34 @@ def test_registration_and_cli_pin_final_member(
     assert json.loads(cli.stdout)["reported_retention_percent"] == 90
     with pytest.raises(IPEDSRetentionError, match="missing"):
         read_retention_rows(args[0], "nonexistent.csv")
+
+
+def test_immutable_retention_table_and_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
+    output = tmp_path / "data/processed"
+    first = transform_retention_archive(args[0], args[1], output, *args[3:], args[2])
+    second = transform_retention_archive(args[0], args[1], output, *args[3:], args[2])
+    assert first.manifest_path == second.manifest_path
+    assert first.manifest == second.manifest
+    records = pl.read_parquet(first.parquet_path).sort("unitid").to_dicts()
+    assert len(records) == 2
+    assert (records[0]["adjusted_cohort"], records[0]["enrolled_next_fall"]) == (7311, 6938)
+    assert records[0]["reported_retention_percent"] == 95
+    assert records[0]["unavailable_reason"] is None
+    assert records[1]["raw_adjusted_cohort"] == "-1"
+    assert records[1]["unavailable_reason"] == "missing or negative source cell"
+    assert first.manifest.transformation.input_artifact_ids == (
+        args[3].artifact_id,
+        args[4].artifact_id,
+    )
+    cli = CliRunner().invoke(
+        app, ["ipeds", "build-retention", "--catalog", str(CATALOG), "--root", str(tmp_path)]
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["manifest"]["row_count"] == 2
+    first.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(Exception, match="different bytes"):
+        transform_retention_archive(args[0], args[1], output, *args[3:], args[2])
