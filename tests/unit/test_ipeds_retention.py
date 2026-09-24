@@ -27,6 +27,10 @@ from education_roi.ipeds.retention import (
     read_retention_rows,
     verify_retention_dictionary,
 )
+from education_roi.ipeds.retention_evidence import (
+    IPEDSRetentionTableError,
+    resolve_retention_evidence,
+)
 from education_roi.ipeds.retention_pipeline import transform_retention_archive
 from education_roi.provenance.downloader import DownloadResult
 from education_roi.provenance.models import ApprovalState, ArtifactManifest
@@ -191,3 +195,53 @@ def test_immutable_retention_table_and_cli(tmp_path: Path, monkeypatch: pytest.M
     first.parquet_path.write_bytes(b"tampered")
     with pytest.raises(Exception, match="different bytes"):
         transform_retention_archive(args[0], args[1], output, *args[3:], args[2])
+
+
+def test_verified_retention_evidence_and_tamper_detection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
+    processed = transform_retention_archive(
+        args[0], args[1], tmp_path / "data/processed", *args[3:], args[2]
+    )
+    table = processed.parquet_path
+    observed = resolve_retention_evidence(table, 236948)
+    assert observed.status == "OBSERVED"
+    assert observed.reported_retention_percent == 95
+    assert observed.enrolled_next_fall == 6938
+    assert observed.data_artifact_id == args[3].artifact_id
+    assert observed.table_sha256 == processed.manifest.transformation.output_sha256
+    assert resolve_retention_evidence(table, 236949).status == "INSUFFICIENT_DATA"
+    missing = resolve_retention_evidence(table, 999999)
+    assert missing.status == "INSUFFICIENT_DATA"
+    assert missing.unavailable_reason == "institution absent from exact retention table"
+    cli = CliRunner().invoke(app, ["ipeds", "resolve-retention-table", str(table), "236948"])
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["population"] == observed.population
+    with pytest.raises(ValueError, match="positive"):
+        resolve_retention_evidence(table, 0)
+    table.write_bytes(b"tampered")
+    with pytest.raises(IPEDSRetentionTableError, match="hash differs"):
+        resolve_retention_evidence(table, 236948)
+    cli = CliRunner().invoke(app, ["ipeds", "resolve-retention-table", str(table), "236948"])
+    assert cli.exit_code == 2
+
+
+def test_retention_evidence_rejects_manifest_population_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path, "236948,10,R,8,R,80,R\n")
+    processed = transform_retention_archive(
+        args[0], args[1], tmp_path / "data/processed", *args[3:], args[2]
+    )
+    manifest = json.loads(processed.manifest_path.read_text())
+    manifest["population"] = "different_population"
+    processed.manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(IPEDSRetentionTableError, match="unsupported retention release"):
+        resolve_retention_evidence(processed.parquet_path, 236948)
