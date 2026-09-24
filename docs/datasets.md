@@ -63,6 +63,18 @@ artifact ID, and transformation version. Negative sentinels and blanks remain nu
 path is content-addressed by the raw SHA-256 and is immutable; a sidecar manifest records the input
 artifact, parameters, output hash, columns, and row count.
 
+The reviewed provisional `IC2023_AY` Varlist also defines 2023–24 cost-of-attendance
+estimates for full-time first-time undergraduates: `CHG5AY3`/`CHG6AY3` for on-campus
+food and housing / other expenses, `CHG7AY3`/`CHG8AY3` for off-campus (not with
+family), and `CHG9AY3` for other expenses while living with family. Each field has
+an `X`-prefixed source status. `edu-roi ipeds resolve-expenses UNITID --catalog
+data/manifests/ipeds-release-catalog.json --allow-nonfinal` reads the validated
+data/dictionary pair, verifies their hashes and exact definitions, and reports
+these five cells separately. Missing and negative-sentinel cells stay null. The
+with-family basis has no food-and-housing cell in this mapping. These estimates
+do not represent financial aid, net price, or the *incremental* living cost
+compared with a counterfactual; no scenario cost is derived from them.
+
 Cross-release charge comparison operates only on normalized tables with matching reporting and
 attendance bases. It records every numeric change, flags availability changes and zero-denominator
 changes for review, and uses a configurable 25% default threshold for nonzero numeric changes.

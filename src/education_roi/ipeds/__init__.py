@@ -39,6 +39,11 @@ from education_roi.ipeds.dictionary import (
     IPEDSVariableDefinition,
     read_dictionary,
 )
+from education_roi.ipeds.expenses import (
+    IPEDSExpenseError,
+    IPEDSExpenseObservation,
+    resolve_ic2023_expenses,
+)
 from education_roi.ipeds.graduation import (
     GR2023_DATASET_ID,
     GR2023_DICTIONARY_DATASET_ID,
@@ -140,6 +145,8 @@ __all__ = [
     "IPEDSCatalogError",
     "IPEDSComponent",
     "IPEDSGraduationObservation",
+    "IPEDSExpenseError",
+    "IPEDSExpenseObservation",
     "IPEDSGraduationComparisonError",
     "IPEDSGraduationProcessingManifest",
     "IPEDSGraduationError",
@@ -189,6 +196,7 @@ __all__ = [
     "resolve_cip",
     "resolve_gr2023_bachelors",
     "resolve_graduation_evidence",
+    "resolve_ic2023_expenses",
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",

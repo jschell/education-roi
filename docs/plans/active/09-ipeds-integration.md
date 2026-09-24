@@ -70,6 +70,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   fixture-only bypass is visibly marked as unverified.
 - exact-UNITID lookup of processed GR cohort evidence with verified manifest lineage and
   explicit insufficient-data states; scenario completion probabilities remain unresolved.
+- exact-UNITID lookup of five verified IC2023 living-expense estimates by arrangement with
+  source status and provisional opt-in; incremental living cost remains unresolved.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -77,7 +79,9 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 1. Extend official workbook validation beyond the final four-year bachelor's mapping.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
-3. Normalize estimated expenses, aid, enrollment, retention, completion, and program production.
+3. Normalize estimated expenses into immutable analytical tables; add aid, enrollment, retention,
+   other completion cohorts, and program production. The current expense lookup is source-backed
+   but does not yet build an institution/year expense table.
 4. Preserve reported basis and population definitions.
 5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and
    institution history to program production.
