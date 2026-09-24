@@ -100,14 +100,24 @@ def read_dictionary(path: Path) -> dict[str, IPEDSVariableDefinition]:
                     "IPEDS dictionary archive must contain exactly one CSV or XLSX file"
                 )
             data = archive.read(members[0])
-            rows = _csv_rows(data) if members[0].lower().endswith(".csv") else _xlsx_rows(data)
+            is_workbook = members[0].lower().endswith(".xlsx")
+            rows = (
+                _xlsx_rows(data, sheet_names=frozenset({"Varlist"}))
+                if is_workbook
+                else _csv_rows(data)
+            )
     except (OSError, BadZipFile, KeyError, UnicodeError, csv.Error) as error:
         raise IPEDSDictionaryError(f"could not read IPEDS dictionary archive: {error}") from error
 
     definitions: dict[str, IPEDSVariableDefinition] = {}
     for row in rows:
-        normalized = {cell.upper() for cell in row}
-        for variable in REQUIRED_COLUMNS.intersection(normalized):
+        # The official workbook repeats names in Description and Statistics; only
+        # Varlist defines variables. Its name is column B, with labels in column G.
+        if is_workbook:
+            names = {row[1].upper()} if len(row) > 6 and row[0].isdigit() else set()
+        else:
+            names = {cell.upper() for cell in row}
+        for variable in REQUIRED_COLUMNS.intersection(names):
             if variable in definitions:
                 raise IPEDSDictionaryError(f"duplicate dictionary definition for {variable}")
             definitions[variable] = IPEDSVariableDefinition(variable, tuple(row))
