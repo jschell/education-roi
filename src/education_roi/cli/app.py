@@ -45,6 +45,7 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.retention_pipeline import transform_retention_archive
 from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
@@ -365,6 +366,68 @@ def ipeds_resolve_retention(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("build-retention")
+def ipeds_build_retention(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build the immutable final EF2023D institutional retention table."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.FALL_RETENTION,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        manifests = []
+        registry = Registry(registry_path)
+        for dataset_id in (RETENTION_DATA.dataset_id, RETENTION_DICTIONARY.dataset_id):
+            matching = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matching) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact; found {len(matching)}"
+                )
+            manifests.append(matching[0])
+        result = transform_retention_archive(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            paths.data / "processed",
+            manifests[0],
+            manifests[1],
+            release,
+        )
+    except (
+        IPEDSCatalogError,
+        IPEDSRetentionError,
+        IPEDSProcessedArtifactConflict,
+        ProvenanceError,
+        ValueError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "WRITTEN",
+                "parquet_path": str(result.parquet_path),
+                "manifest_path": str(result.manifest_path),
+                "manifest": result.manifest.model_dump(mode="json"),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 @ipeds_app.command("resolve-expenses")
