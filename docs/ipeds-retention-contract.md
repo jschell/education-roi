@@ -38,4 +38,18 @@ both artifact IDs. Missing, blank, negative-sentinel, or zero-denominator
 observations remain insufficient data. This is an institution-level historical
 first-year retention observation, not a bachelor's graduation rate or a
 probability for any individual scenario branch. Program-level applicability,
-cross-release comparisons, and analytical Parquet tables remain future work.
+and cross-release comparisons remain future work.
+
+`edu-roi ipeds build-retention --catalog data/manifests/ipeds-release-catalog.json`
+builds a source-paired, zstd Parquet table from the validated final ZIP pair. The
+content-addressed directory includes both input hashes and the transformation
+version; its sidecar records the output hash, artifact IDs, source member,
+population, cohort and observation years, and table schema. Rows retain each
+raw source cell, paired source status, adjusted cohort, next-fall enrolled count,
+and the separately reported percentage. Missing and zero-cohort records carry
+an explicit unavailable reason. An identical rerun reuses the manifest; changed
+output bytes or metadata fail rather than replacing the published table.
+
+This table is historical institution-level evidence. It does not supply a
+program-specific graduation probability or a scenario transition probability.
+Cross-release comparisons remain future work.
