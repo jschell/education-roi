@@ -1,0 +1,160 @@
+"""The final revised EF2023D observation retains source population and lineage."""
+
+import json
+from pathlib import Path
+from shutil import copyfile
+from zipfile import ZIP_DEFLATED, ZipFile
+
+import pytest
+from typer.testing import CliRunner
+
+from education_roi.cli.app import app
+from education_roi.config.paths import ProjectPaths
+from education_roi.ipeds import (
+    IPEDSComponent,
+    IPEDSRelease,
+    IPEDSReleaseCatalog,
+    IPEDSRetentionError,
+    register_retention_release,
+    resolve_retention,
+    select_release,
+)
+from education_roi.ipeds.retention import (
+    LABELS,
+    RETENTION_DATA,
+    RETENTION_DICTIONARY,
+    read_retention_rows,
+    verify_retention_dictionary,
+)
+from education_roi.provenance.downloader import DownloadResult
+from education_roi.provenance.models import ApprovalState, ArtifactManifest
+from education_roi.provenance.store import ArtifactStore, Registry
+
+CATALOG = Path(__file__).parents[2] / "data/manifests/ipeds-release-catalog.json"
+HEADER = "UNITID,RRFTCTA,XRRFTCTA,RET_NMF,XRET_NMF,RET_PCF,XRET_PCF\n"
+
+
+def fixture(
+    tmp_path: Path, rows: str
+) -> tuple[Path, Path, IPEDSRelease, ArtifactManifest, ArtifactManifest]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    release = select_release(
+        IPEDSReleaseCatalog.from_file(CATALOG),
+        IPEDSComponent.FALL_RETENTION,
+        release_id="2023-24-final",
+    )
+    archive = tmp_path / "EF2023D.zip"
+    dictionary = tmp_path / "EF2023D_Dict.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr("ef2023d.csv", HEADER + "236948,1,R,1,R,100,R\n")
+        output.writestr("ef2023d_rv.csv", HEADER + rows)
+    with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
+        output.writestr("ef2023d.xlsx", b"fixture")
+    registry = Registry(tmp_path / "data/manifests/registry.sqlite")
+    store = ArtifactStore(tmp_path / "data/raw", registry)
+    manifests = []
+    for path, definition, url in (
+        (archive, RETENTION_DATA, str(release.data_url)),
+        (dictionary, RETENTION_DICTIONARY, str(release.dictionary_url)),
+    ):
+        registry.add_dataset(definition)
+        item = store.register(
+            path,
+            definition,
+            release=release.release_id,
+            source_url=url,
+            final_url=url,
+            publication_status="final",
+            schema_version="ipeds-ef2023d-v1",
+        )
+        manifests.append(registry.transition(item.artifact_id, ApprovalState.VALIDATED))
+    return archive, dictionary, release, manifests[0], manifests[1]
+
+
+def test_revised_cohort_observation_does_not_equate_retention_and_completion(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
+    result = resolve_retention(*args, 236948)
+    assert result.status == "OBSERVED"
+    assert (result.entry_cohort_year, result.observation_year) == (2022, 2023)
+    assert (result.adjusted_cohort, result.enrolled_next_fall) == (7311, 6938)
+    assert result.reported_retention_percent == 95
+    assert result.data_artifact_id == args[3].artifact_id
+    assert "not a bachelor's completion probability" in result.interpretation
+    missing = resolve_retention(*args, 236949)
+    assert missing.status == "INSUFFICIENT_DATA"
+    assert missing.raw_cells["RRFTCTA"] == "-1"
+    assert resolve_retention(*args, 999999).status == "INSUFFICIENT_DATA"
+    args[0].write_bytes(b"tampered")
+    with pytest.raises(IPEDSRetentionError, match="bytes do not match"):
+        resolve_retention(*args, 236948)
+
+
+def test_dictionary_rejects_swapped_definitions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = fixture(tmp_path, "236948,1,R,1,R,100,R\n")[1]
+    rows = [["1", key, "N", "6", "Cont", "X" + key, label] for key, label in LABELS.items()]
+
+    def fake_rows(data: bytes, *, sheet_names: frozenset[str]) -> list[list[str]]:
+        return [["(Final/revised release)"]] if sheet_names == frozenset({"Introduction"}) else rows
+
+    monkeypatch.setattr("education_roi.ipeds.retention._xlsx_rows", fake_rows)
+    verify_retention_dictionary(path)
+    rows[0][6], rows[1][6] = rows[1][6], rows[0][6]
+    with pytest.raises(IPEDSRetentionError, match="cohort definitions"):
+        verify_retention_dictionary(path)
+
+
+def test_zero_cohort_and_impossible_count(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path, "236948,0,R,0,R,0,R\n236949,10,R,11,R,100,R\n")
+    assert resolve_retention(*args, 236948).status == "INSUFFICIENT_DATA"
+    with pytest.raises(IPEDSRetentionError, match="exceeds adjusted cohort"):
+        resolve_retention(*args, 236949)
+
+
+def test_registration_and_cli_pin_final_member(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+    )
+    args = fixture(tmp_path / "sources", "236948,100,R,90,R,90,R\n")
+    release = args[2]
+    sources = (args[0], args[1])
+
+    class FakeDownloader:
+        index = 0
+
+        def download(
+            self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+        ) -> DownloadResult:
+            destination_directory.mkdir(parents=True, exist_ok=True)
+            self.index += 1
+            target = destination_directory / f"download-{self.index}.zip"
+            copyfile(sources[self.index - 1], target)
+            return DownloadResult(target, url, url, target.stat().st_size)
+
+    root = tmp_path / "project"
+    registered = register_retention_release(
+        release,
+        ProjectPaths(root),
+        downloader=FakeDownloader(),  # type: ignore[arg-type]
+    )
+    assert registered.data.state is ApprovalState.VALIDATED
+    assert registered.dictionary.state is ApprovalState.VALIDATED
+    cli = CliRunner().invoke(
+        app,
+        ["ipeds", "resolve-retention", "236948", "--catalog", str(CATALOG), "--root", str(root)],
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["reported_retention_percent"] == 90
+    with pytest.raises(IPEDSRetentionError, match="missing"):
+        read_retention_rows(args[0], "nonexistent.csv")
