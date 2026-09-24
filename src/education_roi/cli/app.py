@@ -13,11 +13,13 @@ from education_roi.ipeds import (
     GR2023_DATASET_ID,
     GR2023_DICTIONARY_DATASET_ID,
     IPEDS_CHARGES_DATASET,
+    IPEDS_DICTIONARY_DATASET,
     InstitutionHistory,
     InstitutionHistoryError,
     IPEDSArchiveError,
     IPEDSCatalogError,
     IPEDSComponent,
+    IPEDSExpenseError,
     IPEDSGraduationComparisonError,
     IPEDSGraduationError,
     IPEDSProcessedArtifactConflict,
@@ -31,6 +33,7 @@ from education_roi.ipeds import (
     register_gr2023_release,
     resolve_gr2023_bachelors,
     resolve_graduation_evidence,
+    resolve_ic2023_expenses,
     select_release,
     transform_charges_archive,
     transform_gr2022_archive,
@@ -278,6 +281,66 @@ def _register_gr_release(catalog: Path, root: Path | None, release_id: str) -> N
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-expenses")
+def ipeds_resolve_expenses(
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    allow_nonfinal: Annotated[
+        bool, typer.Option(help="Explicitly allow the pinned provisional expense release.")
+    ] = False,
+) -> None:
+    """Show separate IC2023 living estimates; do not resolve incremental living cost."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.ACADEMIC_YEAR_CHARGES,
+            release_id="2023-24-provisional",
+            allow_nonfinal=allow_nonfinal,
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        registry = Registry(registry_path)
+        manifests = []
+        for dataset_id in (
+            IPEDS_CHARGES_DATASET.dataset_id,
+            IPEDS_DICTIONARY_DATASET.dataset_id,
+        ):
+            matching = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matching) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact; found {len(matching)}"
+                )
+            manifests.append(matching[0])
+        result = resolve_ic2023_expenses(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            release,
+            manifests[0],
+            manifests[1],
+            unitid,
+        )
+    except (
+        IPEDSCatalogError,
+        IPEDSArchiveError,
+        IPEDSExpenseError,
+        ProvenanceError,
+        ValueError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("resolve-gr2023")
