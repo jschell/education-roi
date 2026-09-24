@@ -64,6 +64,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   GR2022's release-specific registration and table transformation now pass live source validation.
 - official GR2022-to-GR2023 cohort table comparison in an isolated run with exact final archives;
   cross-cohort differences and unresolved UNITIDs require manual review before interpretation.
+- comparison CLI verification of both immutable processing manifests and table hashes by default;
+  fixture-only bypass is visibly marked as unverified.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

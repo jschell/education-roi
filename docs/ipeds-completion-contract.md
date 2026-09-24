@@ -138,6 +138,11 @@ individual's likelihood of completing a degree.
 
    `edu-roi ipeds compare-graduation PREVIOUS.parquet CURRENT.parquet --fail-on-review`
    compares two distinct final bachelor’s cohort tables with the same population and 150% window.
+   By default, both Parquet files must have their adjacent processing manifests. The command
+   verifies each table's SHA-256, source artifact IDs, release, population, cohort year, row
+   count, and transformation version against its manifest, and records both manifest hashes.
+   `--allow-unverified-inputs` is reserved for fixture exploration and marks provenance
+   `UNVERIFIED` in the output; such comparisons are not publication ready.
    It reports both table SHA-256 hashes and raw source artifact IDs, entry years, institution
    identity findings, availability/status changes, and absolute rate and relative count changes.
    The default review thresholds are 10 percentage points for the observed rate and 25% for
