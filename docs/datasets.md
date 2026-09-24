@@ -75,6 +75,15 @@ with-family basis has no food-and-housing cell in this mapping. These estimates
 do not represent financial aid, net price, or the *incremental* living cost
 compared with a counterfactual; no scenario cost is derived from them.
 
+`edu-roi ipeds build-expenses --catalog data/manifests/ipeds-release-catalog.json
+--allow-nonfinal` builds an immutable, zstd-compressed institution expense table
+from the exact validated data and dictionary manifests. Its separate fields
+retain both raw source cells and raw `X` statuses; blank and negative values
+remain null. The processed path includes both source hashes and a transformation
+version, and the adjacent manifest stores both artifact IDs, output hash,
+population, column mapping, and row count. This table contains source estimates,
+not a calculated cost of choosing college over another pathway.
+
 Cross-release charge comparison operates only on normalized tables with matching reporting and
 attendance bases. It records every numeric change, flags availability changes and zero-denominator
 changes for review, and uses a configurable 25% default threshold for nonzero numeric changes.
