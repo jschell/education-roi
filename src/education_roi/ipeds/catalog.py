@@ -21,6 +21,7 @@ class IPEDSPublicationStatus(StrEnum):
 class IPEDSComponent(StrEnum):
     INSTITUTIONAL_CHARACTERISTICS = "institutional-characteristics"
     ACADEMIC_YEAR_CHARGES = "academic-year-charges"
+    FALL_RETENTION = "fall-retention"
     GRADUATION_RATES = "graduation-rates"
     GRADUATION_RATES_200 = "graduation-rates-200"
     OUTCOME_MEASURES = "outcome-measures"
