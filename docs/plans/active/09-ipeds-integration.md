@@ -77,6 +77,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - pinned final revised EF2023D data/dictionary pair, validated registration, and exact-UNITID
   first-year retention lookup preserving entry cohort, source rate and status cells; no conversion
   into a graduation or scenario probability.
+- immutable, source-paired final revised EF2023D analytical retention table with separate
+  reported percentage and next-fall count, original status cells, and cohort year metadata.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -85,7 +87,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 1. Extend official workbook validation beyond the final four-year bachelor's mapping.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
 3. Add aid, enrollment, other completion cohorts, and program production. Extend retention beyond
-   the pinned EF2023D observation to analytical tables and cross-release comparison. Expense
+   the pinned EF2023D observation to cross-release comparison. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
 5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and
