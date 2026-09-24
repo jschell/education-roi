@@ -19,6 +19,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - component-scoped newest-final selection and explicit nonfinal opt-in.
 - reviewed `IC2023_AY` data/dictionary URL pair and corrected provisional labeling.
 - paired validation and separate immutable data/dictionary manifests;
+- live official `IC2023_AY` pair registration and table build after restricting workbook
+  definition validation to the `Varlist` worksheet; repeated names on other sheets are valid.
 - required-variable dictionary validation with retained definition rows.
 - raw `XCHG2AY3`/`XCHG4AY3` source-status propagation without undocumented interpretation.
 - explicit in-district/in-state/out-of-state tuition basis with no residency fallback.
