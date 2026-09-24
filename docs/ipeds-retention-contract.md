@@ -53,3 +53,10 @@ output bytes or metadata fail rather than replacing the published table.
 This table is historical institution-level evidence. It does not supply a
 program-specific graduation probability or a scenario transition probability.
 Cross-release comparisons remain future work.
+
+`edu-roi ipeds resolve-retention-table TABLE.parquet UNITID` verifies the
+processing manifest, full-table hash, schema, population, release, input
+artifact IDs, and row-level source/parsed cells before returning an observation.
+Absent UNITIDs and unavailable source cells return `INSUFFICIENT_DATA`. The
+report includes both table and manifest SHA-256 values. It is an observed
+historical retention result, with no scenario completion interpretation.
