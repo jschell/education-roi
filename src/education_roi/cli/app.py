@@ -45,6 +45,16 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.retention_2022 import (
+    DATA as RETENTION_2022_DATA,
+)
+from education_roi.ipeds.retention_2022 import (
+    DICTIONARY as RETENTION_2022_DICTIONARY,
+)
+from education_roi.ipeds.retention_2022 import (
+    register_retention_2022,
+    resolve_retention_2022,
+)
 from education_roi.ipeds.retention_evidence import (
     IPEDSRetentionTableError,
     resolve_retention_evidence,
@@ -301,15 +311,21 @@ def ipeds_register_retention(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[
+        str, typer.Option(help="Reviewed final retention release ID.")
+    ] = "2023-24-final",
 ) -> None:
     """Validate and register the paired final revised EF2023D source."""
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.FALL_RETENTION,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
-        registered = register_retention_release(release, ProjectPaths.from_environment(root))
+        register = (
+            register_retention_2022 if release_id == "2022-23-final" else register_retention_release
+        )
+        registered = register(release, ProjectPaths.from_environment(root))
     except (IPEDSCatalogError, IPEDSRetentionError, ProvenanceError, ValueError) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
@@ -333,6 +349,9 @@ def ipeds_resolve_retention(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[
+        str, typer.Option(help="Reviewed final retention release ID.")
+    ] = "2023-24-final",
 ) -> None:
     """Report one observed full-time first-year retention cohort, not completion risk."""
     paths = ProjectPaths.from_environment(root)
@@ -340,14 +359,19 @@ def ipeds_resolve_retention(
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.FALL_RETENTION,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
             raise ValueError(f"artifact registry not found: {registry_path}")
         registry = Registry(registry_path)
         manifests = []
-        for dataset_id in (RETENTION_DATA.dataset_id, RETENTION_DICTIONARY.dataset_id):
+        definitions = (
+            (RETENTION_2022_DATA, RETENTION_2022_DICTIONARY)
+            if release_id == "2022-23-final"
+            else (RETENTION_DATA, RETENTION_DICTIONARY)
+        )
+        for dataset_id in (definition.dataset_id for definition in definitions):
             matching = tuple(
                 item
                 for item in registry.list_artifacts(dataset_id, release.release_id)
@@ -358,7 +382,8 @@ def ipeds_resolve_retention(
                     f"expected one validated {dataset_id} artifact; found {len(matching)}"
                 )
             manifests.append(matching[0])
-        result = resolve_retention(
+        resolve = resolve_retention_2022 if release_id == "2022-23-final" else resolve_retention
+        result = resolve(
             paths.data / "raw" / manifests[0].storage_path,
             paths.data / "raw" / manifests[1].storage_path,
             release,
