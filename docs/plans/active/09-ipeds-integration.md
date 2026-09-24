@@ -79,6 +79,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   into a graduation or scenario probability.
 - immutable, source-paired final revised EF2023D analytical retention table with separate
   reported percentage and next-fall count, original status cells, and cohort year metadata.
+- verified processed retention-table lookup with full-table hash and manifest checks,
+  exact-UNITID evidence, and explicit unavailable states; official 5,646-row build verified.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
