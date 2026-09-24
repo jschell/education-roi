@@ -56,6 +56,11 @@ from education_roi.ipeds.graduation_comparison import (
     IPEDSGraduationComparisonError,
     compare_graduation_tables,
 )
+from education_roi.ipeds.graduation_evidence import (
+    GraduationEvidence,
+    GraduationEvidenceStatus,
+    resolve_graduation_evidence,
+)
 from education_roi.ipeds.graduation_pipeline import (
     GR2022_TRANSFORMATION_VERSION,
     GR_TRANSFORMATION_VERSION,
@@ -120,6 +125,8 @@ __all__ = [
     "GraduationCohortScope",
     "GraduationChange",
     "GraduationChangeType",
+    "GraduationEvidence",
+    "GraduationEvidenceStatus",
     "GraduationComparison",
     "GR_TRANSFORMATION_VERSION",
     "GR2022_TRANSFORMATION_VERSION",
@@ -181,6 +188,7 @@ __all__ = [
     "register_gr2022_release",
     "resolve_cip",
     "resolve_gr2023_bachelors",
+    "resolve_graduation_evidence",
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",
