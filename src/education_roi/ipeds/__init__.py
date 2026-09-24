@@ -44,6 +44,12 @@ from education_roi.ipeds.expenses import (
     IPEDSExpenseObservation,
     resolve_ic2023_expenses,
 )
+from education_roi.ipeds.expenses_pipeline import (
+    EXPENSE_TRANSFORMATION_VERSION,
+    IPEDSExpensesProcessingManifest,
+    ProcessedIPEDSExpenses,
+    transform_ic2023_expenses,
+)
 from education_roi.ipeds.graduation import (
     GR2023_DATASET_ID,
     GR2023_DICTIONARY_DATASET_ID,
@@ -147,6 +153,8 @@ __all__ = [
     "IPEDSGraduationObservation",
     "IPEDSExpenseError",
     "IPEDSExpenseObservation",
+    "IPEDSExpensesProcessingManifest",
+    "EXPENSE_TRANSFORMATION_VERSION",
     "IPEDSGraduationComparisonError",
     "IPEDSGraduationProcessingManifest",
     "IPEDSGraduationError",
@@ -181,6 +189,7 @@ __all__ = [
     "RegisteredIPEDSRelease",
     "RegisteredIPEDSGraduation",
     "ProcessedIPEDSCharges",
+    "ProcessedIPEDSExpenses",
     "ProcessedIPEDSGraduation",
     "compare_release_catalogs",
     "compare_charge_tables",
@@ -200,6 +209,7 @@ __all__ = [
     "resolve_unitid",
     "select_release",
     "transform_charges_archive",
+    "transform_ic2023_expenses",
     "transform_gr2023_archive",
     "transform_gr2022_archive",
     "validate_gr2023_archive",
