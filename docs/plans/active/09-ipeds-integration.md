@@ -66,6 +66,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   cross-cohort differences and unresolved UNITIDs require manual review before interpretation.
 - comparison CLI verification of both immutable processing manifests and table hashes by default;
   fixture-only bypass is visibly marked as unverified.
+- exact-UNITID lookup of processed GR cohort evidence with verified manifest lineage and
+  explicit insufficient-data states; scenario completion probabilities remain unresolved.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

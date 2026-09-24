@@ -30,6 +30,7 @@ from education_roi.ipeds import (
     register_gr2022_release,
     register_gr2023_release,
     resolve_gr2023_bachelors,
+    resolve_graduation_evidence,
     select_release,
     transform_charges_archive,
     transform_gr2022_archive,
@@ -478,6 +479,23 @@ def ipeds_build_charges(
             separators=(",", ":"),
         )
     )
+
+
+@ipeds_app.command("resolve-graduation-table")
+def ipeds_resolve_graduation_table(
+    table: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Processed GR table."),
+    ],
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+) -> None:
+    """Return verified institutional cohort evidence without inferring a scenario probability."""
+    try:
+        evidence = resolve_graduation_evidence(table, unitid)
+    except (IPEDSGraduationComparisonError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(evidence.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("compare-graduation")

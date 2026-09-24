@@ -143,6 +143,12 @@ individual's likelihood of completing a degree.
    count, and transformation version against its manifest, and records both manifest hashes.
    `--allow-unverified-inputs` is reserved for fixture exploration and marks provenance
    `UNVERIFIED` in the output; such comparisons are not publication ready.
+   `edu-roi ipeds resolve-graduation-table TABLE.parquet UNITID` verifies the same
+   processed-table manifest before returning one institution's observed cohort counts,
+   rate, status codes, release, and artifact/table/manifest hashes. Absent and
+   unavailable rows return `INSUFFICIENT_DATA`. This command does not populate any
+   scenario completion branch: the institutional 150% observation is not an on-time,
+   late, transfer, or leave probability for a particular student or program.
    It reports both table SHA-256 hashes and raw source artifact IDs, entry years, institution
    identity findings, availability/status changes, and absolute rate and relative count changes.
    The default review thresholds are 10 percentage points for the observed rate and 25% for
