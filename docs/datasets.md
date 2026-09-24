@@ -44,6 +44,18 @@ NCES pages were intermittently slow from the research environment; therefore imp
 
 The first implemented contract uses the Institutional Characteristics academic-year charges file only. Tuition is selected from `CHG1AY3` (in-district), `CHG2AY3` (in-state), or `CHG3AY3` (out-of-state) according to the scenario's required `tuition_residency`; `CHG4AY3` supplies books and supplies. Selection uses the exact `UNITID`. Scenarios must also declare `attendance_basis` as `full_time` or `part_time`. The current annual-charge contract resolves only `full_time`; part-time scenarios remain insufficient data because the framework does not convert an annual charge to a per-credit or part-time estimate. The resolver never substitutes one residency or attendance basis for another. These are institutional academic-year charges—not net price, program-specific price, aid, incremental living cost, or a guarantee of what a particular student pays. An explicit official NCES URL, release label, and publication status are required at registration; the code does not guess the newest release. Only schema-validated immutable artifacts in `VALIDATED` or `APPROVED` state may resolve scenarios.
 
+The paired official `IC2023_AY_Dict.zip` workbook repeats variable names in its
+`Varlist`, `Description`, and `Statistics` worksheets. Dictionary validation reads
+only `Varlist` for variable definitions; duplicate names within that worksheet
+still fail. On 2026-09-24, a live isolated registration and transformation of the
+official catalog pair succeeded: data ZIP SHA-256
+`22fe1bf95db57c691b63506f9e90082de5f7034a285bf01ca1a7d2c6cae49e0b`,
+dictionary ZIP SHA-256
+`8dada771bd6e00ac295bc5ca1f05161696649c9e6f98800e590ba07f85784daf`.
+It produced 3,825 institution rows; UNITID 236948 had `CHG2AY3=12643`
+and `CHG4AY3=900`. These are source checks, not net prices. The workbook
+labels this file provisional, so selection still requires explicit nonfinal opt-in.
+
 The normalized charge pipeline writes one sorted institution/release Parquet table. Each row carries
 the exact release, publication status, `academic_year` reporting basis, `full_time` attendance basis,
 all three residency charge cells, books and supplies, uninterpreted source-status cells, the raw
