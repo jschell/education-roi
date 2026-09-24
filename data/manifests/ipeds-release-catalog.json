@@ -32,6 +32,16 @@
       "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=8"
     },
     {
+      "release_id": "2022-23-final",
+      "collection_year": 2022,
+      "component": "fall-retention",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/datacenter/data/EF2022D.zip",
+      "data_member": "ef2022d_rv.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/datacenter/data/EF2022D_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2022&surveyNumber=2"
+    },
+    {
       "release_id": "2023-24-final",
       "collection_year": 2023,
       "component": "fall-retention",
