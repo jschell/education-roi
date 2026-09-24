@@ -45,6 +45,10 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.retention_evidence import (
+    IPEDSRetentionTableError,
+    resolve_retention_evidence,
+)
 from education_roi.ipeds.retention_pipeline import transform_retention_archive
 from education_roi.provenance.adapters import SourceConfiguration
 from education_roi.provenance.downloader import HttpDownloader
@@ -428,6 +432,23 @@ def ipeds_build_retention(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-retention-table")
+def ipeds_resolve_retention_table(
+    table: Annotated[
+        Path,
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Processed EF2023D table."),
+    ],
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+) -> None:
+    """Return verified historical retention without inferring completion probability."""
+    try:
+        result = resolve_retention_evidence(table, unitid)
+    except (IPEDSRetentionTableError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("resolve-expenses")
