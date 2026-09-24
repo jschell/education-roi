@@ -14,6 +14,10 @@ from education_roi.ipeds.graduation_comparison import (
     IPEDSGraduationComparisonError,
     compare_graduation_tables,
 )
+from education_roi.ipeds.graduation_evidence import (
+    GraduationEvidenceStatus,
+    resolve_graduation_evidence,
+)
 from education_roi.ipeds.graduation_pipeline import GR_TRANSFORMATION_VERSION
 from education_roi.provenance.integrity import sha256_file
 
@@ -106,6 +110,38 @@ def test_comparison_verifies_both_input_manifests_and_detects_tampering(tmp_path
     later_manifest.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(IPEDSGraduationComparisonError, match="population/release mismatch"):
         compare_graduation_tables(before, after, require_manifests=True)
+
+
+def test_processed_graduation_observation_is_verified_and_does_not_infer_probability(
+    tmp_path: Path,
+) -> None:
+    path = table(
+        tmp_path / "cohort.parquet",
+        "2023-24-final",
+        2017,
+        [
+            {"unitid": 1, "adjusted_cohort": 100, "bachelors_awards": 70},
+            {"unitid": 2, "adjusted_cohort": 0, "bachelors_awards": 0},
+        ],
+    )
+    sidecar = manifest(path, release="2023-24-final", year=2017)
+    observed = resolve_graduation_evidence(path, 1)
+    assert observed.status is GraduationEvidenceStatus.OBSERVED
+    assert observed.observed_rate == pytest.approx(0.7)
+    assert observed.manifest_sha256 == sha256_file(sidecar)[0]
+    assert "not a program-specific or individual" in observed.interpretation
+    unavailable = resolve_graduation_evidence(path, 2)
+    assert unavailable.status is GraduationEvidenceStatus.INSUFFICIENT_DATA
+    assert unavailable.observed_rate is None
+    absent = resolve_graduation_evidence(path, 999)
+    assert absent.status is GraduationEvidenceStatus.INSUFFICIENT_DATA
+    assert absent.adjusted_cohort is None
+    cli = CliRunner().invoke(app, ["ipeds", "resolve-graduation-table", str(path), "1"])
+    assert cli.exit_code == 0
+    assert json.loads(cli.stdout)["status"] == "OBSERVED"
+    sidecar.unlink()
+    with pytest.raises(IPEDSGraduationComparisonError, match="processing manifest"):
+        resolve_graduation_evidence(path, 1)
 
 
 def test_cohort_comparison_flags_changes_and_keeps_distinct_years(tmp_path: Path) -> None:
