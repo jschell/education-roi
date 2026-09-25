@@ -90,7 +90,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   with reported-percent and count thresholds, source statuses, paired provenance, and
   review-required UNITID identity/coverage findings; official pair tested in isolation.
 - reviewed final revised C2023_A program awards source pair, exact key and CIP 2020
-  definition cataloged; ingestion remains gated on paired validation.
+  definition cataloged; paired immutable registration and verified exact-key award
+  lookup preserve status and distinguish zero from unavailable counts.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

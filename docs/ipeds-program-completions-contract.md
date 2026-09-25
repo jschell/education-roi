@@ -34,8 +34,18 @@ The separate C2023_B file reports students receiving awards, with a different
 population and aggregation. Program award counts must not be divided by a
 GR/EF institutional cohort to make a program completion rate.
 
-**Implementation gate:** This PR registers the reviewed catalog entry only.
-Paired dictionary validation, immutable source registration, exact-key lookup,
-and analytical transformation are future slices. Their readers must reject
-missing/duplicate keys and ambiguous aggregation, preserve source statuses,
-and explicitly distinguish unavailable from zero.
+`edu-roi ipeds register-program-awards --catalog data/manifests/ipeds-release-catalog.json`
+validates all revised-member keys and the paired workbook definitions before
+immutably registering both ZIPs. `edu-roi ipeds resolve-program-awards UNITID
+CIPCODE MAJORNUM AWLEVEL --catalog ...` verifies both artifact manifests and
+source hashes, rechecks the full archive and dictionary, then returns one exact
+count with its raw cell, source status, period, CIP version, and both artifact
+IDs. Absent or negative-sentinel cells return `INSUFFICIENT_DATA`; zero remains
+an observed zero. The CLI rejects aggregate CIP 99 as a lookup key.
+
+An isolated full-source registration yielded `VALIDATED` for both archives.
+UNITID 236948, CIP `03.0103`, first major, bachelor's level returned 93
+awards with source status `R`. No government ZIPs are committed.
+
+An immutable analytical table, source-status interpretation, cross-release
+comparison, and connections to scenario program evidence remain future work.
