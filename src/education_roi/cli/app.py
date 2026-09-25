@@ -45,6 +45,10 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.retention_comparison import (
+    IPEDSRetentionComparisonError,
+    compare_retention_tables,
+)
 from education_roi.ipeds.retention_evidence import (
     IPEDSRetentionTableError,
     resolve_retention_evidence,
@@ -454,6 +458,56 @@ def ipeds_resolve_retention_table(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("compare-retention")
+def ipeds_compare_retention(
+    previous: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    current: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    threshold: Annotated[
+        int, typer.Option(help="Reported percentage-point review threshold.")
+    ] = 10,
+    count_threshold: Annotated[float, typer.Option(help="Relative count review threshold.")] = 0.25,
+    history: Annotated[
+        Path | None, typer.Option("--history", exists=True, dir_okay=False, readable=True)
+    ] = None,
+    history_source: Annotated[
+        Path | None, typer.Option("--history-source", exists=True, dir_okay=False, readable=True)
+    ] = None,
+    fail_on_review: Annotated[bool, typer.Option()] = False,
+) -> None:
+    """Review distinct verified historical first-year retention cohorts."""
+    try:
+        if history_source is not None and history is None:
+            raise ValueError("--history-source requires --history")
+        institution_history = InstitutionHistory.from_file(history) if history is not None else None
+        if history_source is not None:
+            assert institution_history is not None
+            if sha256_file(history_source)[0] != institution_history.source_sha256:
+                raise ValueError("history source SHA-256 does not match the supplied artifact")
+        report = compare_retention_tables(
+            previous,
+            current,
+            absolute_percent_threshold=threshold,
+            relative_count_threshold=count_threshold,
+            institution_history=institution_history,
+        )
+    except (IPEDSRetentionComparisonError, InstitutionHistoryError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    payload = report.model_dump(mode="json")
+    payload["input_provenance_status"] = "MANIFEST_VERIFIED"
+    payload["history_source_status"] = (
+        "HASH_VERIFIED"
+        if history_source is not None
+        else "UNVERIFIED"
+        if history is not None
+        else "NOT_APPLICABLE"
+    )
+    payload["status"] = "REVIEW_REQUIRED" if report.review_required else "ACCEPTABLE"
+    typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    if report.review_required and fail_on_review:
+        raise typer.Exit(code=1)
 
 
 @ipeds_app.command("resolve-expenses")
