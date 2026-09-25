@@ -81,6 +81,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   reported percentage and next-fall count, original status cells, and cohort year metadata.
 - verified processed retention-table lookup with full-table hash and manifest checks,
   exact-UNITID evidence, and explicit unavailable states; official 5,646-row build verified.
+- retention dictionary validation requires each reviewed variable exactly once; malformed CSV
+  rows with missing or extra cells fail with an explicit source-validation error.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

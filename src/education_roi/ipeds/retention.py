@@ -95,6 +95,7 @@ def verify_retention_dictionary(path: Path) -> None:
     if (
         not any("(Final/revised release)" in cell for row in intro for cell in row)
         or len(found) != len(LABELS)
+        or {row[1] for row in found} != LABELS.keys()
         or any(row[6] != LABELS[row[1]] or row[5] != "X" + row[1] or row[2] != "N" for row in found)
     ):
         raise IPEDSRetentionError("dictionary lacks reviewed final cohort definitions")
@@ -115,6 +116,8 @@ def read_retention_rows(path: Path, member: str) -> dict[int, dict[str, str]]:
                         "retention archive is missing " + ", ".join(sorted(missing))
                     )
                 for index, row in enumerate(reader, 2):
+                    if None in row or any(row.get(key) is None for key in REQUIRED):
+                        raise IPEDSRetentionError(f"malformed retention row {index}")
                     try:
                         unitid = int(row["UNITID"])
                     except (ValueError, TypeError) as error:

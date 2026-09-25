@@ -114,6 +114,19 @@ def test_dictionary_rejects_swapped_definitions(
     rows[0][6], rows[1][6] = rows[1][6], rows[0][6]
     with pytest.raises(IPEDSRetentionError, match="cohort definitions"):
         verify_retention_dictionary(path)
+    rows[0][6], rows[1][6] = rows[1][6], rows[0][6]
+    rows[1] = rows[0].copy()
+    with pytest.raises(IPEDSRetentionError, match="cohort definitions"):
+        verify_retention_dictionary(path)
+
+
+@pytest.mark.parametrize("row", ["236948,10,R,8,R,80,R,extra", "236948,10,R,8,R,80"])
+def test_retention_rejects_malformed_csv_row(tmp_path: Path, row: str) -> None:
+    archive = tmp_path / "malformed.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr("ef2023d_rv.csv", HEADER + row + "\n")
+    with pytest.raises(IPEDSRetentionError, match="malformed retention row 2"):
+        read_retention_rows(archive, "ef2023d_rv.csv")
 
 
 def test_zero_cohort_and_impossible_count(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
