@@ -89,6 +89,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - verified cross-release retention comparison of the distinct EF2022D and EF2023D cohorts
   with reported-percent and count thresholds, source statuses, paired provenance, and
   review-required UNITID identity/coverage findings; official pair tested in isolation.
+- reviewed final revised C2023_A program awards source pair, exact key and CIP 2020
+  definition cataloged; ingestion remains gated on paired validation.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
