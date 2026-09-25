@@ -86,6 +86,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - reviewed final revised EF2022D source pair and cohort definitions are cataloged for a
   prior-year retention comparison; release-specific paired registration, immutable table,
   source and verified table lookups now preserve its distinct 2021/2022 cohort years.
+- verified cross-release retention comparison of the distinct EF2022D and EF2023D cohorts
+  with reported-percent and count thresholds, source statuses, paired provenance, and
+  review-required UNITID identity/coverage findings; official pair tested in isolation.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -93,8 +96,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 1. Extend official workbook validation beyond the final four-year bachelor's mapping.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
-3. Add aid, enrollment, other completion cohorts, and program production. Extend retention beyond
-   the pinned EF2023D observation to cross-release comparison. Expense
+3. Add aid, enrollment, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
 5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and

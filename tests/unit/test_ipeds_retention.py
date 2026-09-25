@@ -27,6 +27,11 @@ from education_roi.ipeds.retention import (
     read_retention_rows,
     verify_retention_dictionary,
 )
+from education_roi.ipeds.retention_comparison import (
+    IPEDSRetentionComparisonError,
+    RetentionChangeType,
+    compare_retention_tables,
+)
 from education_roi.ipeds.retention_evidence import (
     IPEDSRetentionTableError,
     resolve_retention_evidence,
@@ -349,3 +354,66 @@ def test_retention_evidence_rejects_manifest_population_mismatch(
     processed.manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(IPEDSRetentionTableError, match="unsupported retention release"):
         resolve_retention_evidence(processed.parquet_path, 236948)
+
+
+def test_verified_cross_cohort_retention_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary",
+        lambda path, release_id: None,
+    )
+    prior = fixture(
+        tmp_path / "prior",
+        "236948,100,R,80,R,80,R\n236949,10,R,8,R,80,R\n",
+        "2022-23-final",
+    )
+    latest = fixture(
+        tmp_path / "latest",
+        "236948,120,R,108,R,90,R\n236950,10,R,9,R,90,R\n",
+    )
+    previous = transform_retention_archive(
+        prior[0], prior[1], tmp_path / "processed", *prior[3:], prior[2]
+    )
+    current = transform_retention_archive(
+        latest[0], latest[1], tmp_path / "processed", *latest[3:], latest[2]
+    )
+    report = compare_retention_tables(previous.parquet_path, current.parquet_path)
+    assert report.review_required
+    assert (report.previous_entry_cohort_year, report.current_entry_cohort_year) == (2021, 2022)
+    assert report.previous_manifest_sha256 and report.current_manifest_sha256
+    assert report.institution_pairing.source_count == report.institution_pairing.target_count == 2
+    assert any(
+        change.unitid == 236948
+        and change.field == "reported_retention_percent"
+        and change.change_type is RetentionChangeType.PERCENT_CHANGED
+        and change.review_required
+        for change in report.changes
+    )
+    assert any(change.unitid == 236949 and change.review_required for change in report.changes)
+    cli = CliRunner().invoke(
+        app, ["ipeds", "compare-retention", str(previous.parquet_path), str(current.parquet_path)]
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["input_provenance_status"] == "MANIFEST_VERIFIED"
+    assert json.loads(cli.stdout)["status"] == "REVIEW_REQUIRED"
+    strict = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "compare-retention",
+            str(previous.parquet_path),
+            str(current.parquet_path),
+            "--fail-on-review",
+        ],
+    )
+    assert strict.exit_code == 1
+    with pytest.raises(IPEDSRetentionComparisonError, match="ordered, compatible"):
+        compare_retention_tables(current.parquet_path, previous.parquet_path)
+    with pytest.raises(ValueError, match="absolute percent threshold"):
+        compare_retention_tables(
+            previous.parquet_path, current.parquet_path, absolute_percent_threshold=0
+        )
+    current.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSRetentionComparisonError, match="hash differs"):
+        compare_retention_tables(previous.parquet_path, current.parquet_path)

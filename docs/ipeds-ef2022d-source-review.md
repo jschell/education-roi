@@ -35,6 +35,17 @@ and an immutable paired-source manifest. `resolve-retention-table` verifies it b
 lookup. An isolated official-source build produced 5,706 institution rows and UW
 7,165 adjusted cohort, 6,707 enrolled, and published 94%.
 
-Cross-release comparison of the distinct 2021 and 2022 entering cohorts remains
-future work; UNITID identity and coverage must be reviewed. Neither rate is an
-individual completion probability.
+`edu-roi ipeds compare-retention PREVIOUS.parquet CURRENT.parquet` verifies both
+full tables and processing manifests before comparing the distinct 2021 and 2022
+entry cohorts. It preserves both source and dictionary artifact IDs, table and
+manifest hashes, published percentages separately from the adjusted-cohort and
+next-fall-enrolled counts, and each raw source status. The default review thresholds
+are 10 reported percentage points and 25% relative count change. Missing and
+changed UNITIDs go through the directional institution pairing report; a supplied
+history file can resolve unique changes, with optional `--history-source` hash
+verification. `--fail-on-review` returns exit 1 for a review-required report.
+
+An isolated comparison of both official archives returned 5,706 and 5,646 source
+rows, 5,578 paired UNITIDs, and 196 identity/coverage findings. These findings
+need review before interpreting institution-level trends. The rate is historical
+first-year retention, not a causal effect or individual completion probability.
