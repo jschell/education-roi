@@ -77,6 +77,18 @@ def fixture(
     return archive, dictionary, release, manifests[0], manifests[1]
 
 
+def test_reviewed_prior_retention_source_remains_ingestion_gated() -> None:
+    catalog = IPEDSReleaseCatalog.from_file(CATALOG)
+    previous = select_release(catalog, IPEDSComponent.FALL_RETENTION, release_id="2022-23-final")
+    current = select_release(catalog, IPEDSComponent.FALL_RETENTION)
+    assert previous.data_member == "ef2022d_rv.csv"
+    assert current.release_id == "2023-24-final"
+    from education_roi.ipeds.retention import _require_release
+
+    with pytest.raises(IPEDSRetentionError, match="requires reviewed final EF2023D"):
+        _require_release(previous)
+
+
 def test_revised_cohort_observation_does_not_equate_retention_and_completion(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

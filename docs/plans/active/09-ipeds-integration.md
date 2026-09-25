@@ -83,6 +83,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   exact-UNITID evidence, and explicit unavailable states; official 5,646-row build verified.
 - retention dictionary validation requires each reviewed variable exactly once; malformed CSV
   rows with missing or extra cells fail with an explicit source-validation error.
+- reviewed final revised EF2022D source pair and cohort definitions are cataloged for a
+  prior-year retention comparison; release-specific registration and transformation remain gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
