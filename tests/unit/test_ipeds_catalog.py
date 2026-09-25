@@ -138,6 +138,19 @@ def test_reviewed_gr_sources_keep_legacy_final_distinct_from_default() -> None:
     )
 
 
+def test_reviewed_program_awards_source_pins_revised_member() -> None:
+    inventory = IPEDSReleaseCatalog.from_file(
+        PROJECT_ROOT / "data/manifests/ipeds-release-catalog.json"
+    )
+    selected = select_release(inventory, IPEDSComponent.COMPLETIONS_BY_PROGRAM)
+    assert selected.release_id == "2023-24-final"
+    assert selected.data_member == "C2023_a_RV.csv"
+    assert str(selected.data_url) == "https://nces.ed.gov/ipeds/datacenter/data/C2023_A.zip"
+    assert str(selected.dictionary_url) == (
+        "https://nces.ed.gov/ipeds/datacenter/data/C2023_A_Dict.zip"
+    )
+
+
 def test_inventory_comparison_classifies_changes_without_promoting_them() -> None:
     retained = release(2023, IPEDSPublicationStatus.FINAL)
     changed_payload = retained.model_dump()
