@@ -45,6 +45,13 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.program_awards import (
+    PROGRAM_DATA,
+    PROGRAM_DICTIONARY,
+    IPEDSProgramAwardsError,
+    register_program_awards,
+    resolve_program_awards,
+)
 from education_roi.ipeds.retention_comparison import (
     IPEDSRetentionComparisonError,
     compare_retention_tables,
@@ -328,6 +335,84 @@ def ipeds_register_retention(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("register-program-awards")
+def ipeds_register_program_awards(
+    catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Validate and register the final revised C2023_A data/dictionary pair."""
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.COMPLETIONS_BY_PROGRAM,
+            release_id="2023-24-final",
+        )
+        registered = register_program_awards(release, ProjectPaths.from_environment(root))
+    except (IPEDSCatalogError, IPEDSProgramAwardsError, ProvenanceError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "VALIDATED",
+                "data": registered.data.model_dump(mode="json"),
+                "dictionary": registered.dictionary.model_dump(mode="json"),
+            },
+            sort_keys=True,
+        )
+    )
+
+
+@ipeds_app.command("resolve-program-awards")
+def ipeds_resolve_program_awards(
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    cip_code: Annotated[str, typer.Argument(help="Exact six-digit CIP 2020 code.")],
+    major_number: Annotated[int, typer.Argument(help="First (1) or second (2) major.")],
+    award_level: Annotated[int, typer.Argument(help="Exact IPEDS award level.")],
+    catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Return a verified exact-key award count, not unique graduates or a completion rate."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.COMPLETIONS_BY_PROGRAM,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        registry = Registry(registry_path)
+        manifests = []
+        for dataset_id in (PROGRAM_DATA.dataset_id, PROGRAM_DICTIONARY.dataset_id):
+            matches = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matches) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact; found {len(matches)}"
+                )
+            manifests.append(matches[0])
+        result = resolve_program_awards(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            release,
+            manifests[0],
+            manifests[1],
+            unitid,
+            cip_code,
+            major_number,
+            award_level,
+        )
+    except (IPEDSCatalogError, IPEDSProgramAwardsError, ProvenanceError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("resolve-retention")
