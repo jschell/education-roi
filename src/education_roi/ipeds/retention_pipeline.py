@@ -1,4 +1,4 @@
-"""Immutable analytical table for the pinned final revised EF2023D release."""
+"""Immutable analytical tables for reviewed final revised retention releases."""
 
 import json
 import os
@@ -14,6 +14,7 @@ from education_roi import __version__
 from education_roi.ipeds.catalog import IPEDSRelease
 from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict, _publish_immutable
 from education_roi.ipeds.retention import (
+    RELEASE_SPECS,
     RETENTION_DATA,
     RETENTION_DICTIONARY,
     IPEDSRetentionError,
@@ -62,6 +63,8 @@ def transform_retention_archive(
 ) -> ProcessedIPEDSRetention:
     """Keep reported percent and enrolled count distinct, including source status cells."""
     _require_release(release)
+    _, _, _, entry_year, observation_year, _ = RELEASE_SPECS[release.release_id]
+    version = f"ipeds-ef{release.collection_year}d-retention-v1"
     _verify_manifest(
         archive, data_manifest, release, RETENTION_DATA.dataset_id, str(release.data_url)
     )
@@ -72,7 +75,7 @@ def transform_retention_archive(
         RETENTION_DICTIONARY.dataset_id,
         str(release.dictionary_url),
     )
-    verify_retention_dictionary(dictionary)
+    verify_retention_dictionary(dictionary, release.release_id)
     records = []
     for unitid, row in sorted(read_retention_rows(archive, release.data_member or "").items()):
         cohort = _count(row["RRFTCTA"])
@@ -91,8 +94,8 @@ def transform_retention_archive(
                 "unitid": unitid,
                 "release_id": release.release_id,
                 "publication_status": release.publication_status.value,
-                "entry_cohort_year": 2022,
-                "observation_year": 2023,
+                "entry_cohort_year": entry_year,
+                "observation_year": observation_year,
                 "population": POPULATION,
                 "adjusted_cohort": cohort,
                 "enrolled_next_fall": enrolled,
@@ -106,7 +109,7 @@ def transform_retention_archive(
                 "percent_status": row["XRET_PCF"],
                 "data_artifact_id": data_manifest.artifact_id,
                 "dictionary_artifact_id": dictionary_manifest.artifact_id,
-                "transformation_version": VERSION,
+                "transformation_version": version,
             }
         )
     schema = {
@@ -136,7 +139,7 @@ def transform_retention_archive(
         / release.release_id
         / data_manifest.sha256
         / dictionary_manifest.sha256
-        / VERSION
+        / version
         / "retention.parquet"
     )
     destination = output_root / relative
@@ -152,13 +155,13 @@ def transform_retention_archive(
         temporary.unlink(missing_ok=True)
     parameters: dict[str, str | int | float | bool | None] = {
         "data_member": release.data_member,
-        "entry_cohort_year": 2022,
-        "observation_year": 2023,
+        "entry_cohort_year": entry_year,
+        "observation_year": observation_year,
         "population": POPULATION,
-        "transformation_version": VERSION,
+        "transformation_version": version,
     }
     transformation = TransformationManifest(
-        transformation_id=f"{VERSION}:{release.release_id}:{data_manifest.sha256}:{dictionary_manifest.sha256}:{output_hash}",
+        transformation_id=f"{version}:{release.release_id}:{data_manifest.sha256}:{dictionary_manifest.sha256}:{output_hash}",
         created_at=datetime.now(UTC),
         software_version=__version__,
         output_sha256=output_hash,
@@ -169,8 +172,8 @@ def transform_retention_archive(
         transformation=transformation,
         release_id=release.release_id,
         publication_status=release.publication_status.value,
-        entry_cohort_year=2022,
-        observation_year=2023,
+        entry_cohort_year=entry_year,
+        observation_year=observation_year,
         population=POPULATION,
         row_count=frame.height,
         columns=tuple(frame.columns),
