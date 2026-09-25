@@ -92,6 +92,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - reviewed final revised C2023_A program awards source pair, exact key and CIP 2020
   definition cataloged; paired immutable registration and verified exact-key award
   lookup preserve status and distinguish zero from unavailable counts.
+- immutable, source-paired C2023_A program awards table with all exact keys, raw counts,
+  source statuses, explicit aggregate CIP rows, and a deterministic manifest; official
+  303,460-row build and identical rerun verified.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

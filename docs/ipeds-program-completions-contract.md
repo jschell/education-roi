@@ -47,5 +47,19 @@ An isolated full-source registration yielded `VALIDATED` for both archives.
 UNITID 236948, CIP `03.0103`, first major, bachelor's level returned 93
 awards with source status `R`. No government ZIPs are committed.
 
-An immutable analytical table, source-status interpretation, cross-release
+`edu-roi ipeds build-program-awards --catalog ...` builds a sorted, zstd Parquet
+table from the two validated source artifacts. Its content-addressed path includes
+both source hashes and the transformation version. The immutable sidecar records
+the table hash, source artifact IDs, exact key columns, CIP version, award period,
+publication status, and row count. Each source row remains distinct, including
+first/second major and aggregate CIP 99 rows; `is_aggregate_cip` makes that
+special row explicit. Negative or blank count cells remain null with a reason,
+while reported zero remains zero. An identical rerun verifies and reuses the
+artifact; changed bytes or metadata fail.
+
+The official 303,460-row build produced a 1,080,158-byte Parquet artifact with
+SHA-256 `52297e47f307653cbf34f64c56e5b90171d9bc77f6bb912ad0a868d513d5732e`;
+an isolated rerun returned the same manifest. The source ZIPs are not committed.
+
+Verified processed-table lookup, source-status interpretation, cross-release
 comparison, and connections to scenario program evidence remain future work.
