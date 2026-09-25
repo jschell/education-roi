@@ -84,7 +84,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - retention dictionary validation requires each reviewed variable exactly once; malformed CSV
   rows with missing or extra cells fail with an explicit source-validation error.
 - reviewed final revised EF2022D source pair and cohort definitions are cataloged for a
-  prior-year retention comparison; release-specific registration and transformation remain gated.
+  prior-year retention comparison; release-specific paired registration, immutable table,
+  source and verified table lookups now preserve its distinct 2021/2022 cohort years.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

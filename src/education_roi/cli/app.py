@@ -301,13 +301,14 @@ def ipeds_register_retention(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[str, typer.Option(help="Reviewed retention release.")] = "2023-24-final",
 ) -> None:
-    """Validate and register the paired final revised EF2023D source."""
+    """Validate and register a paired final revised retention source."""
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.FALL_RETENTION,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registered = register_retention_release(release, ProjectPaths.from_environment(root))
     except (IPEDSCatalogError, IPEDSRetentionError, ProvenanceError, ValueError) as error:
@@ -333,6 +334,7 @@ def ipeds_resolve_retention(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[str, typer.Option(help="Reviewed retention release.")] = "2023-24-final",
 ) -> None:
     """Report one observed full-time first-year retention cohort, not completion risk."""
     paths = ProjectPaths.from_environment(root)
@@ -340,7 +342,7 @@ def ipeds_resolve_retention(
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.FALL_RETENTION,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
@@ -379,14 +381,15 @@ def ipeds_build_retention(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[str, typer.Option(help="Reviewed retention release.")] = "2023-24-final",
 ) -> None:
-    """Build the immutable final EF2023D institutional retention table."""
+    """Build an immutable final institutional retention table."""
     paths = ProjectPaths.from_environment(root)
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.FALL_RETENTION,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
@@ -438,7 +441,9 @@ def ipeds_build_retention(
 def ipeds_resolve_retention_table(
     table: Annotated[
         Path,
-        typer.Argument(exists=True, dir_okay=False, readable=True, help="Processed EF2023D table."),
+        typer.Argument(
+            exists=True, dir_okay=False, readable=True, help="Processed retention table."
+        ),
     ],
     unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
 ) -> None:

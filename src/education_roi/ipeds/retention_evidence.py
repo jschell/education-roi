@@ -5,9 +5,9 @@ from pathlib import Path
 import polars as pl
 from pydantic import Field, ValidationError
 
+from education_roi.ipeds.retention import RELEASE_SPECS
 from education_roi.ipeds.retention_pipeline import (
     POPULATION,
-    VERSION,
     IPEDSRetentionProcessingManifest,
 )
 from education_roi.provenance.integrity import sha256_file
@@ -64,16 +64,18 @@ def resolve_retention_evidence(path: Path, unitid: int) -> RetentionEvidence:
         frame = pl.read_parquet(path)
     except (OSError, UnicodeError, ValidationError, pl.exceptions.PolarsError) as error:
         raise IPEDSRetentionTableError(f"could not verify retention table: {error}") from error
+    spec = RELEASE_SPECS.get(manifest.release_id)
+    version = f"ipeds-ef{manifest.observation_year}d-retention-v1"
     expected = (
-        manifest.release_id == "2023-24-final"
+        spec is not None
         and manifest.publication_status == "final"
-        and manifest.entry_cohort_year == 2022
-        and manifest.observation_year == 2023
+        and manifest.entry_cohort_year == spec[3]
+        and manifest.observation_year == spec[4]
         and manifest.population == POPULATION
-        and manifest.transformation.parameters.get("data_member") == "ef2023d_rv.csv"
-        and manifest.transformation.parameters.get("transformation_version") == VERSION
-        and manifest.transformation.parameters.get("entry_cohort_year") == 2022
-        and manifest.transformation.parameters.get("observation_year") == 2023
+        and manifest.transformation.parameters.get("data_member") == spec[0]
+        and manifest.transformation.parameters.get("transformation_version") == version
+        and manifest.transformation.parameters.get("entry_cohort_year") == spec[3]
+        and manifest.transformation.parameters.get("observation_year") == spec[4]
         and manifest.transformation.parameters.get("population") == POPULATION
         and (
             manifest.output_path == path.name
@@ -101,7 +103,7 @@ def resolve_retention_evidence(path: Path, unitid: int) -> RetentionEvidence:
             or row["entry_cohort_year"] != manifest.entry_cohort_year
             or row["observation_year"] != manifest.observation_year
             or row["population"] != manifest.population
-            or row["transformation_version"] != VERSION
+            or row["transformation_version"] != version
             or row["data_artifact_id"] != data_id
             or row["dictionary_artifact_id"] != dictionary_id
         ):
@@ -175,7 +177,7 @@ def resolve_retention_evidence(path: Path, unitid: int) -> RetentionEvidence:
         percent_status=result_row["percent_status"] if result_row else None,
         data_artifact_id=data_id,
         dictionary_artifact_id=dictionary_id,
-        transformation_version=VERSION,
+        transformation_version=version,
         table_sha256=table_sha256,
         manifest_sha256=manifest_sha256,
     )

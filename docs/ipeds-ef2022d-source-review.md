@@ -26,9 +26,15 @@ returned adjusted cohort 7,165, next-fall enrolled 6,707, and reported retention
 94%. The separately published percentage must remain distinct from enrolled/count
 division; retention may include completers and rounded values.
 
-**Implementation gate:** This PR catalogs the reviewed source only. The existing
-registration, dictionary validator, transformation, lookup, and CLI are pinned to
-EF2023D. Extend them with an explicit EF2022D-specific definition and lowercase
-worksheet check before accepting this release as validated input. Compare the
-distinct 2021 and 2022 entering cohorts as historical observations, with UNITID
-identity and coverage review. Neither rate is an individual completion probability.
+`edu-roi ipeds register-retention --catalog data/manifests/ipeds-release-catalog.json
+--release-id 2022-23-final` validates the release-specific revised member and lowercase
+worksheet before registering the exact paired sources. `resolve-retention` and
+`build-retention` accept the same release option; the default remains 2023-24 final.
+The resulting table has a distinct transformation version, explicit 2021/2022 years,
+and an immutable paired-source manifest. `resolve-retention-table` verifies it before
+lookup. An isolated official-source build produced 5,706 institution rows and UW
+7,165 adjusted cohort, 6,707 enrolled, and published 94%.
+
+Cross-release comparison of the distinct 2021 and 2022 entering cohorts remains
+future work; UNITID identity and coverage must be reviewed. Neither rate is an
+individual completion probability.

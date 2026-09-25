@@ -41,19 +41,19 @@ HEADER = "UNITID,RRFTCTA,XRRFTCTA,RET_NMF,XRET_NMF,RET_PCF,XRET_PCF\n"
 
 
 def fixture(
-    tmp_path: Path, rows: str
+    tmp_path: Path, rows: str, release_id: str = "2023-24-final"
 ) -> tuple[Path, Path, IPEDSRelease, ArtifactManifest, ArtifactManifest]:
     tmp_path.mkdir(parents=True, exist_ok=True)
     release = select_release(
         IPEDSReleaseCatalog.from_file(CATALOG),
         IPEDSComponent.FALL_RETENTION,
-        release_id="2023-24-final",
+        release_id=release_id,
     )
     archive = tmp_path / "EF2023D.zip"
     dictionary = tmp_path / "EF2023D_Dict.zip"
     with ZipFile(archive, "w", ZIP_DEFLATED) as output:
         output.writestr("ef2023d.csv", HEADER + "236948,1,R,1,R,100,R\n")
-        output.writestr("ef2023d_rv.csv", HEADER + rows)
+        output.writestr(release.data_member or "", HEADER + rows)
     with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
         output.writestr("ef2023d.xlsx", b"fixture")
     registry = Registry(tmp_path / "data/manifests/registry.sqlite")
@@ -77,23 +77,75 @@ def fixture(
     return archive, dictionary, release, manifests[0], manifests[1]
 
 
-def test_reviewed_prior_retention_source_remains_ingestion_gated() -> None:
+def test_reviewed_retention_releases_are_selected_explicitly() -> None:
     catalog = IPEDSReleaseCatalog.from_file(CATALOG)
     previous = select_release(catalog, IPEDSComponent.FALL_RETENTION, release_id="2022-23-final")
     current = select_release(catalog, IPEDSComponent.FALL_RETENTION)
     assert previous.data_member == "ef2022d_rv.csv"
     assert current.release_id == "2023-24-final"
-    from education_roi.ipeds.retention import _require_release
 
-    with pytest.raises(IPEDSRetentionError, match="requires reviewed final EF2023D"):
-        _require_release(previous)
+
+def test_prior_retention_cohort_has_distinct_years_and_lineage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention.verify_retention_dictionary",
+        lambda path, release_id: None,
+    )
+    monkeypatch.setattr(
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary",
+        lambda path, release_id: None,
+    )
+    args = fixture(tmp_path, "236948,7165,R,6707,R,94,R\n", "2022-23-final")
+    source = resolve_retention(*args, 236948)
+    assert (source.entry_cohort_year, source.observation_year) == (2021, 2022)
+    assert (source.adjusted_cohort, source.reported_retention_percent) == (7165, 94)
+    processed = transform_retention_archive(
+        args[0], args[1], tmp_path / "data/processed", *args[3:], args[2]
+    )
+    evidence = resolve_retention_evidence(processed.parquet_path, 236948)
+    assert evidence.status == "OBSERVED"
+    assert (evidence.entry_cohort_year, evidence.observation_year) == (2021, 2022)
+    assert evidence.transformation_version == "ipeds-ef2022d-retention-v1"
+    assert evidence.data_artifact_id == args[3].artifact_id
+    cli = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "build-retention",
+            "--catalog",
+            str(CATALOG),
+            "--root",
+            str(tmp_path),
+            "--release-id",
+            "2022-23-final",
+        ],
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["manifest"]["entry_cohort_year"] == 2021
+    lookup = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "resolve-retention",
+            "236948",
+            "--catalog",
+            str(CATALOG),
+            "--root",
+            str(tmp_path),
+            "--release-id",
+            "2022-23-final",
+        ],
+    )
+    assert lookup.exit_code == 0, lookup.stdout
+    assert json.loads(lookup.stdout)["observation_year"] == 2022
 
 
 def test_revised_cohort_observation_does_not_equate_retention_and_completion(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path, release_id: None
     )
     args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
     result = resolve_retention(*args, 236948)
@@ -132,6 +184,30 @@ def test_dictionary_rejects_swapped_definitions(
         verify_retention_dictionary(path)
 
 
+def test_prior_dictionary_requires_lowercase_sheet_and_year_specific_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "dictionary.zip"
+    with ZipFile(path, "w", ZIP_DEFLATED) as output:
+        output.writestr("ef2022d.xlsx", b"fixture")
+    expected = {
+        "RRFTCTA": "Full-time adjusted fall 2021 cohort",
+        "RET_NMF": "Students from the full-time adjusted fall 2021 cohort enrolled in fall 2022",
+        "RET_PCF": "Full-time retention rate, 2022",
+    }
+
+    def fake_rows(data: bytes, *, sheet_names: frozenset[str]) -> list[list[str]]:
+        if sheet_names == frozenset({"Introduction"}):
+            return [["(Final/revised release)"]]
+        assert sheet_names == frozenset({"varlist"})
+        return [["1", key, "N", "6", "Cont", "X" + key, label] for key, label in expected.items()]
+
+    monkeypatch.setattr("education_roi.ipeds.retention._xlsx_rows", fake_rows)
+    verify_retention_dictionary(path, "2022-23-final")
+    with pytest.raises(IPEDSRetentionError, match="requires ef2023d.xlsx"):
+        verify_retention_dictionary(path, "2023-24-final")
+
+
 @pytest.mark.parametrize("row", ["236948,10,R,8,R,80,R,extra", "236948,10,R,8,R,80"])
 def test_retention_rejects_malformed_csv_row(tmp_path: Path, row: str) -> None:
     archive = tmp_path / "malformed.zip"
@@ -143,7 +219,7 @@ def test_retention_rejects_malformed_csv_row(tmp_path: Path, row: str) -> None:
 
 def test_zero_cohort_and_impossible_count(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path, release_id: None
     )
     args = fixture(tmp_path, "236948,0,R,0,R,0,R\n236949,10,R,11,R,100,R\n")
     assert resolve_retention(*args, 236948).status == "INSUFFICIENT_DATA"
@@ -155,7 +231,7 @@ def test_registration_and_cli_pin_final_member(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention.verify_retention_dictionary", lambda path, release_id: None
     )
     args = fixture(tmp_path / "sources", "236948,100,R,90,R,90,R\n")
     release = args[2]
@@ -193,7 +269,8 @@ def test_registration_and_cli_pin_final_member(
 
 def test_immutable_retention_table_and_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary",
+        lambda path, release_id: None,
     )
     args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
     output = tmp_path / "data/processed"
@@ -226,7 +303,8 @@ def test_verified_retention_evidence_and_tamper_detection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary",
+        lambda path, release_id: None,
     )
     args = fixture(tmp_path, "236948,7311,R,6938,R,95,R\n236949,-1,N,,N,,N\n")
     processed = transform_retention_archive(
@@ -259,7 +337,8 @@ def test_retention_evidence_rejects_manifest_population_mismatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary", lambda path: None
+        "education_roi.ipeds.retention_pipeline.verify_retention_dictionary",
+        lambda path, release_id: None,
     )
     args = fixture(tmp_path, "236948,10,R,8,R,80,R\n")
     processed = transform_retention_archive(

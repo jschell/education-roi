@@ -1,4 +1,4 @@
-"""Pinned final EF2023D revised institutional first-year retention evidence."""
+"""Pinned final EF2022D and EF2023D institutional first-year retention evidence."""
 
 import csv
 import io
@@ -38,6 +38,30 @@ LABELS = {
     "RET_NMF": "Students from the full-time adjusted fall 2022 cohort enrolled in fall 2023",
     "RET_PCF": "Full-time retention rate, 2023",
 }
+RELEASE_SPECS = {
+    "2022-23-final": (
+        "ef2022d_rv.csv",
+        "ef2022d.xlsx",
+        "varlist",
+        2021,
+        2022,
+        {
+            "RRFTCTA": "Full-time adjusted fall 2021 cohort",
+            "RET_NMF": (
+                "Students from the full-time adjusted fall 2021 cohort enrolled in fall 2022"
+            ),
+            "RET_PCF": "Full-time retention rate, 2022",
+        },
+    ),
+    "2023-24-final": (
+        "ef2023d_rv.csv",
+        "ef2023d.xlsx",
+        "Varlist",
+        2022,
+        2023,
+        LABELS,
+    ),
+}
 
 
 class IPEDSRetentionError(ValueError):
@@ -48,8 +72,8 @@ class IPEDSRetentionObservation(StrictModel):
     unitid: int = Field(gt=0)
     release_id: str
     publication_status: str
-    entry_cohort_year: int = 2022
-    observation_year: int = 2023
+    entry_cohort_year: int
+    observation_year: int
     population: str = "first_time_full_time_degree_or_certificate_seeking_undergraduate"
     status: str
     adjusted_cohort: int | None
@@ -74,29 +98,32 @@ class RegisteredIPEDSRetention:
 def _require_release(release: IPEDSRelease) -> None:
     if (
         release.component is not IPEDSComponent.FALL_RETENTION
-        or release.release_id != "2023-24-final"
+        or release.release_id not in RELEASE_SPECS
         or release.publication_status is not IPEDSPublicationStatus.FINAL
-        or release.data_member != "ef2023d_rv.csv"
+        or release.data_member != RELEASE_SPECS[release.release_id][0]
     ):
-        raise IPEDSRetentionError("requires reviewed final EF2023D revised release")
+        raise IPEDSRetentionError("requires reviewed final revised EF2022D or EF2023D release")
 
 
-def verify_retention_dictionary(path: Path) -> None:
+def verify_retention_dictionary(path: Path, release_id: str = "2023-24-final") -> None:
+    if release_id not in RELEASE_SPECS:
+        raise IPEDSRetentionError("unsupported retention dictionary release")
+    _, workbook_name, sheet_name, _, _, labels = RELEASE_SPECS[release_id]
     try:
         with ZipFile(path) as archive:
-            if archive.namelist() != ["ef2023d.xlsx"]:
-                raise IPEDSRetentionError("retention dictionary requires ef2023d.xlsx")
-            workbook = archive.read("ef2023d.xlsx")
+            if archive.namelist() != [workbook_name]:
+                raise IPEDSRetentionError(f"retention dictionary requires {workbook_name}")
+            workbook = archive.read(workbook_name)
         intro = _xlsx_rows(workbook, sheet_names=frozenset({"Introduction"}))
-        rows = _xlsx_rows(workbook, sheet_names=frozenset({"Varlist"}))
+        rows = _xlsx_rows(workbook, sheet_names=frozenset({sheet_name}))
     except (OSError, BadZipFile, KeyError, IPEDSDictionaryError) as error:
         raise IPEDSRetentionError(f"could not verify retention dictionary: {error}") from error
-    found = [row for row in rows if len(row) >= 7 and row[1] in LABELS]
+    found = [row for row in rows if len(row) >= 7 and row[1] in labels]
     if (
         not any("(Final/revised release)" in cell for row in intro for cell in row)
-        or len(found) != len(LABELS)
-        or {row[1] for row in found} != LABELS.keys()
-        or any(row[6] != LABELS[row[1]] or row[5] != "X" + row[1] or row[2] != "N" for row in found)
+        or len(found) != len(labels)
+        or {row[1] for row in found} != labels.keys()
+        or any(row[6] != labels[row[1]] or row[5] != "X" + row[1] or row[2] != "N" for row in found)
     ):
         raise IPEDSRetentionError("dictionary lacks reviewed final cohort definitions")
 
@@ -192,7 +219,7 @@ def resolve_retention(
         RETENTION_DICTIONARY.dataset_id,
         str(release.dictionary_url),
     )
-    verify_retention_dictionary(dictionary)
+    verify_retention_dictionary(dictionary, release.release_id)
     row = read_retention_rows(archive, release.data_member or "").get(unitid)
     cells = {code: row[code] or None if row else None for code in LABELS}
     statuses = {code: row["X" + code] or None if row else None for code in LABELS}
@@ -201,10 +228,13 @@ def resolve_retention(
     percent = _percent(row["RET_PCF"]) if row else None
     if cohort is not None and enrolled is not None and enrolled > cohort:
         raise IPEDSRetentionError(f"enrolled count exceeds adjusted cohort for UNITID {unitid}")
+    _, _, _, entry_year, observation_year, _ = RELEASE_SPECS[release.release_id]
     return IPEDSRetentionObservation(
         unitid=unitid,
         release_id=release.release_id,
         publication_status=release.publication_status.value,
+        entry_cohort_year=entry_year,
+        observation_year=observation_year,
         status=(
             "OBSERVED"
             if cohort and enrolled is not None and percent is not None
@@ -234,7 +264,7 @@ def register_retention_release(
         for url in (str(release.data_url), str(release.dictionary_url)):
             downloads.append(downloader.download(url, paths.data / ".downloads", ("nces.ed.gov",)))
         read_retention_rows(downloads[0].path, release.data_member or "")
-        verify_retention_dictionary(downloads[1].path)
+        verify_retention_dictionary(downloads[1].path, release.release_id)
         registry = Registry(paths.data / "manifests" / "registry.sqlite")
         store = ArtifactStore(paths.data / "raw", registry)
         manifests = []
@@ -249,7 +279,7 @@ def register_retention_release(
                 source_url=download.source_url,
                 final_url=download.final_url,
                 publication_status="final",
-                schema_version="ipeds-ef2023d-v1",
+                schema_version=f"ipeds-ef{release.collection_year}d-v1",
                 vintage=release.release_id,
                 artifact_name=Path(urlparse(download.final_url).path).name,
             )
@@ -257,7 +287,8 @@ def register_retention_release(
                 manifest = registry.transition(
                     manifest.artifact_id,
                     ApprovalState.VALIDATED,
-                    "EF2023D revised retention columns and paired dictionary validated",
+                    f"EF{release.collection_year}D revised retention columns "
+                    "and paired dictionary validated",
                 )
             manifests.append(manifest)
         return RegisteredIPEDSRetention(manifests[0], manifests[1])
