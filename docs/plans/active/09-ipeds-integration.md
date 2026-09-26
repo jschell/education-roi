@@ -126,6 +126,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   raw/parsed totals, source statuses, and deterministic manifest; official
   20,849-row selected-cohort build and identical rerun verified. Processed
   evidence lookup and scenario use remain gated.
+- verified EF2023A processed-table lookup checks table/sidecar hashes, exact
+  cohort definitions and composite keys, every raw-to-parsed count, and paired
+  lineage; official 20,849-row table lookup tested. Scenario use remains gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

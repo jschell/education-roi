@@ -183,6 +183,10 @@ def test_immutable_enrollment_table_keeps_exact_cohorts(
 ) -> None:
     import polars as pl
 
+    from education_roi.ipeds.enrollment_evidence import (
+        IPEDSEnrollmentTableError,
+        resolve_enrollment_evidence,
+    )
     from education_roi.ipeds.enrollment_pipeline import VERSION, transform_enrollment
     from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
     from education_roi.provenance.integrity import sha256_file
@@ -262,6 +266,47 @@ def test_immutable_enrollment_table_keeps_exact_cohorts(
     ) == ("", "A", "missing or negative source count")
     assert frame["transformation_version"].to_list() == [VERSION] * 6
     assert result.manifest.transformation.output_sha256 == sha256_file(result.parquet_path)[0]
+    observed = resolve_enrollment_evidence(
+        result.parquet_path, 236948, EnrollmentCohort.FULL_TIME_FIRST_TIME
+    )
+    assert (observed.status, observed.enrollment_count, observed.efalevel) == (
+        "OBSERVED",
+        6928,
+        24,
+    )
+    assert observed.table_sha256 == result.manifest.transformation.output_sha256
+    zero = resolve_enrollment_evidence(result.parquet_path, 236949, EnrollmentCohort.ALL_STUDENTS)
+    assert (zero.status, zero.enrollment_count) == ("OBSERVED", 0)
+    negative = resolve_enrollment_evidence(
+        result.parquet_path, 236949, EnrollmentCohort.FULL_TIME_FIRST_TIME
+    )
+    assert (negative.status, negative.raw_enrollment_count, negative.source_status) == (
+        "INSUFFICIENT_DATA",
+        "-1",
+        "C",
+    )
+    missing = resolve_enrollment_evidence(
+        result.parquet_path, 236948, EnrollmentCohort.PART_TIME_TRANSFER_IN
+    )
+    assert (missing.status, missing.enrollment_count) == ("INSUFFICIENT_DATA", None)
+    assert (
+        resolve_enrollment_evidence(
+            result.parquet_path, 999999, EnrollmentCohort.ALL_STUDENTS
+        ).status
+        == "INSUFFICIENT_DATA"
+    )
+    cli_lookup = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "resolve-enrollment-table",
+            str(result.parquet_path),
+            "236948",
+            "full_time_transfer_in",
+        ],
+    )
+    assert cli_lookup.exit_code == 0, cli_lookup.stdout
+    assert json.loads(cli_lookup.stdout)["enrollment_count"] == 1415
     repeat = transform_enrollment(*args)
     assert repeat.manifest == result.manifest
     cli = CliRunner().invoke(
@@ -269,7 +314,33 @@ def test_immutable_enrollment_table_keeps_exact_cohorts(
     )
     assert cli.exit_code == 0, cli.stdout
     assert json.loads(cli.stdout)["manifest"]["row_count"] == 6
+    original_table = result.parquet_path.read_bytes()
+    original_manifest = result.manifest_path.read_bytes()
+    forged = frame.with_columns(
+        pl.when((pl.col("unitid") == 236948) & (pl.col("efalevel") == 24))
+        .then(pl.lit(99999))
+        .otherwise(pl.col("enrollment_count"))
+        .alias("enrollment_count")
+    )
+    result.parquet_path.chmod(0o644)
+    forged.write_parquet(
+        result.parquet_path, compression="zstd", statistics=True, row_group_size=100_000
+    )
+    altered_hash = sha256_file(result.parquet_path)[0]
+    sidecar = json.loads(original_manifest)
+    sidecar["transformation"]["output_sha256"] = altered_hash
+    sidecar["transformation"]["transformation_id"] = (
+        f"{VERSION}:{release.release_id}:{pair.data.sha256}:{pair.dictionary.sha256}:{altered_hash}"
+    )
+    result.manifest_path.chmod(0o644)
+    result.manifest_path.write_text(json.dumps(sidecar))
+    with pytest.raises(IPEDSEnrollmentTableError, match="source cell"):
+        resolve_enrollment_evidence(result.parquet_path, 236948, EnrollmentCohort.ALL_STUDENTS)
+    result.parquet_path.write_bytes(original_table)
+    result.manifest_path.write_bytes(original_manifest)
     result.parquet_path.chmod(0o644)
     result.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSEnrollmentTableError, match="hash differs"):
+        resolve_enrollment_evidence(result.parquet_path, 236948, EnrollmentCohort.ALL_STUDENTS)
     with pytest.raises(IPEDSProcessedArtifactConflict, match="different bytes"):
         transform_enrollment(*args)
