@@ -271,3 +271,90 @@ def test_compare_graduation_cli_exposes_review_and_invalid_states(tmp_path: Path
     missing = cli.invoke(app, ["ipeds", "compare-graduation", str(previous), str(current)])
     assert missing.exit_code == 2
     assert "processing manifest" in json.loads(missing.stdout)["error"]
+
+
+def test_scenario_graduation_review_is_context_only_and_release_pinned(tmp_path: Path) -> None:
+    from education_roi.scenarios import (
+        AttendanceBasis,
+        Credential,
+        DatasetPin,
+        load_scenario_file,
+    )
+    from education_roi.scenarios.graduation_context import (
+        ScenarioGraduationContextError,
+        review_scenario_graduation,
+    )
+
+    examples = Path(__file__).parents[2] / "scenarios/examples"
+    document = load_scenario_file(examples / "example-bachelors.yaml")
+    original = document.scenario
+    scenario = original.model_copy(
+        update={
+            "data": original.data.model_copy(
+                update={
+                    "pins": (
+                        *original.data.pins,
+                        DatasetPin(dataset="ipeds-graduation-rates", release="2023-24-final"),
+                    ),
+                }
+            ),
+        }
+    )
+    path = table(
+        tmp_path / "cohort.parquet",
+        "2023-24-final",
+        2017,
+        [{"unitid": 236948, "adjusted_cohort": 100, "bachelors_awards": 70}],
+    )
+    manifest(path, release="2023-24-final", year=2017)
+    context = review_scenario_graduation(scenario, path)
+    assert context.evidence.observed_rate == pytest.approx(0.7)
+    assert context.evidence.cohort_year == 2017
+    assert context.completion_use == "CONTEXT_ONLY"
+    assert context.configuration_hash == scenario.configuration_hash
+    assert original.education is not None and original.education.institution is not None
+    assert original.education.completion.graduate_on_time.value == 0.65
+
+    scenario_file = tmp_path / "education.json"
+    scenario_file.write_text(document.model_copy(update={"scenario": scenario}).model_dump_json())
+    cli = CliRunner().invoke(
+        app,
+        [
+            "scenario",
+            "review-graduation",
+            str(examples / "workforce-high-school.yaml"),
+            str(scenario_file),
+            "--scenario-id",
+            scenario.id,
+            "--table",
+            str(path),
+        ],
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["evidence"]["observed_rate"] == pytest.approx(0.7)
+    assert json.loads(cli.stdout)["completion_use"] == "CONTEXT_ONLY"
+
+    with pytest.raises(ScenarioGraduationContextError, match="pin"):
+        review_scenario_graduation(original, path)
+    different_pin = scenario.data.model_copy(
+        update={
+            "pins": tuple(
+                pin.model_copy(update={"release": "2022-23-final"})
+                if pin.dataset == "ipeds-graduation-rates"
+                else pin
+                for pin in scenario.data.pins
+            ),
+        }
+    )
+    with pytest.raises(ScenarioGraduationContextError, match="differs"):
+        review_scenario_graduation(scenario.model_copy(update={"data": different_pin}), path)
+    assert scenario.education is not None and scenario.education.institution is not None
+    education = scenario.education.model_copy(update={"credential": Credential.ASSOCIATE})
+    with pytest.raises(ScenarioGraduationContextError, match="bachelor"):
+        review_scenario_graduation(scenario.model_copy(update={"education": education}), path)
+    part_time = scenario.education.institution.model_copy(
+        update={"attendance_basis": AttendanceBasis.PART_TIME}
+    )
+    education = scenario.education.model_copy(update={"institution": part_time})
+    with pytest.raises(ScenarioGraduationContextError, match="full-time"):
+        review_scenario_graduation(scenario.model_copy(update={"education": education}), path)

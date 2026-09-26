@@ -113,6 +113,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
   selected population, compatible full-time/public residency, and verified table;
   it does not insert grant-adjusted net price into additive cash-flow components.
   Numerical scenario cost integration remains gated on compatible definitions.
+- contextual scenario graduation review requires an explicit reviewed GR release
+  pin and a bachelor's/full-time institution scenario, then links hash-verified
+  cohort evidence to the scenario configuration; it does not infer outcome
+  branch probabilities from an institution's 150%-of-normal-time cohort rate.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
