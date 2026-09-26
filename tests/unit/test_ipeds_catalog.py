@@ -151,6 +151,19 @@ def test_reviewed_program_awards_source_pins_revised_member() -> None:
     )
 
 
+def test_reviewed_aid_source_pins_final_revised_member() -> None:
+    inventory = IPEDSReleaseCatalog.from_file(
+        PROJECT_ROOT / "data/manifests/ipeds-release-catalog.json"
+    )
+    selected = select_release(inventory, IPEDSComponent.STUDENT_FINANCIAL_AID)
+    assert selected.release_id == "2023-24-final"
+    assert selected.data_member == "sfa2223_RV.csv"
+    assert str(selected.data_url) == ("https://nces.ed.gov/ipeds/complete-data-files/SFA2223.zip")
+    assert str(selected.dictionary_url) == (
+        "https://nces.ed.gov/ipeds/complete-data-files/SFA2223_Dict.zip"
+    )
+
+
 def test_inventory_comparison_classifies_changes_without_promoting_them() -> None:
     retained = release(2023, IPEDSPublicationStatus.FINAL)
     changed_payload = retained.model_dump()
