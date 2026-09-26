@@ -53,6 +53,10 @@ from education_roi.ipeds.net_price import (
     register_net_price,
     resolve_net_price,
 )
+from education_roi.ipeds.net_price_evidence import (
+    IPEDSNetPriceTableError,
+    resolve_net_price_evidence,
+)
 from education_roi.ipeds.net_price_pipeline import transform_net_price
 from education_roi.ipeds.program_awards import (
     PROGRAM_DATA,
@@ -510,6 +514,21 @@ def ipeds_build_net_price(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-net-price-table")
+def ipeds_resolve_net_price_table(
+    table: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    basis: Annotated[NetPriceBasis, typer.Argument(help="Exact aid-recipient population/basis.")],
+) -> None:
+    """Return one fully verified processed net-price observation."""
+    try:
+        result = resolve_net_price_evidence(table, unitid, basis)
+    except (IPEDSNetPriceTableError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("resolve-program-awards")

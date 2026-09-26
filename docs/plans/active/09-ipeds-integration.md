@@ -106,6 +106,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   numeric, raw, and status cells separate with deterministic manifest and hash;
   official 5,653-row build and identical rerun verified. Processed-table lookup
   and scenario use remain gated.
+- verified SFA2223 processed-table lookup checks complete table/manifest hashes,
+  exact field mapping, ordered UNITIDs, all raw-to-numeric cells and paired
+  lineage; official 5,653-row lookup tested. Scenario use remains gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

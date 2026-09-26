@@ -46,6 +46,7 @@ field falls back to a private/other reporting field or vice versa.
 education-roi ipeds register-net-price --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds resolve-net-price 236948 public_in_state_grant --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds build-net-price --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+education-roi ipeds resolve-net-price-table /path/to/net-price.parquet 236948 public_in_state_grant
 ```
 
 The processed Parquet table has one sorted row per UNITID and separate
@@ -54,7 +55,11 @@ Its deterministic path includes both raw artifact hashes and the transformation
 version. An adjacent manifest records the paired artifact IDs, exact source
 member, field mapping, year, row count, and table hash. Rebuilding the same
 sources returns the existing immutable table; changed bytes at that path fail.
-This table is not yet exposed through a verified processed-table lookup.
+The processed-table lookup checks the complete Parquet hash, sidecar identity,
+release and field mapping, ordered unique UNITIDs, every raw-to-numeric cell,
+and row-level source lineage before returning one exact basis. It reports the
+table and manifest hashes, paired artifact IDs, source field, raw cell, and
+status. Missing cells remain insufficient data; zero remains observed.
 
 An isolated official-source run resolved University of Washington's public
 grant average as 11023 and public $0–30,000 Title IV average as 6398; both

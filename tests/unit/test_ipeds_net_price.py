@@ -164,6 +164,10 @@ def test_immutable_net_price_table_preserves_each_basis(
 ) -> None:
     import polars as pl
 
+    from education_roi.ipeds.net_price_evidence import (
+        IPEDSNetPriceTableError,
+        resolve_net_price_evidence,
+    )
     from education_roi.ipeds.net_price_pipeline import BASIS_FIELDS, VERSION, transform_net_price
     from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
     from education_roi.provenance.integrity import sha256_file
@@ -231,6 +235,42 @@ def test_immutable_net_price_table_preserves_each_basis(
     ) == (0, None, "-1")
     assert (second["other_reporting_grant"], second["other_reporting_title_iv_0_30k"]) == (555, 444)
     assert result.manifest.transformation.output_sha256 == sha256_file(result.parquet_path)[0]
+    observed = resolve_net_price_evidence(result.parquet_path, 236948, NetPriceBasis.PUBLIC_GRANT)
+    assert (observed.status, observed.average_net_price, observed.source_field) == (
+        "OBSERVED",
+        11023,
+        "NPIST2",
+    )
+    assert observed.table_sha256 == result.manifest.transformation.output_sha256
+    other = resolve_net_price_evidence(result.parquet_path, 236948, NetPriceBasis.OTHER_GRANT)
+    assert (
+        other.status,
+        other.average_net_price,
+        other.raw_average_net_price,
+        other.source_status,
+    ) == ("INSUFFICIENT_DATA", None, "", "A")
+    assert (
+        resolve_net_price_evidence(
+            result.parquet_path, 236949, NetPriceBasis.PUBLIC_GRANT
+        ).average_net_price
+        == 0
+    )
+    assert (
+        resolve_net_price_evidence(result.parquet_path, 999999, NetPriceBasis.PUBLIC_GRANT).status
+        == "INSUFFICIENT_DATA"
+    )
+    cli_lookup = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "resolve-net-price-table",
+            str(result.parquet_path),
+            "236948",
+            "public_in_state_title_iv_0_30k",
+        ],
+    )
+    assert cli_lookup.exit_code == 0, cli_lookup.stdout
+    assert json.loads(cli_lookup.stdout)["average_net_price"] == 6398
     repeat = transform_net_price(*args)
     assert repeat.manifest_path == result.manifest_path
     assert repeat.manifest == result.manifest
@@ -239,7 +279,33 @@ def test_immutable_net_price_table_preserves_each_basis(
     )
     assert cli.exit_code == 0, cli.stdout
     assert json.loads(cli.stdout)["manifest"]["row_count"] == 2
+    original_table = result.parquet_path.read_bytes()
+    original_manifest = result.manifest_path.read_bytes()
+    forged = frame.with_columns(
+        pl.when(pl.col("unitid") == 236948)
+        .then(pl.lit(99999))
+        .otherwise(pl.col("public_in_state_grant"))
+        .alias("public_in_state_grant")
+    )
+    result.parquet_path.chmod(0o644)
+    forged.write_parquet(
+        result.parquet_path, compression="zstd", statistics=True, row_group_size=100_000
+    )
+    altered_hash = sha256_file(result.parquet_path)[0]
+    sidecar = json.loads(original_manifest)
+    sidecar["transformation"]["output_sha256"] = altered_hash
+    sidecar["transformation"]["transformation_id"] = (
+        f"{VERSION}:{release.release_id}:{pair.data.sha256}:{pair.dictionary.sha256}:{altered_hash}"
+    )
+    result.manifest_path.chmod(0o644)
+    result.manifest_path.write_text(json.dumps(sidecar))
+    with pytest.raises(IPEDSNetPriceTableError, match="source cell"):
+        resolve_net_price_evidence(result.parquet_path, 236948, NetPriceBasis.OTHER_GRANT)
+    result.parquet_path.write_bytes(original_table)
+    result.manifest_path.write_bytes(original_manifest)
     result.parquet_path.chmod(0o644)
     result.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSNetPriceTableError, match="hash differs"):
+        resolve_net_price_evidence(result.parquet_path, 236948, NetPriceBasis.PUBLIC_GRANT)
     with pytest.raises(IPEDSProcessedArtifactConflict, match="different bytes"):
         transform_net_price(*args)
