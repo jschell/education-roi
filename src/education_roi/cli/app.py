@@ -45,6 +45,8 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
+from education_roi.ipeds.cip import CIPCrosswalkError
+from education_roi.ipeds.cip_official import write_official_cip_crosswalk
 from education_roi.ipeds.enrollment import (
     ENROLLMENT_DATA,
     ENROLLMENT_DICTIONARY,
@@ -148,6 +150,32 @@ app.add_typer(data_app, name="data")
 app.add_typer(reproduce_app, name="reproduce")
 app.add_typer(scenario_app, name="scenario")
 app.add_typer(ipeds_app, name="ipeds")
+
+
+@ipeds_app.command("build-cip-crosswalk")
+def build_cip_crosswalk(
+    source: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(help="Immutable reviewed crosswalk JSON destination.")],
+) -> None:
+    """Validate the pinned NCES 2010→2020 CSV and write its directional mappings."""
+    try:
+        imported = write_official_cip_crosswalk(source, output)
+    except CIPCrosswalkError as error:
+        typer.echo(f"Invalid NCES CIP source: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    typer.echo(
+        json.dumps(
+            {
+                "output": str(output),
+                "source_rows": imported.source_rows,
+                "mappings": len(imported.crosswalk.mappings),
+                "omitted_deleted": imported.omitted_deleted,
+                "omitted_new": imported.omitted_new,
+                "source_sha256": imported.crosswalk.source_sha256,
+            },
+            sort_keys=True,
+        )
+    )
 
 
 def version_callback(value: bool) -> None:

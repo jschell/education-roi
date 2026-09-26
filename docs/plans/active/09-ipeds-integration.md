@@ -133,6 +133,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
   selected cohort, and compatible attendance/undergraduate definition; verified
   table evidence is linked to the scenario configuration without inferring
   transfer or completion outcome probabilities.
+- pinned official NCES CIP 2010→2020 CSV yields 2,143 directional mappings with
+  source hash and row-count validation. Unchanged codes resolve exactly; moved
+  codes require review; 12 deleted and 544 new rows are never assigned invented
+  predecessors or successors. See `docs/ipeds-cip-2010-2020-source-review.md`.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -143,7 +147,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
-5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and
+5. Register authoritative UNITID history rows, then connect the reviewed CIP mappings and
    institution history to program production.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
