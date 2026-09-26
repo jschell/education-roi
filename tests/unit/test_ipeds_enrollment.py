@@ -176,3 +176,100 @@ def test_paired_registration_and_exact_cohort_lookup(
     actual_data.write_bytes(b"tampered")
     with pytest.raises(IPEDSEnrollmentError, match="bytes do not match"):
         resolve_enrollment(*args, 236948, EnrollmentCohort.ALL_STUDENTS)
+
+
+def test_immutable_enrollment_table_keeps_exact_cohorts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import polars as pl
+
+    from education_roi.ipeds.enrollment_pipeline import VERSION, transform_enrollment
+    from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
+    from education_roi.provenance.integrity import sha256_file
+
+    monkeypatch.setattr(
+        "education_roi.ipeds.enrollment.verify_enrollment_dictionary", lambda p: None
+    )
+    monkeypatch.setattr(
+        "education_roi.ipeds.enrollment_pipeline.verify_enrollment_dictionary", lambda p: None
+    )
+    release = select_release(IPEDSReleaseCatalog.from_file(CATALOG), IPEDSComponent.FALL_ENROLLMENT)
+    data, dictionary = sources(
+        tmp_path / "source",
+        "236948,1,29,3,4,55620,R\n"
+        "236948,24,1,1,1,6928,R\n"
+        "236948,39,2,1,1,1415,R\n"
+        "236949,1,29,3,4,0,R\n"
+        "236949,24,1,1,1,-1,C\n"
+        "236949,39,2,1,1,,A\n",
+    )
+
+    class Downloader:
+        index = 0
+
+        def download(
+            self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+        ) -> DownloadResult:
+            destination_directory.mkdir(parents=True, exist_ok=True)
+            self.index += 1
+            target = destination_directory / f"download-{self.index}.zip"
+            copyfile((data, dictionary)[self.index - 1], target)
+            return DownloadResult(target, url, url, target.stat().st_size)
+
+    root = tmp_path / "project"
+    pair = register_enrollment(release, ProjectPaths(root), downloader=Downloader())  # type: ignore[arg-type]
+    registry = Registry(root / "data/manifests/registry.sqlite")
+    actual_data = root / "data/raw" / registry.get_artifact(pair.data.artifact_id).storage_path
+    actual_dictionary = (
+        root / "data/raw" / registry.get_artifact(pair.dictionary.artifact_id).storage_path
+    )
+    args = (
+        actual_data,
+        actual_dictionary,
+        root / "data/processed",
+        pair.data,
+        pair.dictionary,
+        release,
+    )
+    result = transform_enrollment(*args)
+    frame = pl.read_parquet(result.parquet_path)
+    assert result.manifest.row_count == 6
+    assert result.manifest.key_columns == ("unitid", "efalevel")
+    assert frame.select("unitid", "efalevel").rows() == [
+        (236948, 1),
+        (236948, 24),
+        (236948, 39),
+        (236949, 1),
+        (236949, 24),
+        (236949, 39),
+    ]
+    records = frame.to_dicts()
+    assert (records[1]["cohort"], records[1]["line"], records[1]["enrollment_count"]) == (
+        "full_time_first_time",
+        1,
+        6928,
+    )
+    assert (
+        records[3]["enrollment_count"],
+        records[4]["raw_enrollment_count"],
+        records[4]["enrollment_count"],
+        records[4]["source_status"],
+    ) == (0, "-1", None, "C")
+    assert (
+        records[5]["raw_enrollment_count"],
+        records[5]["source_status"],
+        records[5]["unavailable_reason"],
+    ) == ("", "A", "missing or negative source count")
+    assert frame["transformation_version"].to_list() == [VERSION] * 6
+    assert result.manifest.transformation.output_sha256 == sha256_file(result.parquet_path)[0]
+    repeat = transform_enrollment(*args)
+    assert repeat.manifest == result.manifest
+    cli = CliRunner().invoke(
+        app, ["ipeds", "build-enrollment", "--catalog", str(CATALOG), "--root", str(root)]
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["manifest"]["row_count"] == 6
+    result.parquet_path.chmod(0o644)
+    result.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSProcessedArtifactConflict, match="different bytes"):
+        transform_enrollment(*args)

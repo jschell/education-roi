@@ -1,7 +1,7 @@
 # IPEDS EF2023A enrollment source review
 
-**Scope:** Paired final-source registration and exact raw cohort lookup.
-Processed transformation and scenario use require a subsequent implementation slice.
+**Scope:** Paired final-source registration, exact raw cohort lookup, and an
+immutable processed table. Verified processed lookup and scenario use follow.
 
 The official [IPEDS complete data files inventory](https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2)
 identifies EF2023A as fall 2023 enrollment by race/ethnicity, gender,
@@ -51,8 +51,18 @@ observed; no source status meaning is inferred.
 ```bash
 education-roi ipeds register-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds resolve-enrollment 236948 full_time_first_time --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+education-roi ipeds build-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 ```
 
 An isolated official-source run validated the full 115,190-row revised member
 and resolved the five University of Washington counts above. Enrollment
 categories must not be summed into a probability or substituted for each other.
+
+The processed Parquet table retains one sorted row per reviewed institution and
+`EFALEVEL` key, with cohort label, exact `LINE`/`SECTION`/`LSTUDY` keys,
+parsed and raw count, source status, fall year, and paired artifact IDs. The
+deterministic path includes both source hashes and transformation version; an
+adjacent manifest records the output hash, key columns, and definition mapping.
+An isolated official build produced 20,849 reviewed cohort rows, and a second
+build returned the identical manifest. A verified processed-table reader is
+still required before treating the Parquet output as standalone evidence.

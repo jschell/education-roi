@@ -53,6 +53,7 @@ from education_roi.ipeds.enrollment import (
     register_enrollment,
     resolve_enrollment,
 )
+from education_roi.ipeds.enrollment_pipeline import transform_enrollment
 from education_roi.ipeds.net_price import (
     NET_PRICE_DATA,
     NET_PRICE_DICTIONARY,
@@ -471,6 +472,65 @@ def ipeds_resolve_enrollment(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("build-enrollment")
+def ipeds_build_enrollment(
+    catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build an immutable final revised EF2023A cohort table."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.FALL_ENROLLMENT,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        registry = Registry(registry_path)
+        manifests = []
+        for dataset_id in (ENROLLMENT_DATA.dataset_id, ENROLLMENT_DICTIONARY.dataset_id):
+            matches = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matches) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact; found {len(matches)}"
+                )
+            manifests.append(matches[0])
+        result = transform_enrollment(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            paths.data / "processed",
+            manifests[0],
+            manifests[1],
+            release,
+        )
+    except (
+        IPEDSCatalogError,
+        IPEDSEnrollmentError,
+        IPEDSProcessedArtifactConflict,
+        ProvenanceError,
+        ValueError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "WRITTEN",
+                "parquet_path": str(result.parquet_path),
+                "manifest_path": str(result.manifest_path),
+                "manifest": result.manifest.model_dump(mode="json"),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 @ipeds_app.command("register-net-price")

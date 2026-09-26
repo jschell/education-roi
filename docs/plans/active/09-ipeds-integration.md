@@ -122,6 +122,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
   validates the full 115,190-row revised member and workbook, with exact
   UNITID/cohort lookup preserving raw cells and statuses. Processed table
   and scenario use remain gated.
+- immutable, source-paired EF2023A enrollment table with exact cohort keys,
+  raw/parsed totals, source statuses, and deterministic manifest; official
+  20,849-row selected-cohort build and identical rerun verified. Processed
+  evidence lookup and scenario use remain gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
