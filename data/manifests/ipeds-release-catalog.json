@@ -60,6 +60,16 @@
       "data_member": "C2023_a_RV.csv",
       "dictionary_url": "https://nces.ed.gov/ipeds/datacenter/data/C2023_A_Dict.zip",
       "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=3"
+    },
+    {
+      "release_id": "2023-24-final",
+      "collection_year": 2023,
+      "component": "student-financial-aid",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/complete-data-files/SFA2223.zip",
+      "data_member": "sfa2223_RV.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/SFA2223_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023"
     }
   ]
 }

@@ -23,6 +23,7 @@ class IPEDSComponent(StrEnum):
     ACADEMIC_YEAR_CHARGES = "academic-year-charges"
     FALL_RETENTION = "fall-retention"
     COMPLETIONS_BY_PROGRAM = "completions-by-program"
+    STUDENT_FINANCIAL_AID = "student-financial-aid"
     GRADUATION_RATES = "graduation-rates"
     GRADUATION_RATES_200 = "graduation-rates-200"
     OUTCOME_MEASURES = "outcome-measures"

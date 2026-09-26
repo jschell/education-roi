@@ -97,6 +97,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
   303,460-row build and identical rerun verified.
 - verified processed C2023_A exact-key lookup with full-table and manifest hash checks,
   row-level source/parsed count validation, and explicit insufficient-data results.
+- reviewed final revised SFA2223 data/dictionary pair and distinct net-price
+  populations cataloged; source registration and scenario use remain gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
