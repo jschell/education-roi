@@ -95,6 +95,8 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - immutable, source-paired C2023_A program awards table with all exact keys, raw counts,
   source statuses, explicit aggregate CIP rows, and a deterministic manifest; official
   303,460-row build and identical rerun verified.
+- verified processed C2023_A exact-key lookup with full-table and manifest hash checks,
+  row-level source/parsed count validation, and explicit insufficient-data results.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
