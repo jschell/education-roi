@@ -54,6 +54,16 @@
     {
       "release_id": "2023-24-final",
       "collection_year": 2023,
+      "component": "fall-enrollment",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/complete-data-files/EF2023A.zip",
+      "data_member": "ef2023a_rv.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/complete-data-files/EF2023A_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2"
+    },
+    {
+      "release_id": "2023-24-final",
+      "collection_year": 2023,
       "component": "completions-by-program",
       "publication_status": "final",
       "data_url": "https://nces.ed.gov/ipeds/datacenter/data/C2023_A.zip",
