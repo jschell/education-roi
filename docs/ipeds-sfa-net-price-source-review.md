@@ -47,6 +47,7 @@ education-roi ipeds register-net-price --catalog data/manifests/ipeds-release-ca
 education-roi ipeds resolve-net-price 236948 public_in_state_grant --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds build-net-price --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds resolve-net-price-table /path/to/net-price.parquet 236948 public_in_state_grant
+education-roi scenario review-net-price scenarios/examples/workforce-high-school.yaml /path/to/education.yaml --scenario-id example-bachelors --table /path/to/net-price.parquet --basis public_in_state_grant
 ```
 
 The processed Parquet table has one sorted row per UNITID and separate
@@ -61,10 +62,19 @@ and row-level source lineage before returning one exact basis. It reports the
 table and manifest hashes, paired artifact IDs, source field, raw cell, and
 status. Missing cells remain insufficient data; zero remains observed.
 
+For an education scenario, add a data pin for `ipeds-net-price` release
+`2023-24-final` and use `scenario review-net-price` to attach this verified
+observation to the scenario ID and configuration hash. Public bases require
+in-state/in-district tuition and all reviewed bases require full-time
+attendance. The output is marked `CONTEXT_ONLY`; it does not populate tuition,
+living costs, or grants in the additive cash-flow model. A scenario's separate
+cost and grant inputs must still be resolved on compatible definitions.
+
 An isolated official-source run resolved University of Washington's public
 grant average as 11023 and public $0–30,000 Title IV average as 6398; both
 other reporting bases returned insufficient data with source status `A`.
 The official 5,653-row processed build and identical rerun were verified in
 isolation. These are historical institutional averages, already reflecting qualifying
-grant aid, not a student-specific offer or tuition alone. Scenario use remains
-unresolved; do not subtract aid again or infer a student's award.
+grant aid, not a student-specific offer or tuition alone. Numerical scenario
+cost integration remains unresolved; do not subtract aid again or infer a
+student's award.
