@@ -122,6 +122,10 @@ from education_roi.scenarios import (
     verify_comparison_bundle,
     write_comparison_bundle,
 )
+from education_roi.scenarios.enrollment_context import (
+    ScenarioEnrollmentContextError,
+    review_scenario_enrollment,
+)
 from education_roi.scenarios.graduation_context import (
     ScenarioGraduationContextError,
     review_scenario_graduation,
@@ -1641,6 +1645,34 @@ def scenario_review_net_price(
         ScenarioGraphError,
         ScenarioNetPriceContextError,
         IPEDSNetPriceTableError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True))
+
+
+@scenario_app.command("review-enrollment")
+def scenario_review_enrollment(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    scenario_id: Annotated[str, typer.Option(help="Education scenario ID.")],
+    table: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    cohort: Annotated[EnrollmentCohort, typer.Option(help="Exact enrollment population.")],
+) -> None:
+    """Review verified fall enrollment context without inferring outcomes."""
+    try:
+        graph = resolve_scenario_graph(tuple(load_scenario_file(path) for path in files))
+        scenarios = {scenario.id: scenario for scenario in graph.scenarios}
+        if scenario_id not in scenarios:
+            raise ScenarioEnrollmentContextError(f"scenario not found: {scenario_id}")
+        result = review_scenario_enrollment(scenarios[scenario_id], table, cohort)
+    except (
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioEnrollmentContextError,
+        IPEDSEnrollmentTableError,
     ) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None

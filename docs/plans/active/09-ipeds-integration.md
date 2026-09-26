@@ -129,6 +129,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - verified EF2023A processed-table lookup checks table/sidecar hashes, exact
   cohort definitions and composite keys, every raw-to-parsed count, and paired
   lineage; official 20,849-row table lookup tested. Scenario use remains gated.
+- contextual scenario enrollment review requires an explicit final-release pin,
+  selected cohort, and compatible attendance/undergraduate definition; verified
+  table evidence is linked to the scenario configuration without inferring
+  transfer or completion outcome probabilities.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

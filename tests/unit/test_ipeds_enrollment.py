@@ -307,6 +307,28 @@ def test_immutable_enrollment_table_keeps_exact_cohorts(
     )
     assert cli_lookup.exit_code == 0, cli_lookup.stdout
     assert json.loads(cli_lookup.stdout)["enrollment_count"] == 1415
+    from education_roi.scenarios import DatasetPin, load_scenario_file
+    from education_roi.scenarios.enrollment_context import review_scenario_enrollment
+
+    scenario_path = Path(__file__).parents[2] / "scenarios/examples/example-bachelors.yaml"
+    scenario = load_scenario_file(scenario_path).scenario
+    scenario = scenario.model_copy(
+        update={
+            "data": scenario.data.model_copy(
+                update={
+                    "pins": (
+                        *scenario.data.pins,
+                        DatasetPin(dataset="ipeds-fall-enrollment", release="2023-24-final"),
+                    ),
+                }
+            ),
+        }
+    )
+    context = review_scenario_enrollment(
+        scenario, result.parquet_path, EnrollmentCohort.FULL_TIME_FIRST_TIME
+    )
+    assert context.evidence.enrollment_count == 6928
+    assert context.enrollment_use == "CONTEXT_ONLY"
     repeat = transform_enrollment(*args)
     assert repeat.manifest == result.manifest
     cli = CliRunner().invoke(

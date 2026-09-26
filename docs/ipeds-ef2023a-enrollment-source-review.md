@@ -1,7 +1,7 @@
 # IPEDS EF2023A enrollment source review
 
 **Scope:** Paired final-source registration, exact raw cohort lookup, immutable
-processed table, and verified processed lookup. Scenario use follows.
+processed table, verified processed lookup, and contextual scenario review.
 
 The official [IPEDS complete data files inventory](https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2)
 identifies EF2023A as fall 2023 enrollment by race/ethnicity, gender,
@@ -53,6 +53,7 @@ education-roi ipeds register-enrollment --catalog data/manifests/ipeds-release-c
 education-roi ipeds resolve-enrollment 236948 full_time_first_time --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds build-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds resolve-enrollment-table /path/to/enrollment.parquet 236948 full_time_first_time
+education-roi scenario review-enrollment scenarios/examples/workforce-high-school.yaml /path/to/education.yaml --scenario-id example-bachelors --table /path/to/enrollment.parquet --cohort full_time_first_time
 ```
 
 An isolated official-source run validated the full 115,190-row revised member
@@ -71,3 +72,11 @@ unique composite keys, all raw-to-parsed count cells, and paired row lineage
 before returning a selected observation. It includes both output hashes and
 the exact population keys. An isolated official lookup returned all five
 University of Washington counts and statuses above.
+
+For an education scenario, pin `ipeds-fall-enrollment` to `2023-24-final` and
+select one explicit cohort. Full-time and part-time cohorts require matching
+attendance; the four undergraduate first-time/transfer-in cohorts require an
+undergraduate credential. `all_students` is an institution-wide context count
+and does not assert a matching credential or attendance population. The
+scenario review output includes its configuration hash and is marked
+`CONTEXT_ONLY`: it does not populate completion or transfer outcomes.
