@@ -118,8 +118,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
   cohort evidence to the scenario configuration; it does not infer outcome
   branch probabilities from an institution's 150%-of-normal-time cohort rate.
 - reviewed final revised EF2023A enrollment data/dictionary pair and five
-  distinct total-count cohort keys cataloged; registration and scenario use
-  remain gated on composite-key and workbook validation.
+  distinct total-count cohort keys cataloged; paired immutable registration
+  validates the full 115,190-row revised member and workbook, with exact
+  UNITID/cohort lookup preserving raw cells and statuses. Processed table
+  and scenario use remain gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

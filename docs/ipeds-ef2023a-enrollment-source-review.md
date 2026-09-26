@@ -1,7 +1,7 @@
 # IPEDS EF2023A enrollment source review
 
-**Scope:** Source catalog and cohort-key review only. Registration, processed
-transformation, and scenario use require a subsequent implementation slice.
+**Scope:** Paired final-source registration and exact raw cohort lookup.
+Processed transformation and scenario use require a subsequent implementation slice.
 
 The official [IPEDS complete data files inventory](https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2)
 identifies EF2023A as fall 2023 enrollment by race/ethnicity, gender,
@@ -39,6 +39,20 @@ institution, not an outcome for students who left it.
 
 For University of Washington (`UNITID=236948`), the revised `EFTOTLT` cells
 are respectively 55,620; 6,928; 1,415; 83; and 141, each with `XEFTOTLT=R`.
-A later reader must preserve raw cells and statuses, distinguish zero from
-missing/negative cells, verify all four key columns, and report the exact
-population and fall-2023 period. No source status meaning is inferred here.
+The paired registration checks the final revised workbook definitions and
+frequency labels, every revised CSV row's `(UNITID, EFALEVEL)` uniqueness,
+required columns, numeric count cells, and the selected cohorts' exact
+`LINE`, `SECTION`, and `LSTUDY` layout. It stores separate immutable data and
+dictionary artifacts. A lookup verifies both source hashes and returns the
+explicit population, raw count, source status, fall year, and paired IDs.
+Blank/negative cells and absent keys remain insufficient data, while zero is
+observed; no source status meaning is inferred.
+
+```bash
+education-roi ipeds register-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+education-roi ipeds resolve-enrollment 236948 full_time_first_time --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+```
+
+An isolated official-source run validated the full 115,190-row revised member
+and resolved the five University of Washington counts above. Enrollment
+categories must not be summed into a probability or substituted for each other.
