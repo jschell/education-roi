@@ -34,10 +34,22 @@ labels, establish these differences. For University of Washington, UNITID
 `NPGRN2` and `NPT412` are blank with status `A`. These are historical averages
 for selected aid-recipient groups, not an offer to a particular student.
 
-**Implementation gate:** This PR catalogs the source only. A subsequent slice
-must validate the exact workbook descriptions, preserve raw cells and status
-codes, and return a population-labeled observation. Public and other reporting
-bases must not silently substitute for each other. Do not subtract grant aid
-again from a net-price observation, combine it with a separately reported
-cost-of-attendance total as if it were tuition alone, or infer a student's
-aid award from an institutional average. Scenario use remains unresolved.
+The paired registration validates the final revised workbook descriptions,
+required source columns, every row's UNITID and selected net-price cells, and
+stores immutable data and dictionary artifacts. An exact-UNITID lookup verifies
+both artifact hashes and requires one of four explicit population bases. It
+returns the raw cell and paired source status, with an insufficient-data result
+for absent, blank, or negative cells. Zero remains an observed value. No public
+field falls back to a private/other reporting field or vice versa.
+
+```bash
+education-roi ipeds register-net-price --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+education-roi ipeds resolve-net-price 236948 public_in_state_grant --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+```
+
+An isolated official-source run resolved University of Washington's public
+grant average as 11023 and public $0–30,000 Title IV average as 6398; both
+other reporting bases returned insufficient data with source status `A`.
+These are historical institutional averages, already reflecting qualifying
+grant aid, not a student-specific offer or tuition alone. Scenario use remains
+unresolved; do not subtract aid again or infer a student's award.
