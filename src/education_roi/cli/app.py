@@ -109,6 +109,10 @@ from education_roi.scenarios import (
     verify_comparison_bundle,
     write_comparison_bundle,
 )
+from education_roi.scenarios.graduation_context import (
+    ScenarioGraduationContextError,
+    review_scenario_graduation,
+)
 from education_roi.scenarios.net_price_context import (
     ScenarioNetPriceContextError,
     review_scenario_net_price,
@@ -1476,6 +1480,33 @@ def scenario_review_net_price(
         ScenarioGraphError,
         ScenarioNetPriceContextError,
         IPEDSNetPriceTableError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True))
+
+
+@scenario_app.command("review-graduation")
+def scenario_review_graduation(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    scenario_id: Annotated[str, typer.Option(help="Education scenario ID.")],
+    table: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+) -> None:
+    """Review a verified bachelor's cohort without deriving completion probabilities."""
+    try:
+        graph = resolve_scenario_graph(tuple(load_scenario_file(path) for path in files))
+        scenarios = {scenario.id: scenario for scenario in graph.scenarios}
+        if scenario_id not in scenarios:
+            raise ScenarioGraduationContextError(f"scenario not found: {scenario_id}")
+        result = review_scenario_graduation(scenarios[scenario_id], table)
+    except (
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioGraduationContextError,
+        IPEDSGraduationComparisonError,
     ) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
