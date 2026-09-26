@@ -117,6 +117,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   pin and a bachelor's/full-time institution scenario, then links hash-verified
   cohort evidence to the scenario configuration; it does not infer outcome
   branch probabilities from an institution's 150%-of-normal-time cohort rate.
+- reviewed final revised EF2023A enrollment data/dictionary pair and five
+  distinct total-count cohort keys cataloged; registration and scenario use
+  remain gated on composite-key and workbook validation.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -124,7 +127,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 1. Extend official workbook validation beyond the final four-year bachelor's mapping.
 2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
-3. Add aid, enrollment, other completion cohorts, and program production. Expense
+3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
 5. Register authoritative CIP mapping and UNITID history rows, then connect CIP mappings and

@@ -22,6 +22,7 @@ class IPEDSComponent(StrEnum):
     INSTITUTIONAL_CHARACTERISTICS = "institutional-characteristics"
     ACADEMIC_YEAR_CHARGES = "academic-year-charges"
     FALL_RETENTION = "fall-retention"
+    FALL_ENROLLMENT = "fall-enrollment"
     COMPLETIONS_BY_PROGRAM = "completions-by-program"
     STUDENT_FINANCIAL_AID = "student-financial-aid"
     GRADUATION_RATES = "graduation-rates"

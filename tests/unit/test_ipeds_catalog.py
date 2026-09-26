@@ -199,3 +199,14 @@ def test_identical_inventory_comparison_is_deterministically_empty() -> None:
     comparison = compare_release_catalogs(catalog(item), catalog(item))
     assert not comparison.review_required
     assert comparison.changes == ()
+
+
+def test_reviewed_catalog_pins_final_revised_ef2023a_enrollment_pair() -> None:
+    inventory = IPEDSReleaseCatalog.from_file(
+        PROJECT_ROOT / "data/manifests/ipeds-release-catalog.json"
+    )
+    selected = select_release(inventory, IPEDSComponent.FALL_ENROLLMENT)
+    assert selected.release_id == "2023-24-final"
+    assert selected.data_member == "ef2023a_rv.csv"
+    assert str(selected.data_url).endswith("/EF2023A.zip")
+    assert str(selected.dictionary_url).endswith("/EF2023A_Dict.zip")
