@@ -52,6 +52,10 @@ from education_roi.ipeds.program_awards import (
     register_program_awards,
     resolve_program_awards,
 )
+from education_roi.ipeds.program_awards_evidence import (
+    IPEDSProgramAwardsTableError,
+    resolve_program_awards_evidence,
+)
 from education_roi.ipeds.program_awards_pipeline import transform_program_awards
 from education_roi.ipeds.retention_comparison import (
     IPEDSRetentionComparisonError,
@@ -473,6 +477,23 @@ def ipeds_build_program_awards(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-program-awards-table")
+def ipeds_resolve_program_awards_table(
+    table: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    cip_code: Annotated[str, typer.Argument(help="Exact six-digit CIP 2020 code.")],
+    major_number: Annotated[int, typer.Argument(help="First (1) or second (2) major.")],
+    award_level: Annotated[int, typer.Argument(help="Exact IPEDS award level.")],
+) -> None:
+    """Return a fully verified processed program award observation."""
+    try:
+        result = resolve_program_awards_evidence(table, unitid, cip_code, major_number, award_level)
+    except (IPEDSProgramAwardsTableError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("resolve-retention")

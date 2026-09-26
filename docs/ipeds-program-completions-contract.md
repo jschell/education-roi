@@ -61,5 +61,15 @@ The official 303,460-row build produced a 1,080,158-byte Parquet artifact with
 SHA-256 `52297e47f307653cbf34f64c56e5b90171d9bc77f6bb912ad0a868d513d5732e`;
 an isolated rerun returned the same manifest. The source ZIPs are not committed.
 
-Verified processed-table lookup, source-status interpretation, cross-release
-comparison, and connections to scenario program evidence remain future work.
+`edu-roi ipeds resolve-program-awards-table TABLE.parquet UNITID CIPCODE MAJORNUM
+AWLEVEL` checks the adjacent processing manifest, complete Parquet hash, exact
+schema and ordered unique keys, every row's fixed release/CIP/period/source
+lineage, aggregate marker, and parsed count against its raw cell before
+returning one observation. It reports both table and manifest hashes. Absent
+and unavailable exact keys return `INSUFFICIENT_DATA`; an observed zero remains
+zero. Aggregate CIP 99 cannot be requested as a program. The official table
+lookup for UNITID 236948, CIP `03.0103`, first major, bachelor's level returned
+93 awards with status `R` and matching output hash.
+
+Source-status interpretation, cross-release comparison, and connections to
+scenario program evidence remain future work.
