@@ -5,12 +5,14 @@ from pathlib import Path
 from shutil import copyfile
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import polars as pl
 import pytest
 from typer.testing import CliRunner
 
 from education_roi.cli.app import app
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds.catalog import IPEDSComponent, IPEDSReleaseCatalog, select_release
+from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
 from education_roi.ipeds.program_awards import (
     LABELS,
     IPEDSProgramAwardsError,
@@ -19,6 +21,7 @@ from education_roi.ipeds.program_awards import (
     resolve_program_awards,
     verify_program_dictionary,
 )
+from education_roi.ipeds.program_awards_pipeline import transform_program_awards
 from education_roi.provenance.downloader import DownloadResult
 from education_roi.provenance.store import Registry
 
@@ -154,3 +157,71 @@ def test_registration_and_exact_lookup_preserve_source_state(
     actual_data.write_bytes(b"tampered")
     with pytest.raises(IPEDSProgramAwardsError, match="bytes do not match"):
         resolve_program_awards(*args, 236948, "11.0101", 1, 5)
+
+
+def test_immutable_program_table_preserves_exact_keys_and_statuses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary", lambda p: None
+    )
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards.verify_program_dictionary", lambda p: None
+    )
+    data, dictionary = sources(
+        tmp_path / "source",
+        "236948,11.0101,1,5,12,R\n"
+        "236948,11.0101,2,5,3,R\n"
+        "236948,99,1,5,500,R\n"
+        "236949,11.0101,1,5,-1,C\n"
+        "236950,11.0101,1,5,0,R\n",
+    )
+    release = select_release(
+        IPEDSReleaseCatalog.from_file(CATALOG), IPEDSComponent.COMPLETIONS_BY_PROGRAM
+    )
+
+    class FakeDownloader:
+        index = 0
+
+        def download(
+            self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+        ) -> DownloadResult:
+            destination_directory.mkdir(parents=True, exist_ok=True)
+            self.index += 1
+            target = destination_directory / f"download-{self.index}.zip"
+            copyfile((data, dictionary)[self.index - 1], target)
+            return DownloadResult(target, url, url, target.stat().st_size)
+
+    root = tmp_path / "project"
+    pair = register_program_awards(
+        release,
+        ProjectPaths(root),
+        downloader=FakeDownloader(),  # type: ignore[arg-type]
+    )
+    archive = root / "data/raw" / pair.data.storage_path
+    workbook = root / "data/raw" / pair.dictionary.storage_path
+    first = transform_program_awards(
+        archive, workbook, root / "data/processed", pair.data, pair.dictionary, release
+    )
+    second = transform_program_awards(
+        archive, workbook, root / "data/processed", pair.data, pair.dictionary, release
+    )
+    assert first.manifest == second.manifest
+    assert first.manifest.row_count == 5
+    assert first.manifest.key_columns == ("unitid", "cip_code", "major_number", "award_level")
+    rows = pl.read_parquet(first.parquet_path).to_dicts()
+    assert len(rows) == 5
+    assert next(row for row in rows if row["cip_code"] == "99")["is_aggregate_cip"]
+    assert next(row for row in rows if row["unitid"] == 236949)["award_count"] is None
+    assert next(row for row in rows if row["unitid"] == 236950)["award_count"] == 0
+    cli = CliRunner().invoke(
+        app, ["ipeds", "build-program-awards", "--catalog", str(CATALOG), "--root", str(root)]
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["manifest"]["row_count"] == 5
+    first.parquet_path.chmod(0o644)
+    first.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSProcessedArtifactConflict, match="different bytes"):
+        transform_program_awards(
+            archive, workbook, root / "data/processed", pair.data, pair.dictionary, release
+        )
