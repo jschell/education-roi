@@ -271,6 +271,26 @@ def test_immutable_net_price_table_preserves_each_basis(
     )
     assert cli_lookup.exit_code == 0, cli_lookup.stdout
     assert json.loads(cli_lookup.stdout)["average_net_price"] == 6398
+    from education_roi.scenarios import DatasetPin, load_scenario_file
+    from education_roi.scenarios.net_price_context import review_scenario_net_price
+
+    scenario_path = Path(__file__).parents[2] / "scenarios/examples/example-bachelors.yaml"
+    scenario = load_scenario_file(scenario_path).scenario
+    scenario = scenario.model_copy(
+        update={
+            "data": scenario.data.model_copy(
+                update={
+                    "pins": (
+                        *scenario.data.pins,
+                        DatasetPin(dataset="ipeds-net-price", release="2023-24-final"),
+                    ),
+                }
+            ),
+        }
+    )
+    context = review_scenario_net_price(scenario, result.parquet_path, NetPriceBasis.PUBLIC_GRANT)
+    assert context.evidence.average_net_price == 11023
+    assert context.cash_flow_use == "CONTEXT_ONLY"
     repeat = transform_net_price(*args)
     assert repeat.manifest_path == result.manifest_path
     assert repeat.manifest == result.manifest

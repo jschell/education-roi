@@ -109,6 +109,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - verified SFA2223 processed-table lookup checks complete table/manifest hashes,
   exact field mapping, ordered UNITIDs, all raw-to-numeric cells and paired
   lineage; official 5,653-row lookup tested. Scenario use remains gated.
+- contextual scenario net-price review requires an explicit final-release pin,
+  selected population, compatible full-time/public residency, and verified table;
+  it does not insert grant-adjusted net price into additive cash-flow components.
+  Numerical scenario cost integration remains gated on compatible definitions.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

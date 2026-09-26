@@ -109,6 +109,10 @@ from education_roi.scenarios import (
     verify_comparison_bundle,
     write_comparison_bundle,
 )
+from education_roi.scenarios.net_price_context import (
+    ScenarioNetPriceContextError,
+    review_scenario_net_price,
+)
 
 app = typer.Typer(
     name="edu-roi",
@@ -1448,6 +1452,34 @@ def scenario_resolve_ipeds(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=1) from None
     typer.echo(json.dumps(resolved.as_dict(), sort_keys=True))
+
+
+@scenario_app.command("review-net-price")
+def scenario_review_net_price(
+    files: Annotated[
+        list[Path],
+        typer.Argument(exists=True, dir_okay=False, readable=True, help="Scenario YAML files."),
+    ],
+    scenario_id: Annotated[str, typer.Option(help="Education scenario ID.")],
+    table: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    basis: Annotated[NetPriceBasis, typer.Option(help="Exact aid-recipient population/basis.")],
+) -> None:
+    """Review verified institutional net price as context, without changing cash flows."""
+    try:
+        graph = resolve_scenario_graph(tuple(load_scenario_file(path) for path in files))
+        scenarios = {scenario.id: scenario for scenario in graph.scenarios}
+        if scenario_id not in scenarios:
+            raise ScenarioNetPriceContextError(f"scenario not found: {scenario_id}")
+        result = review_scenario_net_price(scenarios[scenario_id], table, basis)
+    except (
+        ScenarioValidationError,
+        ScenarioGraphError,
+        ScenarioNetPriceContextError,
+        IPEDSNetPriceTableError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True))
 
 
 @scenario_app.command("analyze")
