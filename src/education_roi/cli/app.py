@@ -53,6 +53,7 @@ from education_roi.ipeds.net_price import (
     register_net_price,
     resolve_net_price,
 )
+from education_roi.ipeds.net_price_pipeline import transform_net_price
 from education_roi.ipeds.program_awards import (
     PROGRAM_DATA,
     PROGRAM_DICTIONARY,
@@ -450,6 +451,65 @@ def ipeds_resolve_net_price(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("build-net-price")
+def ipeds_build_net_price(
+    catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build the immutable final revised SFA2223 institution net-price table."""
+    paths = ProjectPaths.from_environment(root)
+    try:
+        release = select_release(
+            IPEDSReleaseCatalog.from_file(catalog),
+            IPEDSComponent.STUDENT_FINANCIAL_AID,
+            release_id="2023-24-final",
+        )
+        registry_path = paths.data / "manifests" / "registry.sqlite"
+        if not registry_path.is_file():
+            raise ValueError(f"artifact registry not found: {registry_path}")
+        registry = Registry(registry_path)
+        manifests = []
+        for dataset_id in (NET_PRICE_DATA.dataset_id, NET_PRICE_DICTIONARY.dataset_id):
+            matches = tuple(
+                item
+                for item in registry.list_artifacts(dataset_id, release.release_id)
+                if item.state in {ApprovalState.VALIDATED, ApprovalState.APPROVED}
+            )
+            if len(matches) != 1:
+                raise ValueError(
+                    f"expected one validated {dataset_id} artifact; found {len(matches)}"
+                )
+            manifests.append(matches[0])
+        result = transform_net_price(
+            paths.data / "raw" / manifests[0].storage_path,
+            paths.data / "raw" / manifests[1].storage_path,
+            paths.data / "processed",
+            manifests[0],
+            manifests[1],
+            release,
+        )
+    except (
+        IPEDSCatalogError,
+        IPEDSNetPriceError,
+        IPEDSProcessedArtifactConflict,
+        ProvenanceError,
+        ValueError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(
+        json.dumps(
+            {
+                "status": "WRITTEN",
+                "parquet_path": str(result.parquet_path),
+                "manifest_path": str(result.manifest_path),
+                "manifest": result.manifest.model_dump(mode="json"),
+            },
+            sort_keys=True,
+        )
+    )
 
 
 @ipeds_app.command("resolve-program-awards")

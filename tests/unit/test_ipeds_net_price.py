@@ -157,3 +157,89 @@ def test_registration_and_exact_basis_lookup(
     actual_data.write_bytes(b"tampered")
     with pytest.raises(IPEDSNetPriceError, match="bytes do not match"):
         resolve_net_price(*args, 236948, NetPriceBasis.PUBLIC_GRANT)
+
+
+def test_immutable_net_price_table_preserves_each_basis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import polars as pl
+
+    from education_roi.ipeds.net_price_pipeline import BASIS_FIELDS, VERSION, transform_net_price
+    from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
+    from education_roi.provenance.integrity import sha256_file
+
+    monkeypatch.setattr("education_roi.ipeds.net_price.verify_net_price_dictionary", lambda p: None)
+    monkeypatch.setattr(
+        "education_roi.ipeds.net_price_pipeline.verify_net_price_dictionary", lambda p: None
+    )
+    release = select_release(
+        IPEDSReleaseCatalog.from_file(CATALOG), IPEDSComponent.STUDENT_FINANCIAL_AID
+    )
+    data, dictionary = sources(
+        tmp_path / "source", "236948,11023,R,6398,R,,A,,A\n236949,0,R,-1,C,555,R,444,R\n"
+    )
+
+    class Downloader:
+        index = 0
+
+        def download(
+            self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+        ) -> DownloadResult:
+            destination_directory.mkdir(parents=True, exist_ok=True)
+            self.index += 1
+            target = destination_directory / f"download-{self.index}.zip"
+            copyfile((data, dictionary)[self.index - 1], target)
+            return DownloadResult(target, url, url, target.stat().st_size)
+
+    root = tmp_path / "project"
+    pair = register_net_price(release, ProjectPaths(root), downloader=Downloader())  # type: ignore[arg-type]
+    registry = Registry(root / "data/manifests/registry.sqlite")
+    actual_data = root / "data/raw" / registry.get_artifact(pair.data.artifact_id).storage_path
+    actual_dictionary = (
+        root / "data/raw" / registry.get_artifact(pair.dictionary.artifact_id).storage_path
+    )
+    args = (
+        actual_data,
+        actual_dictionary,
+        root / "data/processed",
+        pair.data,
+        pair.dictionary,
+        release,
+    )
+    result = transform_net_price(*args)
+    frame = pl.read_parquet(result.parquet_path)
+    assert frame.height == 2
+    assert result.manifest.key_columns == ("unitid",)
+    assert result.manifest.transformation.parameters["basis_fields"] == json.dumps(
+        dict(BASIS_FIELDS), sort_keys=True
+    )
+    assert frame["transformation_version"].to_list() == [VERSION, VERSION]
+    first, second = frame.to_dicts()
+    assert (first["public_in_state_grant"], first["public_in_state_title_iv_0_30k"]) == (
+        11023,
+        6398,
+    )
+    assert (
+        first["other_reporting_grant"],
+        first["raw_other_reporting_grant"],
+        first["status_other_reporting_grant"],
+    ) == (None, "", "A")
+    assert (
+        second["public_in_state_grant"],
+        second["public_in_state_title_iv_0_30k"],
+        second["raw_public_in_state_title_iv_0_30k"],
+    ) == (0, None, "-1")
+    assert (second["other_reporting_grant"], second["other_reporting_title_iv_0_30k"]) == (555, 444)
+    assert result.manifest.transformation.output_sha256 == sha256_file(result.parquet_path)[0]
+    repeat = transform_net_price(*args)
+    assert repeat.manifest_path == result.manifest_path
+    assert repeat.manifest == result.manifest
+    cli = CliRunner().invoke(
+        app, ["ipeds", "build-net-price", "--catalog", str(CATALOG), "--root", str(root)]
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["manifest"]["row_count"] == 2
+    result.parquet_path.chmod(0o644)
+    result.parquet_path.write_bytes(b"tampered")
+    with pytest.raises(IPEDSProcessedArtifactConflict, match="different bytes"):
+        transform_net_price(*args)

@@ -102,6 +102,10 @@ Add versioned institution-level costs, characteristics, program production, aid,
   the workbook and immutable artifact hashes, require an explicit population
   basis, and preserve raw/status cells. Official 5,653-row source verified;
   scenario use remains gated.
+- immutable, paired SFA2223 institution net-price table keeps each population's
+  numeric, raw, and status cells separate with deterministic manifest and hash;
+  official 5,653-row build and identical rerun verified. Processed-table lookup
+  and scenario use remain gated.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
