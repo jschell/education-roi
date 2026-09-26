@@ -1,7 +1,7 @@
 # IPEDS EF2023A enrollment source review
 
-**Scope:** Paired final-source registration, exact raw cohort lookup, and an
-immutable processed table. Verified processed lookup and scenario use follow.
+**Scope:** Paired final-source registration, exact raw cohort lookup, immutable
+processed table, and verified processed lookup. Scenario use follows.
 
 The official [IPEDS complete data files inventory](https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2)
 identifies EF2023A as fall 2023 enrollment by race/ethnicity, gender,
@@ -52,6 +52,7 @@ observed; no source status meaning is inferred.
 education-roi ipeds register-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds resolve-enrollment 236948 full_time_first_time --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
 education-roi ipeds build-enrollment --catalog data/manifests/ipeds-release-catalog.json --root /path/to/project
+education-roi ipeds resolve-enrollment-table /path/to/enrollment.parquet 236948 full_time_first_time
 ```
 
 An isolated official-source run validated the full 115,190-row revised member
@@ -64,5 +65,9 @@ parsed and raw count, source status, fall year, and paired artifact IDs. The
 deterministic path includes both source hashes and transformation version; an
 adjacent manifest records the output hash, key columns, and definition mapping.
 An isolated official build produced 20,849 reviewed cohort rows, and a second
-build returned the identical manifest. A verified processed-table reader is
-still required before treating the Parquet output as standalone evidence.
+build returned the identical manifest. The processed-table reader verifies
+the complete table and sidecar hashes, exact release and field mapping, sorted
+unique composite keys, all raw-to-parsed count cells, and paired row lineage
+before returning a selected observation. It includes both output hashes and
+the exact population keys. An isolated official lookup returned all five
+University of Washington counts and statuses above.

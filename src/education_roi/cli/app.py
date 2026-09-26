@@ -53,6 +53,10 @@ from education_roi.ipeds.enrollment import (
     register_enrollment,
     resolve_enrollment,
 )
+from education_roi.ipeds.enrollment_evidence import (
+    IPEDSEnrollmentTableError,
+    resolve_enrollment_evidence,
+)
 from education_roi.ipeds.enrollment_pipeline import transform_enrollment
 from education_roi.ipeds.net_price import (
     NET_PRICE_DATA,
@@ -531,6 +535,21 @@ def ipeds_build_enrollment(
             sort_keys=True,
         )
     )
+
+
+@ipeds_app.command("resolve-enrollment-table")
+def ipeds_resolve_enrollment_table(
+    table: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    unitid: Annotated[int, typer.Argument(help="Exact institution UNITID.")],
+    cohort: Annotated[EnrollmentCohort, typer.Argument(help="Exact enrollment population.")],
+) -> None:
+    """Return a fully verified processed enrollment observation."""
+    try:
+        result = resolve_enrollment_evidence(table, unitid, cohort)
+    except (IPEDSEnrollmentTableError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
 
 
 @ipeds_app.command("register-net-price")
