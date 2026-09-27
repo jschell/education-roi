@@ -137,6 +137,12 @@ Add versioned institution-level costs, characteristics, program production, aid,
   source hash and row-count validation. Unchanged codes resolve exactly; moved
   codes require review; 12 deleted and 544 new rows are never assigned invented
   predecessors or successors. See `docs/ipeds-cip-2010-2020-source-review.md`.
+- reviewed NCES HD2022/HD2023 directory archives and HD2023 dictionary yield
+  17 explicit merger mappings and 56 deletion events. One self-referential
+  merger and 21 active-with-data closure statuses receive explicit unresolved
+  entries that block automatic continuity; source
+  hashes and exclusions are documented in
+  `docs/ipeds-hd2022-hd2023-institution-history-review.md`.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -147,7 +153,7 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
-5. Register authoritative UNITID history rows, then connect the reviewed CIP mappings and
+5. Review unresolved UNITID transitions and connect the reviewed CIP mappings and
    institution history to program production.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.

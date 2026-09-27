@@ -20,6 +20,7 @@ class InstitutionRelationship(StrEnum):
     MERGED = "merged"
     SPLIT = "split"
     CLOSED = "closed"
+    UNRESOLVED = "unresolved"
 
 
 class InstitutionMappingConfidence(StrEnum):
@@ -37,9 +38,14 @@ class InstitutionHistoryEntry(StrictModel):
 
     @model_validator(mode="after")
     def target_matches_relationship(self) -> Self:
-        if self.relationship is InstitutionRelationship.CLOSED:
+        if self.relationship in {
+            InstitutionRelationship.CLOSED,
+            InstitutionRelationship.UNRESOLVED,
+        }:
             if self.target_unitid is not None:
-                raise ValueError("closed institution history entries cannot have a target UNITID")
+                raise ValueError(
+                    "closed/unresolved institution history entries cannot have a target UNITID"
+                )
         elif self.target_unitid is None:
             raise ValueError("non-closure institution history entries require a target UNITID")
         return self
@@ -86,6 +92,7 @@ class InstitutionHistory(StrictModel):
 class InstitutionResolutionStatus(StrEnum):
     ACTIVE = "active"
     CLOSED = "closed"
+    UNRESOLVED = "unresolved"
 
 
 class InstitutionResolution(StrictModel):
@@ -195,7 +202,11 @@ def resolve_unitid(
         relationship=entry.relationship,
         confidence=entry.confidence,
         status=(
-            InstitutionResolutionStatus.CLOSED if closed else InstitutionResolutionStatus.ACTIVE
+            InstitutionResolutionStatus.CLOSED
+            if closed
+            else InstitutionResolutionStatus.UNRESOLVED
+            if entry.relationship is InstitutionRelationship.UNRESOLVED
+            else InstitutionResolutionStatus.ACTIVE
         ),
         history_id=history.history_id,
         history_sha256=history.source_sha256,
@@ -284,6 +295,15 @@ def pair_unitids(
                     finding_type=InstitutionPairingFindingType.CLOSED,
                     source_unitids=(source_unitid,),
                     reason="authoritative history explicitly marks the institution closed",
+                )
+            )
+            continue
+        if entry.relationship is InstitutionRelationship.UNRESOLVED:
+            findings.append(
+                InstitutionPairingFinding(
+                    finding_type=InstitutionPairingFindingType.AMBIGUOUS_HISTORY,
+                    source_unitids=(source_unitid,),
+                    reason="NCES identity event has no unambiguous successor",
                 )
             )
             continue

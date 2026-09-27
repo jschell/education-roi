@@ -1,0 +1,674 @@
+{
+  "entries": [
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 106360,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 110918,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 115728,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 116350,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 121275,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 128577,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 129543,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 129695,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 129729,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 129756,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 129808,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 130004,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 130040,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 130217,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 130396,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 130606,
+      "target_unitid": 129367
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 134811,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 137801,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 138813,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 149763,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 153621,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 164641,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 165556,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 172440,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 189848,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 192925,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 194161,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 205559,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 212993,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 219295,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 219921,
+      "target_unitid": 221236
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 220002,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 221388,
+      "target_unitid": 221236
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 222938,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 224776,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 230834,
+      "target_unitid": 231165
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 230913,
+      "target_unitid": 231165
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 235583,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 237118,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 237598,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 238430,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 246345,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 261861,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 366289,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 366438,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 366605,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 367334,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 368443,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 368540,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 375106,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 406547,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 408729,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=C has self-referential NEWID; successor unresolved",
+      "relationship": "unresolved",
+      "source_unitid": 413972,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 434539,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 436261,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 436641,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 440749,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 440819,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 441168,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 443748,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 444255,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 445461,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 447971,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 450021,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 450119,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 450702,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 451741,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 451820,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 457554,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 458496,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 458982,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 459189,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 459417,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 460385,
+      "target_unitid": 456542
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 460525,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 461591,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 462345,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 467368,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 468291,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 476957,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 480347,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 480930,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 482440,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 482538,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 482565,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 482617,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 486460,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 486965,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 488068,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 495925,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 495943,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 497790,
+      "target_unitid": null
+    },
+    {
+      "confidence": "low",
+      "note": "HD2023 ACT=M; closure timing and data availability need review",
+      "relationship": "unresolved",
+      "source_unitid": 497903,
+      "target_unitid": null
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=C; NEWID identifies combined institution",
+      "relationship": "merged",
+      "source_unitid": 498243,
+      "target_unitid": 495916
+    },
+    {
+      "confidence": "high",
+      "note": "HD2023 ACT=D; deleted out of business",
+      "relationship": "closed",
+      "source_unitid": 498465,
+      "target_unitid": null
+    }
+  ],
+  "history_id": "nces-hd2022-to-hd2023-reviewed-2026-09",
+  "source_release": "2022-23-final",
+  "source_sha256": "e11d35af6f50fbe2f51d8ddd5a9d4f49860abbab7d73beae1f8524f13ad8945b",
+  "source_url": "https://nces.ed.gov/ipeds/datacenter/data/HD2023.zip",
+  "target_release": "2023-24-final"
+}

@@ -13,6 +13,11 @@ from education_roi.ipeds import (
     pair_unitids,
     resolve_unitid,
 )
+from education_roi.ipeds.identity_official import CURRENT_SHA256
+
+OFFICIAL_HISTORY = (
+    Path(__file__).resolve().parents[2] / "data/crosswalks/nces-hd2022-to-hd2023-events.json"
+)
 
 
 def history() -> InstitutionHistory:
@@ -115,6 +120,26 @@ def test_history_file_is_strict_versioned_and_official(tmp_path: Path) -> None:
         InstitutionHistory.model_validate(
             {**payload, "entries": [{**closed, "target_unitid": 200003}]}
         )
+
+
+def test_reviewed_directory_events_never_infer_self_merge_or_missing_closure() -> None:
+    official = InstitutionHistory.from_file(OFFICIAL_HISTORY)
+    assert official.source_sha256 == CURRENT_SHA256
+    assert len(official.entries) == 95
+    assert sum(e.relationship is InstitutionRelationship.MERGED for e in official.entries) == 17
+    assert sum(e.relationship is InstitutionRelationship.CLOSED for e in official.entries) == 56
+    assert sum(e.relationship is InstitutionRelationship.UNRESOLVED for e in official.entries) == 22
+    merged = resolve_unitid(128577, "2022-23-final", "2023-24-final", history=official)
+    assert merged.target_unitid == 129367
+    assert merged.review_required
+    unresolved = resolve_unitid(413972, "2022-23-final", "2023-24-final", history=official)
+    assert unresolved.status is InstitutionResolutionStatus.UNRESOLVED
+    assert unresolved.review_required
+    report = pair_unitids((413972,), (413972,), "2022-23-final", "2023-24-final", history=official)
+    assert report.pairings == ()
+    assert any(
+        f.finding_type is InstitutionPairingFindingType.AMBIGUOUS_HISTORY for f in report.findings
+    )
 
 
 def test_pairing_reports_splits_closures_additions_and_missing_history() -> None:
