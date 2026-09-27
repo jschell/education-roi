@@ -76,7 +76,9 @@ from education_roi.ipeds.net_price_evidence import (
 from education_roi.ipeds.net_price_pipeline import transform_net_price
 from education_roi.ipeds.program_awards import (
     PROGRAM_DATA,
+    PROGRAM_DATA_2022,
     PROGRAM_DICTIONARY,
+    PROGRAM_DICTIONARY_2022,
     IPEDSProgramAwardsError,
     register_program_awards,
     resolve_program_awards,
@@ -439,13 +441,16 @@ def ipeds_register_retention(
 def ipeds_register_program_awards(
     catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[
+        str, typer.Option(help="Reviewed final program release.")
+    ] = "2023-24-final",
 ) -> None:
-    """Validate and register the final revised C2023_A data/dictionary pair."""
+    """Validate and register a reviewed final revised C2022_A or C2023_A pair."""
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.COMPLETIONS_BY_PROGRAM,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registered = register_program_awards(release, ProjectPaths.from_environment(root))
     except (IPEDSCatalogError, IPEDSProgramAwardsError, ProvenanceError, ValueError) as error:
@@ -767,6 +772,9 @@ def ipeds_resolve_program_awards(
     award_level: Annotated[int, typer.Argument(help="Exact IPEDS award level.")],
     catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[
+        str, typer.Option(help="Reviewed final program release.")
+    ] = "2023-24-final",
 ) -> None:
     """Return a verified exact-key award count, not unique graduates or a completion rate."""
     paths = ProjectPaths.from_environment(root)
@@ -774,14 +782,19 @@ def ipeds_resolve_program_awards(
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.COMPLETIONS_BY_PROGRAM,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
             raise ValueError(f"artifact registry not found: {registry_path}")
         registry = Registry(registry_path)
         manifests = []
-        for dataset_id in (PROGRAM_DATA.dataset_id, PROGRAM_DICTIONARY.dataset_id):
+        definitions = (
+            (PROGRAM_DATA_2022, PROGRAM_DICTIONARY_2022)
+            if release.release_id == "2022-23-final"
+            else (PROGRAM_DATA, PROGRAM_DICTIONARY)
+        )
+        for dataset_id in (definition.dataset_id for definition in definitions):
             matches = tuple(
                 item
                 for item in registry.list_artifacts(dataset_id, release.release_id)

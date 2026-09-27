@@ -17,6 +17,7 @@ from education_roi.ipeds.identity import InstitutionHistory
 from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
 from education_roi.ipeds.program_awards import (
     LABELS,
+    PROGRAM_DATA_2022,
     IPEDSProgramAwardsError,
     _read_awards,
     register_program_awards,
@@ -85,6 +86,40 @@ def test_dictionary_requires_exact_definitions_and_award_meanings(
         verify_program_dictionary(dictionary)
 
 
+def test_prior_dictionary_requires_legacy_sheet_and_imputation_header(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dictionary = tmp_path / "C2022_A_Dict.zip"
+    with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
+        output.writestr("c2022_a.xlsx", b"fixture")
+
+    def fake_rows(data: bytes, *, sheet_names: frozenset[str]) -> list[list[str]]:
+        if sheet_names == frozenset({"Introduction"}):
+            return [["Final/revised release:", "2020 Classification of Instructional Programs"]]
+        if sheet_names == frozenset({"varlist"}):
+            return [
+                ["1", key, "N", "6", "Cont", status, label]
+                for key, (label, status) in LABELS.items()
+            ]
+        if sheet_names == frozenset({"FrequenciesRV"}):
+            return [
+                ["1", "MAJORNUM", "1", "First major"],
+                ["1", "AWLEVEL", "5", "Bachelor's degree"],
+            ]
+        assert sheet_names == frozenset({"Imputation values"})
+        return [
+            ["Code values for item imputation variables Xvarname"],
+            ["CodeValue", "ValueLabel"],
+            *[
+                [code, label + (";" if code == "Z" else "")]
+                for code, label in IMPUTATION_LABELS.items()
+            ],
+        ]
+
+    monkeypatch.setattr("education_roi.ipeds.program_awards._xlsx_rows", fake_rows)
+    verify_program_dictionary(dictionary, "2022-23-final")
+
+
 def test_program_award_imputation_labels_preserve_raw_status() -> None:
     assert interpret_award_status("R").label == "Reported"
     assert not interpret_award_status("R").review_required
@@ -92,10 +127,84 @@ def test_program_award_imputation_labels_preserve_raw_status() -> None:
     assert interpret_award_status("C").review_required
     assert interpret_award_status("Z").label == "Implied zero"
     assert interpret_award_status("Z").review_required
+    assert interpret_award_status("Z", "2022-23-final").label == "Implied zero;"
     assert interpret_award_status("J").label == "Logical imputation"
     assert interpret_award_status("J").review_required
     assert interpret_award_status("?").label is None
     assert interpret_award_status("?").review_required
+
+
+def test_prior_year_registration_and_lookup_keep_release_definitions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    release = select_release(
+        IPEDSReleaseCatalog.from_file(CATALOG),
+        IPEDSComponent.COMPLETIONS_BY_PROGRAM,
+        release_id="2022-23-final",
+    )
+    source_dir = tmp_path / "sources"
+    source_dir.mkdir()
+    data, dictionary = source_dir / "C2022_A.zip", source_dir / "C2022_A_Dict.zip"
+    with ZipFile(data, "w", ZIP_DEFLATED) as output:
+        output.writestr("c2022_a.csv", HEADER + "100654,01.0999,1,05,100,R\n")
+        output.writestr("c2022_a_rv.csv", HEADER + "100654,01.0999,1,05,9,C\n")
+    with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
+        output.writestr("c2022_a.xlsx", b"fixture")
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards.verify_program_dictionary",
+        lambda path, release_id=None: None,
+    )
+
+    class FakeDownloader:
+        index = 0
+
+        def download(
+            self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+        ) -> DownloadResult:
+            self.index += 1
+            destination_directory.mkdir(parents=True, exist_ok=True)
+            target = destination_directory / f"download-{self.index}.zip"
+            copyfile((data, dictionary)[self.index - 1], target)
+            return DownloadResult(target, url, url, target.stat().st_size)
+
+    paths = ProjectPaths(tmp_path / "project")
+    pair = register_program_awards(release, paths, downloader=FakeDownloader())  # type: ignore[arg-type]
+    assert pair.data.dataset_id == PROGRAM_DATA_2022.dataset_id
+    observation = resolve_program_awards(
+        paths.data / "raw" / pair.data.storage_path,
+        paths.data / "raw" / pair.dictionary.storage_path,
+        release,
+        pair.data,
+        pair.dictionary,
+        100654,
+        "01.0999",
+        1,
+        5,
+    )
+    assert observation.award_count == 9
+    assert observation.raw_award_count == "9"
+    assert observation.source_status_label == "Analyst corrected reported value"
+    assert observation.source_status_review_required
+    assert (observation.period_start, observation.period_end) == ("2021-07-01", "2022-06-30")
+    cli = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "resolve-program-awards",
+            "100654",
+            "01.0999",
+            "1",
+            "5",
+            "--catalog",
+            str(CATALOG),
+            "--root",
+            str(paths.root),
+            "--release-id",
+            "2022-23-final",
+        ],
+    )
+    assert cli.exit_code == 0, cli.stdout
+    assert json.loads(cli.stdout)["award_count"] == 9
 
 
 @pytest.mark.parametrize(
@@ -116,7 +225,8 @@ def test_registration_and_exact_lookup_preserve_source_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.program_awards.verify_program_dictionary", lambda p: None
+        "education_roi.ipeds.program_awards.verify_program_dictionary",
+        lambda p, release_id=None: None,
     )
     release = select_release(
         IPEDSReleaseCatalog.from_file(CATALOG), IPEDSComponent.COMPLETIONS_BY_PROGRAM
@@ -206,7 +316,8 @@ def test_immutable_program_table_preserves_exact_keys_and_statuses(
         "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary", lambda p: None
     )
     monkeypatch.setattr(
-        "education_roi.ipeds.program_awards.verify_program_dictionary", lambda p: None
+        "education_roi.ipeds.program_awards.verify_program_dictionary",
+        lambda p, release_id=None: None,
     )
     data, dictionary = sources(
         tmp_path / "source",

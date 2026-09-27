@@ -33,6 +33,18 @@ PROGRAM_DICTIONARY = DatasetDefinition(
     name="IPEDS C2023_A awards dictionary",
     allowed_domains=("nces.ed.gov",),
 )
+PROGRAM_DATA_2022 = DatasetDefinition(
+    dataset_id="ipeds-program-awards-2022",
+    publisher="National Center for Education Statistics",
+    name="IPEDS C2022_A awards by program and award level",
+    allowed_domains=("nces.ed.gov",),
+)
+PROGRAM_DICTIONARY_2022 = DatasetDefinition(
+    dataset_id="ipeds-program-awards-2022-dictionary",
+    publisher="National Center for Education Statistics",
+    name="IPEDS C2022_A awards dictionary",
+    allowed_domains=("nces.ed.gov",),
+)
 REQUIRED = frozenset({"UNITID", "CIPCODE", "MAJORNUM", "AWLEVEL", "CTOTALT", "XCTOTALT"})
 LABELS = {
     "UNITID": ("Unique identification number of the institution", ""),
@@ -82,21 +94,38 @@ class RegisteredProgramAwards:
 def _require_release(release: IPEDSRelease) -> None:
     if (
         release.component is not IPEDSComponent.COMPLETIONS_BY_PROGRAM
-        or release.release_id != "2023-24-final"
         or release.publication_status is not IPEDSPublicationStatus.FINAL
-        or release.data_member != "C2023_a_RV.csv"
+        or (release.release_id, release.data_member)
+        not in {
+            ("2022-23-final", "c2022_a_rv.csv"),
+            ("2023-24-final", "C2023_a_RV.csv"),
+        }
     ):
-        raise IPEDSProgramAwardsError("requires reviewed final C2023_A revised release")
+        raise IPEDSProgramAwardsError("requires reviewed final C2022_A or C2023_A revised release")
 
 
-def verify_program_dictionary(path: Path) -> None:
+def _definitions(release: IPEDSRelease) -> tuple[DatasetDefinition, DatasetDefinition]:
+    return (
+        (PROGRAM_DATA_2022, PROGRAM_DICTIONARY_2022)
+        if release.release_id == "2022-23-final"
+        else (PROGRAM_DATA, PROGRAM_DICTIONARY)
+    )
+
+
+def verify_program_dictionary(path: Path, release_id: str = "2023-24-final") -> None:
+    prior = release_id == "2022-23-final"
+    if release_id not in {"2022-23-final", "2023-24-final"}:
+        raise IPEDSProgramAwardsError("unsupported program dictionary release")
+    member = "c2022_a.xlsx" if prior else "C2023_a_dict.xlsx"
     try:
         with ZipFile(path) as archive:
-            if archive.namelist() != ["C2023_a_dict.xlsx"]:
-                raise IPEDSProgramAwardsError("dictionary requires C2023_a_dict.xlsx")
-            workbook = archive.read("C2023_a_dict.xlsx")
+            if archive.namelist() != [member]:
+                raise IPEDSProgramAwardsError(f"dictionary requires {member}")
+            workbook = archive.read(member)
         introduction = _xlsx_rows(workbook, sheet_names=frozenset({"Introduction"}))
-        definitions = _xlsx_rows(workbook, sheet_names=frozenset({"Varlist"}))
+        definitions = _xlsx_rows(
+            workbook, sheet_names=frozenset({"varlist" if prior else "Varlist"})
+        )
         frequencies = _xlsx_rows(workbook, sheet_names=frozenset({"FrequenciesRV"}))
         imputation_values = _xlsx_rows(workbook, sheet_names=frozenset({"Imputation values"}))
     except (OSError, BadZipFile, KeyError, IPEDSDictionaryError) as error:
@@ -106,7 +135,11 @@ def verify_program_dictionary(path: Path) -> None:
         len(found) != len(LABELS)
         or {row[1] for row in found} != LABELS.keys()
         or any((row[6], row[5]) != LABELS[row[1]] for row in found)
-        or not any("(Final/revised release)" in cell for row in introduction for cell in row)
+        or not any(
+            ("Final/revised release:" if prior else "(Final/revised release)") in cell
+            for row in introduction
+            for cell in row
+        )
         or not any(
             "2020 Classification of Instructional Programs" in cell
             for row in introduction
@@ -120,10 +153,14 @@ def verify_program_dictionary(path: Path) -> None:
             for row in frequencies
         )
         or imputation_values
-        != [
-            ["CodeValue", "ValueLabel"],
-            *[[code, label] for code, label in IMPUTATION_LABELS.items()],
-        ]
+        != (
+            ([["Code values for item imputation variables Xvarname"]] if prior else [])
+            + [["CodeValue", "ValueLabel"]]
+            + [
+                [code, label + (";" if prior and code == "Z" else "")]
+                for code, label in IMPUTATION_LABELS.items()
+            ]
+        )
     ):
         raise IPEDSProgramAwardsError("dictionary lacks reviewed final program definitions")
 
@@ -138,7 +175,11 @@ def _read_awards(
             if member not in archive.namelist():
                 raise IPEDSProgramAwardsError(f"program archive is missing {member}")
             with archive.open(member) as source:
-                reader = csv.DictReader(io.TextIOWrapper(source, encoding="utf-8-sig"))
+                reader = csv.DictReader(
+                    io.TextIOWrapper(
+                        source, encoding="cp1252" if member == "c2022_a_rv.csv" else "utf-8-sig"
+                    )
+                )
                 missing = REQUIRED.difference(reader.fieldnames or ())
                 if missing:
                     raise IPEDSProgramAwardsError(
@@ -215,11 +256,11 @@ def register_program_awards(
         for url in (str(release.data_url), str(release.dictionary_url)):
             downloads.append(downloader.download(url, paths.data / ".downloads", ("nces.ed.gov",)))
         _read_awards(downloads[0].path, release.data_member or "")
-        verify_program_dictionary(downloads[1].path)
+        verify_program_dictionary(downloads[1].path, release.release_id)
         registry = Registry(paths.data / "manifests" / "registry.sqlite")
         store = ArtifactStore(paths.data / "raw", registry)
         manifests = []
-        for definition, download in zip((PROGRAM_DATA, PROGRAM_DICTIONARY), downloads, strict=True):
+        for definition, download in zip(_definitions(release), downloads, strict=True):
             registry.add_dataset(definition)
             manifest = store.register(
                 download.path,
@@ -228,7 +269,7 @@ def register_program_awards(
                 source_url=download.source_url,
                 final_url=download.final_url,
                 publication_status="final",
-                schema_version="ipeds-c2023a-v1",
+                schema_version=f"ipeds-c{release.collection_year}a-v1",
                 vintage=release.release_id,
                 artifact_name=Path(urlparse(download.final_url).path).name,
             )
@@ -236,7 +277,7 @@ def register_program_awards(
                 manifest = registry.transition(
                     manifest.artifact_id,
                     ApprovalState.VALIDATED,
-                    "C2023_A revised program keys and paired dictionary validated",
+                    f"C{release.collection_year}_A revised keys and dictionary validated",
                 )
             manifests.append(manifest)
         return RegisteredProgramAwards(manifests[0], manifests[1])
@@ -267,24 +308,25 @@ def resolve_program_awards(
         raise IPEDSProgramAwardsError(
             "requires positive UNITID, six-digit CIP, major 1/2 and award level"
         )
+    data_definition, dictionary_definition = _definitions(release)
     _verify_manifest(
-        archive, data_manifest, release, PROGRAM_DATA.dataset_id, str(release.data_url)
+        archive, data_manifest, release, data_definition.dataset_id, str(release.data_url)
     )
     _verify_manifest(
         dictionary,
         dictionary_manifest,
         release,
-        PROGRAM_DICTIONARY.dataset_id,
+        dictionary_definition.dataset_id,
         str(release.dictionary_url),
     )
-    verify_program_dictionary(dictionary)
+    verify_program_dictionary(dictionary, release.release_id)
     _, row = _read_awards(
         archive, release.data_member or "", (unitid, cip_code, major_number, award_level)
     )
     raw = row["CTOTALT"] if row else None
     value = int(raw) if raw else None
     source_status = row["XCTOTALT"] if row else None
-    interpretation = interpret_award_status(source_status)
+    interpretation = interpret_award_status(source_status, release.release_id)
     return ProgramAwardObservation(
         status="OBSERVED" if value is not None and value >= 0 else "INSUFFICIENT_DATA",
         unitid=unitid,
@@ -298,6 +340,8 @@ def resolve_program_awards(
         source_status_review_required=interpretation.review_required,
         release_id=release.release_id,
         publication_status=release.publication_status.value,
+        period_start="2021-07-01" if release.collection_year == 2022 else "2022-07-01",
+        period_end="2022-06-30" if release.collection_year == 2022 else "2023-06-30",
         data_artifact_id=data_manifest.artifact_id,
         dictionary_artifact_id=dictionary_manifest.artifact_id,
         reason=None
