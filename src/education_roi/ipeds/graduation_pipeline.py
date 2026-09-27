@@ -20,8 +20,10 @@ from education_roi.ipeds.graduation import (
     GR2023_DICTIONARY_DATASET_ID,
     REQUIRED_GR_COLUMNS,
     ROW_CODES,
+    TWO_YEAR_ROW_CODES,
     IPEDSGraduationError,
     _verify_dictionary,
+    _verify_dictionary_two_year,
     _verify_manifest,
 )
 from education_roi.ipeds.graduation_2022 import (
@@ -36,6 +38,7 @@ from education_roi.provenance.models import ArtifactManifest, TransformationMani
 
 GR_TRANSFORMATION_VERSION = "ipeds-gr2023-bachelors-v1"
 GR2022_TRANSFORMATION_VERSION = "ipeds-gr2022-bachelors-v1"
+GR2023_TWO_YEAR_TRANSFORMATION_VERSION = "ipeds-gr2023-two-year-any-award-v1"
 
 
 def _release_config(release: IPEDSRelease) -> tuple[int, str, bool]:
@@ -82,8 +85,24 @@ def _count(cell: str | None) -> int | None:
     return value if value >= 0 else None
 
 
-def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: str) -> pl.DataFrame:
+def _frame(
+    archive: Path,
+    release: IPEDSRelease,
+    data_id: str,
+    dictionary_id: str,
+    *,
+    two_year: bool = False,
+) -> pl.DataFrame:
     cohort_year, transformation_version, strip_codes = _release_config(release)
+    if two_year:
+        if release.release_id != "2023-24-final":
+            raise IPEDSGraduationError("two-year table requires final GR2023_RV")
+        cohort_year = 2020
+        transformation_version = GR2023_TWO_YEAR_TRANSFORMATION_VERSION
+    codes = TWO_YEAR_ROW_CODES if two_year else ROW_CODES
+    section_code = "4" if two_year else "2"
+    award_column = "any_awards" if two_year else "bachelors_awards"
+    raw_award_column = "raw_any_awards" if two_year else "raw_bachelors_awards"
     selected: dict[int, dict[str, dict[str, str]]] = {}
     try:
         with ZipFile(archive) as source:
@@ -99,7 +118,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                 for number, row in enumerate(reader, start=2):
                     code = (row["GRTYPE"] or "").strip() if strip_codes else row["GRTYPE"]
                     section = (row["SECTION"] or "").strip() if strip_codes else row["SECTION"]
-                    if code not in ROW_CODES or section != "2":
+                    if code not in codes or section != section_code:
                         continue
                     try:
                         unitid = int(row["UNITID"])
@@ -109,7 +128,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                         ) from error
                     if unitid <= 0:
                         raise IPEDSGraduationError(f"invalid UNITID on GR2023 row {number}")
-                    status, line = ROW_CODES[code]
+                    status, line = codes[code]
                     row_keys = (row["CHRTSTAT"], row["COHORT"], row["LINE"])
                     if strip_codes:
                         row_keys = (
@@ -117,7 +136,7 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                             (row_keys[1] or "").strip(),
                             (row_keys[2] or "").strip(),
                         )
-                    if row_keys != (status, "2", line):
+                    if row_keys != (status, section_code, line):
                         raise IPEDSGraduationError(f"incompatible GR2023 keys on row {number}")
                     group = selected.setdefault(unitid, {})
                     if code in group:
@@ -128,15 +147,15 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
     except (OSError, BadZipFile, UnicodeError, csv.Error) as error:
         raise IPEDSGraduationError(f"could not read GR2023 archive: {error}") from error
     if not selected:
-        raise IPEDSGraduationError("GR2023 archive has no bachelor's cohort rows")
+        raise IPEDSGraduationError("GR2023 archive has no selected cohort rows")
     records = []
     for unitid, rows in sorted(selected.items()):
-        cohort = rows.get("8")
-        award = rows.get("12")
+        cohort = rows.get("29" if two_year else "8")
+        award = rows.get("30" if two_year else "12")
         denominator = _count(cohort["GRTOTLT"]) if cohort else None
         numerator = _count(award["GRTOTLT"]) if award else None
         if denominator is not None and numerator is not None and numerator > denominator:
-            raise IPEDSGraduationError(f"bachelor's awards exceed cohort for UNITID {unitid}")
+            raise IPEDSGraduationError(f"awards exceed cohort for UNITID {unitid}")
         if cohort is None or award is None:
             reason = "missing cohort or award row"
         elif denominator is None or numerator is None:
@@ -151,11 +170,15 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                 "release_id": release.release_id,
                 "publication_status": release.publication_status.value,
                 "cohort_year": cohort_year,
-                "cohort_scope": "bachelors_seeking_first_time_full_time",
-                "award_outcome": "bachelors_degree",
+                "cohort_scope": (
+                    "all_degree_or_certificate_seeking_first_time_full_time_two_year"
+                    if two_year
+                    else "bachelors_seeking_first_time_full_time"
+                ),
+                "award_outcome": "any_award" if two_year else "bachelors_degree",
                 "normal_time_percent": 150,
                 "adjusted_cohort": denominator,
-                "bachelors_awards": numerator,
+                award_column: numerator,
                 "observed_rate": (
                     numerator / denominator
                     if reason is None and numerator is not None and denominator is not None
@@ -163,11 +186,21 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
                 ),
                 "unavailable_reason": reason,
                 "raw_adjusted_cohort": cohort["GRTOTLT"] if cohort else None,
-                "raw_bachelors_awards": award["GRTOTLT"] if award else None,
+                raw_award_column: award["GRTOTLT"] if award else None,
                 "cohort_status": cohort["XGRTOTLT"] if cohort else None,
                 "award_status": award["XGRTOTLT"] if award else None,
-                "cohort_row_key": "COHORT=2;SECTION=2;GRTYPE=8" if cohort else None,
-                "award_row_key": "COHORT=2;SECTION=2;GRTYPE=12" if award else None,
+                "cohort_row_key": (
+                    f"COHORT={section_code};SECTION={section_code};"
+                    f"GRTYPE={'29' if two_year else '8'}"
+                    if cohort
+                    else None
+                ),
+                "award_row_key": (
+                    f"COHORT={section_code};SECTION={section_code};"
+                    f"GRTYPE={'30' if two_year else '12'}"
+                    if award
+                    else None
+                ),
                 "data_artifact_id": data_id,
                 "dictionary_artifact_id": dictionary_id,
                 "transformation_version": transformation_version,
@@ -182,11 +215,11 @@ def _frame(archive: Path, release: IPEDSRelease, data_id: str, dictionary_id: st
         "award_outcome": pl.String,
         "normal_time_percent": pl.Int32,
         "adjusted_cohort": pl.Int64,
-        "bachelors_awards": pl.Int64,
+        award_column: pl.Int64,
         "observed_rate": pl.Float64,
         "unavailable_reason": pl.String,
         "raw_adjusted_cohort": pl.String,
-        "raw_bachelors_awards": pl.String,
+        raw_award_column: pl.String,
         "cohort_status": pl.String,
         "award_status": pl.String,
         "cohort_row_key": pl.String,
@@ -205,9 +238,22 @@ def _transform_graduation_archive(
     data_manifest: ArtifactManifest,
     dictionary_manifest: ArtifactManifest,
     release: IPEDSRelease,
+    *,
+    two_year: bool = False,
 ) -> ProcessedIPEDSGraduation:
     """Build an immutable cohort table from an explicitly supported final release."""
     cohort_year, transformation_version, legacy = _release_config(release)
+    if two_year:
+        if legacy:
+            raise IPEDSGraduationError("two-year table requires final GR2023_RV")
+        cohort_year = 2020
+        transformation_version = GR2023_TWO_YEAR_TRANSFORMATION_VERSION
+    cohort_scope = (
+        "all_degree_or_certificate_seeking_first_time_full_time_two_year"
+        if two_year
+        else "bachelors_seeking_first_time_full_time"
+    )
+    award_outcome = "any_award" if two_year else "bachelors_degree"
     _verify_manifest(archive, data_manifest, release, GR2023_DATASET_ID, str(release.data_url))
     _verify_manifest(
         dictionary,
@@ -219,8 +265,14 @@ def _transform_graduation_archive(
     if legacy:
         verify_gr2022_dictionary(dictionary)
     else:
-        _verify_dictionary(dictionary)
-    frame = _frame(archive, release, data_manifest.artifact_id, dictionary_manifest.artifact_id)
+        (_verify_dictionary_two_year if two_year else _verify_dictionary)(dictionary)
+    frame = _frame(
+        archive,
+        release,
+        data_manifest.artifact_id,
+        dictionary_manifest.artifact_id,
+        two_year=two_year,
+    )
     relative_directory = (
         Path(GR2023_DATASET_ID)
         / release.release_id
@@ -228,7 +280,9 @@ def _transform_graduation_archive(
         / dictionary_manifest.sha256
         / transformation_version
     )
-    relative = relative_directory / "bachelors.parquet"
+    relative = relative_directory / (
+        "two-year-any-award.parquet" if two_year else "bachelors.parquet"
+    )
     destination = output_root / relative
     output_root.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
@@ -255,8 +309,8 @@ def _transform_graduation_archive(
         parameters={
             "data_member": release.data_member,
             "cohort_year": cohort_year,
-            "cohort_scope": "bachelors_seeking_first_time_full_time",
-            "award_outcome": "bachelors_degree",
+            "cohort_scope": cohort_scope,
+            "award_outcome": award_outcome,
             "normal_time_percent": 150,
             "transformation_version": transformation_version,
         },
@@ -266,8 +320,8 @@ def _transform_graduation_archive(
         release_id=release.release_id,
         publication_status=release.publication_status.value,
         cohort_year=cohort_year,
-        cohort_scope="bachelors_seeking_first_time_full_time",
-        award_outcome="bachelors_degree",
+        cohort_scope=cohort_scope,
+        award_outcome=award_outcome,
         normal_time_percent=150,
         row_count=frame.height,
         columns=tuple(frame.columns),
@@ -331,4 +385,26 @@ def transform_gr2022_archive(
         raise IPEDSGraduationError("requires reviewed final GR2022 revised release")
     return _transform_graduation_archive(
         archive, dictionary, output_root, data_manifest, dictionary_manifest, release
+    )
+
+
+def transform_gr2023_two_year_archive(
+    archive: Path,
+    dictionary: Path,
+    output_root: Path,
+    data_manifest: ArtifactManifest,
+    dictionary_manifest: ArtifactManifest,
+    release: IPEDSRelease,
+) -> ProcessedIPEDSGraduation:
+    """Build the 2020 two-year any-award cohort in its own immutable table."""
+    if release.release_id != "2023-24-final":
+        raise IPEDSGraduationError("requires reviewed final GR2023_RV release")
+    return _transform_graduation_archive(
+        archive,
+        dictionary,
+        output_root,
+        data_manifest,
+        dictionary_manifest,
+        release,
+        two_year=True,
     )

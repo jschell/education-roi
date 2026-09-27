@@ -94,6 +94,26 @@ def _verify_dictionary(path: Path) -> None:
         raise IPEDSGraduationError("GR2023 dictionary does not support the selected final rows")
 
 
+def _verify_dictionary_two_year(path: Path) -> None:
+    _verify_dictionary(path)
+    try:
+        with ZipFile(path) as archive:
+            rows = _xlsx_rows(archive.read("gr2023.xlsx"))
+    except (OSError, BadZipFile, KeyError, UnicodeError, ValueError) as error:
+        raise IPEDSGraduationError(f"could not read GR2023 dictionary: {error}") from error
+    labels = {
+        row[2]: row[7]
+        for row in rows
+        if len(row) >= 8 and row[0] == "GRTYPE" and row[3] == "gr2023_RV"
+    }
+    if (
+        "Adjusted cohort" not in labels.get("29", "")
+        or "Completers within 150% of normal time total" not in labels.get("30", "")
+        or "2-year institutions" not in labels.get("27", "")
+    ):
+        raise IPEDSGraduationError("GR2023 dictionary does not support the two-year cohort")
+
+
 def _target_rows(archive_path: Path, member: str, unitid: int) -> dict[str, dict[str, str]]:
     try:
         with ZipFile(archive_path) as archive:
@@ -292,23 +312,7 @@ def resolve_gr2023_two_year_any_award(
         GR2023_DICTIONARY_DATASET_ID,
         str(release.dictionary_url),
     )
-    _verify_dictionary(dictionary_path)
-    try:
-        with ZipFile(dictionary_path) as archive:
-            rows = _xlsx_rows(archive.read("gr2023.xlsx"))
-    except (OSError, BadZipFile, KeyError, UnicodeError, ValueError) as error:
-        raise IPEDSGraduationError(f"could not read GR2023 dictionary: {error}") from error
-    labels = {
-        row[2]: row[7]
-        for row in rows
-        if len(row) >= 8 and row[0] == "GRTYPE" and row[3] == "gr2023_RV"
-    }
-    if (
-        "Adjusted cohort" not in labels.get("29", "")
-        or "Completers within 150% of normal time total" not in labels.get("30", "")
-        or "2-year institutions" not in labels.get("27", "")
-    ):
-        raise IPEDSGraduationError("GR2023 dictionary does not support the two-year cohort")
+    _verify_dictionary_two_year(dictionary_path)
     selected: dict[str, dict[str, str]] = {}
     seen: set[tuple[int, str]] = set()
     try:

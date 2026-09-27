@@ -34,6 +34,17 @@ edu-roi ipeds resolve-gr2023 100760 \
 The resolver verifies paired artifact hashes and release, checks the workbook
 labels, scans the selected final member for unique exact keys and compatible
 row codes, preserves source statuses, and rejects counts above the cohort.
+`edu-roi ipeds build-gr2023-two-year --catalog
+data/manifests/ipeds-release-catalog.json` produces a separate immutable
+Parquet table and processing manifest. The official build produced 1,454
+institution rows: 1,445 observed rates and nine missing award rows with
+explicit unavailable reasons. The Parquet SHA-256 was
+`aab6c92ef105688581fb39e4904b9a75e0d62aa359ffdf8e70e1bd7ec95edf45`;
+an isolated rerun returned the same manifest and bytes. The table preserves
+both original count cells, source statuses, row keys, release, cohort scope,
+and paired artifact IDs without using the bachelor-specific award column.
+
 This 150% any-award rate is an institutional historical observation, not an
-associate degree rate or an individual completion probability. A processed
-two-year cohort table and scenario outcome mapping remain separate tasks.
+associate degree rate or an individual completion probability. Verified
+processed-table lookup, cross-release comparison, and scenario outcome mapping
+remain separate tasks.
