@@ -11,6 +11,7 @@ from education_roi.ipeds.program_awards_pipeline import (
     VERSION,
     IPEDSProgramAwardsProcessingManifest,
 )
+from education_roi.ipeds.program_awards_status import interpret_award_status
 from education_roi.provenance.integrity import sha256_file
 from education_roi.scenarios.models import StrictModel
 
@@ -49,6 +50,8 @@ class ProgramAwardEvidence(StrictModel):
     award_count: int | None
     raw_award_count: str | None
     source_status: str | None
+    source_status_label: str | None
+    source_status_review_required: bool
     unavailable_reason: str | None
     release_id: str
     publication_status: str
@@ -169,6 +172,8 @@ def resolve_program_awards_evidence(
             raise IPEDSProgramAwardsTableError("program source cell or availability differs")
         if key == target:
             selected = row
+    source_status = selected["source_status"] if selected else None
+    source_interpretation = interpret_award_status(source_status)
     return ProgramAwardEvidence(
         status="OBSERVED"
         if selected and selected["unavailable_reason"] is None
@@ -180,7 +185,9 @@ def resolve_program_awards_evidence(
         award_level=award_level,
         award_count=selected["award_count"] if selected else None,
         raw_award_count=selected["raw_award_count"] if selected else None,
-        source_status=selected["source_status"] if selected else None,
+        source_status=source_status,
+        source_status_label=source_interpretation.label,
+        source_status_review_required=source_interpretation.review_required,
         unavailable_reason=(
             selected["unavailable_reason"] if selected else "exact program key absent from table"
         ),

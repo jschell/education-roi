@@ -71,5 +71,15 @@ zero. Aggregate CIP 99 cannot be requested as a program. The official table
 lookup for UNITID 236948, CIP `03.0103`, first major, bachelor's level returned
 93 awards with status `R` and matching output hash.
 
-Source-status interpretation, cross-release comparison, and connections to
-scenario program evidence remain future work.
+The dictionary's `Imputation values` worksheet defines the `XCTOTALT` flag
+codes. Registration now verifies the complete reviewed code/label list, and
+raw and processed lookups return the exact label plus a review flag. `R`
+means reported and needs no status review. `C` means analyst corrected;
+`G`, `J`, `K`, `L`, `N`, and `P` describe generated or imputed values; `Z`
+means implied zero. Other codes describe unavailable or inapplicable cells.
+Every non-`R` flag is marked for review while the original code and numeric
+cell remain unchanged. Unknown nonempty codes retain no label and require
+review. An absent row has no source flag.
+
+Cross-release comparison and numerical scenario program integration remain
+future work.

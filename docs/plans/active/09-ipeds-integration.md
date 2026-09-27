@@ -148,13 +148,17 @@ Add versioned institution-level costs, characteristics, program production, aid,
   and other identity changes require review without emitting an award count;
   exact continuing identities can retrieve the observed award cell. See
   `docs/ipeds-program-awards-context-review.md`.
+- C2023_A program award lookups interpret `XCTOTALT` using the dictionary's
+  complete imputation code list, retaining the raw flag, its exact label,
+  and review state without changing observed numeric counts.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
 ## Remaining implementation tasks
 
 1. Extend official workbook validation beyond the final four-year bachelor's mapping.
-2. Interpret documented IPEDS imputation/status fields when authoritative definitions are available.
+2. Interpret documented IPEDS imputation/status fields in additional components;
+   C2023_A `XCTOTALT` now has a dictionary-verified interpretation.
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
