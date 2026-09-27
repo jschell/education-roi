@@ -12,6 +12,8 @@ from typer.testing import CliRunner
 from education_roi.cli.app import app
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds.catalog import IPEDSComponent, IPEDSReleaseCatalog, select_release
+from education_roi.ipeds.cip import CIPCrosswalk
+from education_roi.ipeds.identity import InstitutionHistory
 from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict
 from education_roi.ipeds.program_awards import (
     LABELS,
@@ -21,6 +23,7 @@ from education_roi.ipeds.program_awards import (
     resolve_program_awards,
     verify_program_dictionary,
 )
+from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
     IPEDSProgramAwardsTableError,
     resolve_program_awards_evidence,
@@ -31,6 +34,8 @@ from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.store import Registry
 
 CATALOG = Path(__file__).parents[2] / "data/manifests/ipeds-release-catalog.json"
+CIP_CROSSWALK = Path(__file__).parents[2] / "data/crosswalks/nces-cip-2010-to-2020.json"
+UNITID_HISTORY = Path(__file__).parents[2] / "data/crosswalks/nces-hd2022-to-hd2023-events.json"
 HEADER = "UNITID,CIPCODE,MAJORNUM,AWLEVEL,CTOTALT,XCTOTALT\n"
 
 
@@ -258,6 +263,50 @@ def test_immutable_program_table_preserves_exact_keys_and_statuses(
     )
     assert lookup.exit_code == 0, lookup.stdout
     assert json.loads(lookup.stdout)["award_count"] == 12
+    contextual = review_program_awards_context(
+        first.parquet_path,
+        236948,
+        "2023-24-final",
+        "11.0101",
+        "2010",
+        1,
+        5,
+        crosswalk=CIPCrosswalk.from_file(CIP_CROSSWALK),
+    )
+    assert contextual.status == "OBSERVED"
+    assert contextual.evidence is not None and contextual.evidence.award_count == 12
+    assert not contextual.review_reasons
+    reviewed = review_program_awards_context(
+        first.parquet_path,
+        236948,
+        "2023-24-final",
+        "43.0116",
+        "2010",
+        1,
+        5,
+        crosswalk=CIPCrosswalk.from_file(CIP_CROSSWALK),
+    )
+    assert reviewed.status == "REVIEW_REQUIRED"
+    assert reviewed.cip_resolution.target_code == "43.0403"
+    assert reviewed.evidence is None
+    cli_context = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "review-program-awards-context",
+            str(first.parquet_path),
+            "236948",
+            "2023-24-final",
+            "11.0101",
+            "2010",
+            "1",
+            "5",
+            "--crosswalk",
+            str(CIP_CROSSWALK),
+        ],
+    )
+    assert cli_context.exit_code == 0, cli_context.stdout
+    assert json.loads(cli_context.stdout)["evidence"]["award_count"] == 12
     forged = tmp_path / first.manifest.output_path
     forged.parent.mkdir(parents=True, exist_ok=True)
     pl.read_parquet(first.parquet_path).with_columns(
@@ -284,3 +333,21 @@ def test_immutable_program_table_preserves_exact_keys_and_statuses(
         transform_program_awards(
             archive, workbook, root / "data/processed", pair.data, pair.dictionary, release
         )
+
+
+def test_program_context_blocks_merged_and_unresolved_institution_identity() -> None:
+    history = InstitutionHistory.from_file(UNITID_HISTORY)
+    for unitid, expected in ((128577, "merged"), (413972, "unresolved")):
+        result = review_program_awards_context(
+            Path("unused.parquet"),
+            unitid,
+            "2022-23-final",
+            "11.0101",
+            "2020",
+            1,
+            5,
+            history=history,
+        )
+        assert result.status == "REVIEW_REQUIRED"
+        assert result.institution_resolution.relationship.value == expected
+        assert result.evidence is None

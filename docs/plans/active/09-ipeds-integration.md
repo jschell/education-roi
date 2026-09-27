@@ -143,6 +143,11 @@ Add versioned institution-level costs, characteristics, program production, aid,
   entries that block automatic continuity; source
   hashes and exclusions are documented in
   `docs/ipeds-hd2022-hd2023-institution-history-review.md`.
+- contextual program awards review resolves directional CIP and UNITID evidence
+  before a verified C2023_A lookup. Revised codes, mergers, unresolved identities,
+  and other identity changes require review without emitting an award count;
+  exact continuing identities can retrieve the observed award cell. See
+  `docs/ipeds-program-awards-context-review.md`.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
@@ -153,8 +158,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
    estimates have a pinned 2023–24 table but no cross-release series or scenario integration.
 4. Preserve reported basis and population definitions.
-5. Review unresolved UNITID transitions and connect the reviewed CIP mappings and
-   institution history to program production.
+5. Review unresolved UNITID transitions and extend contextual program production
+   to additional releases, CIP editions, and award populations.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
 7. Add scenario completion resolution and extend release comparisons beyond charges.
 
