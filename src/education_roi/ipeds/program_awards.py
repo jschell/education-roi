@@ -13,6 +13,8 @@ from pydantic import Field
 from education_roi.config.paths import ProjectPaths
 from education_roi.ipeds.catalog import IPEDSComponent, IPEDSPublicationStatus, IPEDSRelease
 from education_roi.ipeds.dictionary import IPEDSDictionaryError, _xlsx_rows
+from education_roi.ipeds.program_awards_status import LABELS as IMPUTATION_LABELS
+from education_roi.ipeds.program_awards_status import interpret_award_status
 from education_roi.provenance.downloader import HttpDownloader
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ApprovalState, ArtifactManifest, DatasetDefinition
@@ -56,6 +58,8 @@ class ProgramAwardObservation(StrictModel):
     award_count: int | None
     raw_award_count: str | None
     source_status: str | None
+    source_status_label: str | None
+    source_status_review_required: bool
     release_id: str
     publication_status: str
     period_start: str = "2022-07-01"
@@ -94,6 +98,7 @@ def verify_program_dictionary(path: Path) -> None:
         introduction = _xlsx_rows(workbook, sheet_names=frozenset({"Introduction"}))
         definitions = _xlsx_rows(workbook, sheet_names=frozenset({"Varlist"}))
         frequencies = _xlsx_rows(workbook, sheet_names=frozenset({"FrequenciesRV"}))
+        imputation_values = _xlsx_rows(workbook, sheet_names=frozenset({"Imputation values"}))
     except (OSError, BadZipFile, KeyError, IPEDSDictionaryError) as error:
         raise IPEDSProgramAwardsError(f"could not verify program dictionary: {error}") from error
     found = [row for row in definitions if len(row) >= 7 and row[1] in LABELS]
@@ -114,6 +119,11 @@ def verify_program_dictionary(path: Path) -> None:
             len(row) > 3 and row[1:4] == ["AWLEVEL", "5", "Bachelor's degree"]
             for row in frequencies
         )
+        or imputation_values
+        != [
+            ["CodeValue", "ValueLabel"],
+            *[[code, label] for code, label in IMPUTATION_LABELS.items()],
+        ]
     ):
         raise IPEDSProgramAwardsError("dictionary lacks reviewed final program definitions")
 
@@ -273,6 +283,8 @@ def resolve_program_awards(
     )
     raw = row["CTOTALT"] if row else None
     value = int(raw) if raw else None
+    source_status = row["XCTOTALT"] if row else None
+    interpretation = interpret_award_status(source_status)
     return ProgramAwardObservation(
         status="OBSERVED" if value is not None and value >= 0 else "INSUFFICIENT_DATA",
         unitid=unitid,
@@ -281,7 +293,9 @@ def resolve_program_awards(
         award_level=award_level,
         award_count=value if value is not None and value >= 0 else None,
         raw_award_count=raw,
-        source_status=row["XCTOTALT"] if row else None,
+        source_status=source_status,
+        source_status_label=interpretation.label,
+        source_status_review_required=interpretation.review_required,
         release_id=release.release_id,
         publication_status=release.publication_status.value,
         data_artifact_id=data_manifest.artifact_id,

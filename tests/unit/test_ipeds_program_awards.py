@@ -29,6 +29,12 @@ from education_roi.ipeds.program_awards_evidence import (
     resolve_program_awards_evidence,
 )
 from education_roi.ipeds.program_awards_pipeline import transform_program_awards
+from education_roi.ipeds.program_awards_status import (
+    LABELS as IMPUTATION_LABELS,
+)
+from education_roi.ipeds.program_awards_status import (
+    interpret_award_status,
+)
 from education_roi.provenance.downloader import DownloadResult
 from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.store import Registry
@@ -64,6 +70,11 @@ def test_dictionary_requires_exact_definitions_and_award_meanings(
                 ["1", "MAJORNUM", "1", "First major"],
                 ["1", "AWLEVEL", "5", "Bachelor's degree"],
             ]
+        if sheet_names == frozenset({"Imputation values"}):
+            return [
+                ["CodeValue", "ValueLabel"],
+                *[[code, label] for code, label in IMPUTATION_LABELS.items()],
+            ]
         assert sheet_names == frozenset({"Varlist"})
         return rows
 
@@ -72,6 +83,19 @@ def test_dictionary_requires_exact_definitions_and_award_meanings(
     rows[1][6] = "CIP Code -  2010 Classification"
     with pytest.raises(IPEDSProgramAwardsError, match="definitions"):
         verify_program_dictionary(dictionary)
+
+
+def test_program_award_imputation_labels_preserve_raw_status() -> None:
+    assert interpret_award_status("R").label == "Reported"
+    assert not interpret_award_status("R").review_required
+    assert interpret_award_status("C").label == "Analyst corrected reported value"
+    assert interpret_award_status("C").review_required
+    assert interpret_award_status("Z").label == "Implied zero"
+    assert interpret_award_status("Z").review_required
+    assert interpret_award_status("J").label == "Logical imputation"
+    assert interpret_award_status("J").review_required
+    assert interpret_award_status("?").label is None
+    assert interpret_award_status("?").review_required
 
 
 @pytest.mark.parametrize(
@@ -134,6 +158,10 @@ def test_registration_and_exact_lookup_preserve_source_state(
     args = (actual_data, actual_dictionary, release, registered.data, registered.dictionary)
     observed = resolve_program_awards(*args, 236948, "11.0101", 1, 5)
     assert (observed.status, observed.award_count, observed.cip_version) == ("OBSERVED", 12, "2020")
+    assert (observed.source_status_label, observed.source_status_review_required) == (
+        "Reported",
+        False,
+    )
     assert resolve_program_awards(*args, 236948, "11.0101", 2, 5).award_count == 3
     missing = resolve_program_awards(*args, 236949, "11.0101", 1, 5)
     assert (missing.status, missing.raw_award_count, missing.source_status) == (
@@ -141,6 +169,8 @@ def test_registration_and_exact_lookup_preserve_source_state(
         "-1",
         "C",
     )
+    assert missing.source_status_label == "Analyst corrected reported value"
+    assert missing.source_status_review_required
     assert resolve_program_awards(*args, 999999, "11.0101", 1, 5).status == "INSUFFICIENT_DATA"
     zero = resolve_program_awards(*args, 236950, "11.0101", 1, 5)
     assert (zero.status, zero.award_count) == ("OBSERVED", 0)
@@ -226,6 +256,8 @@ def test_immutable_program_table_preserves_exact_keys_and_statuses(
     assert next(row for row in rows if row["unitid"] == 236950)["award_count"] == 0
     evidence = resolve_program_awards_evidence(first.parquet_path, 236948, "11.0101", 1, 5)
     assert (evidence.status, evidence.award_count, evidence.cip_version) == ("OBSERVED", 12, "2020")
+    assert evidence.source_status_label == "Reported"
+    assert not evidence.source_status_review_required
     assert evidence.data_artifact_id == pair.data.artifact_id
     assert evidence.table_sha256 == first.manifest.transformation.output_sha256
     assert (
