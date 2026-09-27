@@ -183,6 +183,22 @@ def _resolve_value(
             f"{scenario.id}.{path} requests {specification.source} {vintage}, "
             f"but scenario pins {pinned}"
         )
+    if path.startswith("education.completion.") and (
+        specification.source.casefold() == "ipeds"
+        or specification.source.casefold().startswith("ipeds-")
+    ):
+        return ResolvedValue(
+            path=path,
+            status=ResolutionStatus.INSUFFICIENT_DATA,
+            source=specification.source,
+            vintage=vintage,
+            input_status=specification.status,
+            note=(
+                "IPEDS institutional cohort, retention, enrollment, and award observations "
+                "do not resolve individual on-time, late, transfer, or noncompletion "
+                "branch probabilities; a reviewed mapping is required"
+            ),
+        )
     request = ResolutionRequest(
         scenario_id=scenario.id, path=path, source=specification.source, vintage=vintage
     )
