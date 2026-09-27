@@ -27,6 +27,7 @@ from education_roi.ipeds.program_awards import (
 from education_roi.ipeds.program_awards_comparison import (
     IPEDSProgramAwardsComparisonError,
     compare_program_award_key,
+    compare_program_award_tables,
 )
 from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
@@ -618,6 +619,27 @@ def test_exact_program_key_comparison_verifies_both_tables_and_identity(
         )
         tables.append(built.parquet_path)
     previous, current = tables
+    findings_path = tmp_path / "review.jsonl"
+    universe = compare_program_award_tables(previous, current, findings_path)
+    assert universe["compared_program_keys"] == 1
+    assert universe["findings_by_type"] == {"count_change": 1}
+    assert json.loads(findings_path.read_text())["absolute_change"] == 3
+    assert compare_program_award_tables(previous, current, findings_path) == universe
+    with pytest.raises(IPEDSProgramAwardsComparisonError, match="ordered"):
+        compare_program_award_tables(current, previous, tmp_path / "reversed.jsonl")
+    batch_cli = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "compare-program-award-tables",
+            str(previous),
+            str(current),
+            str(tmp_path / "cli-findings.jsonl"),
+            "--fail-on-review",
+        ],
+    )
+    assert batch_cli.exit_code == 1
+    assert json.loads(batch_cli.stdout)["findings_count"] == 1
     report = compare_program_award_key(previous, current, 100654, "01.0999", 1, 5)
     assert report.status == "REVIEW_REQUIRED"
     assert report.absolute_count_change == 3

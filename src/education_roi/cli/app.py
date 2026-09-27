@@ -86,6 +86,7 @@ from education_roi.ipeds.program_awards import (
 from education_roi.ipeds.program_awards_comparison import (
     IPEDSProgramAwardsComparisonError,
     compare_program_award_key,
+    compare_program_award_tables,
 )
 from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
@@ -962,6 +963,52 @@ def ipeds_compare_program_award_key(
     )
     typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     if report.status == "REVIEW_REQUIRED" and fail_on_review:
+        raise typer.Exit(code=1)
+
+
+@ipeds_app.command("compare-program-award-tables")
+def ipeds_compare_program_award_tables(
+    previous: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    current: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Argument(help="Immutable JSONL review findings path.")],
+    threshold: Annotated[float, typer.Option(help="Relative count review threshold.")] = 0.25,
+    history: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    history_source: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    fail_on_review: Annotated[bool, typer.Option(help="Exit 1 on review required.")] = False,
+) -> None:
+    """Compare all exact program award keys under reviewed institution pairing."""
+    try:
+        if history_source is not None and history is None:
+            raise ValueError("--history-source requires --history")
+        institution_history = InstitutionHistory.from_file(history) if history else None
+        if history_source is not None:
+            assert institution_history is not None
+            if sha256_file(history_source)[0] != institution_history.source_sha256:
+                raise ValueError("history source SHA-256 does not match supplied artifact")
+        report = compare_program_award_tables(
+            previous,
+            current,
+            output,
+            relative_count_threshold=threshold,
+            institution_history=institution_history,
+        )
+    except (
+        IPEDSProgramAwardsComparisonError,
+        InstitutionHistoryError,
+        ValueError,
+        OSError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    report["history_source_status"] = (
+        "HASH_VERIFIED"
+        if history_source is not None
+        else "UNVERIFIED"
+        if history is not None
+        else "NOT_APPLICABLE"
+    )
+    typer.echo(json.dumps(report, sort_keys=True, separators=(",", ":")))
+    if report["status"] == "REVIEW_REQUIRED" and fail_on_review:
         raise typer.Exit(code=1)
 
 
