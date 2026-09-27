@@ -25,6 +25,7 @@ REQUIRED_GR_COLUMNS = frozenset(
     {"UNITID", "GRTYPE", "CHRTSTAT", "SECTION", "COHORT", "LINE", "GRTOTLT", "XGRTOTLT"}
 )
 ROW_CODES = {"8": ("12", "50"), "12": ("16", "18A")}
+TWO_YEAR_ROW_CODES = {"29": ("12", "50"), "30": ("13", "29A")}
 
 
 class IPEDSGraduationError(ValueError):
@@ -259,5 +260,141 @@ def resolve_gr2023_bachelors(
             source_columns=("GRTOTLT[GRTYPE=8]", "GRTOTLT[GRTYPE=12]"),
             source_row_keys=("COHORT=2;SECTION=2;GRTYPE=8", "COHORT=2;SECTION=2;GRTYPE=12"),
             source_statuses=(rows["8"]["XGRTOTLT"], rows["12"]["XGRTOTLT"]),
+        ),
+    )
+
+
+def resolve_gr2023_two_year_any_award(
+    archive_path: Path,
+    dictionary_path: Path,
+    release: IPEDSRelease,
+    archive_manifest: ArtifactManifest,
+    dictionary_manifest: ArtifactManifest,
+    unitid: int,
+) -> IPEDSGraduationResolution:
+    """Resolve the 2020 two-year entrant cohort's any-award 150% outcome."""
+    if unitid <= 0:
+        raise IPEDSGraduationError("UNITID must be positive")
+    if (
+        release.component is not IPEDSComponent.GRADUATION_RATES
+        or release.release_id != "2023-24-final"
+        or release.publication_status is not IPEDSPublicationStatus.FINAL
+        or release.data_member != "gr2023_RV.csv"
+    ):
+        raise IPEDSGraduationError("resolver requires the pinned final GR2023_RV release")
+    _verify_manifest(
+        archive_path, archive_manifest, release, GR2023_DATASET_ID, str(release.data_url)
+    )
+    _verify_manifest(
+        dictionary_path,
+        dictionary_manifest,
+        release,
+        GR2023_DICTIONARY_DATASET_ID,
+        str(release.dictionary_url),
+    )
+    _verify_dictionary(dictionary_path)
+    try:
+        with ZipFile(dictionary_path) as archive:
+            rows = _xlsx_rows(archive.read("gr2023.xlsx"))
+    except (OSError, BadZipFile, KeyError, UnicodeError, ValueError) as error:
+        raise IPEDSGraduationError(f"could not read GR2023 dictionary: {error}") from error
+    labels = {
+        row[2]: row[7]
+        for row in rows
+        if len(row) >= 8 and row[0] == "GRTYPE" and row[3] == "gr2023_RV"
+    }
+    if (
+        "Adjusted cohort" not in labels.get("29", "")
+        or "Completers within 150% of normal time total" not in labels.get("30", "")
+        or "2-year institutions" not in labels.get("27", "")
+    ):
+        raise IPEDSGraduationError("GR2023 dictionary does not support the two-year cohort")
+    selected: dict[str, dict[str, str]] = {}
+    seen: set[tuple[int, str]] = set()
+    try:
+        with ZipFile(archive_path) as archive:
+            if release.data_member not in archive.namelist():
+                raise IPEDSGraduationError(f"GR2023 archive is missing {release.data_member}")
+            stream = archive.open(release.data_member)
+            reader = csv.DictReader(io.TextIOWrapper(stream, encoding="utf-8-sig", newline=""))
+            if REQUIRED_GR_COLUMNS.difference(reader.fieldnames or ()):
+                raise IPEDSGraduationError("GR2023 archive is missing required columns")
+            for number, row in enumerate(reader, start=2):
+                code = row["GRTYPE"]
+                if code not in TWO_YEAR_ROW_CODES or row["SECTION"] != "4":
+                    continue
+                try:
+                    source_unitid = int(row["UNITID"])
+                except (TypeError, ValueError) as error:
+                    raise IPEDSGraduationError(
+                        f"invalid two-year UNITID on row {number}"
+                    ) from error
+                status, line = TWO_YEAR_ROW_CODES[code]
+                if source_unitid <= 0 or (row["CHRTSTAT"], row["COHORT"], row["LINE"]) != (
+                    status,
+                    "4",
+                    line,
+                ):
+                    raise IPEDSGraduationError(f"incompatible two-year cohort keys on row {number}")
+                key = (source_unitid, code)
+                if key in seen:
+                    raise IPEDSGraduationError(f"duplicate two-year cohort row on row {number}")
+                if row["GRTOTLT"] is None or row["XGRTOTLT"] is None:
+                    raise IPEDSGraduationError(f"malformed two-year count row {number}")
+                seen.add(key)
+                if source_unitid == unitid:
+                    selected[code] = row
+    except (OSError, BadZipFile, UnicodeError, csv.Error) as error:
+        raise IPEDSGraduationError(f"could not read GR2023 archive: {error}") from error
+    if not seen:
+        raise IPEDSGraduationError("GR2023 archive has no two-year cohort rows")
+    if selected.keys() != TWO_YEAR_ROW_CODES.keys():
+        return IPEDSGraduationResolution(
+            unitid=unitid,
+            release_id=release.release_id,
+            status=IPEDSGraduationStatus.INSUFFICIENT_DATA,
+            reason="two-year adjusted cohort or any-award row is missing",
+        )
+    raw = [selected[code]["GRTOTLT"].strip() for code in TWO_YEAR_ROW_CODES]
+    if not all(raw):
+        return IPEDSGraduationResolution(
+            unitid=unitid,
+            release_id=release.release_id,
+            status=IPEDSGraduationStatus.INSUFFICIENT_DATA,
+            reason="GR2023 two-year count is blank",
+        )
+    try:
+        denominator, numerator = (int(value) for value in raw)
+    except ValueError as error:
+        raise IPEDSGraduationError("GR2023 two-year count is not an integer") from error
+    if denominator < 0 or numerator < 0:
+        return IPEDSGraduationResolution(
+            unitid=unitid,
+            release_id=release.release_id,
+            status=IPEDSGraduationStatus.INSUFFICIENT_DATA,
+            reason="GR2023 two-year count contains a negative sentinel",
+        )
+    if numerator > denominator:
+        raise IPEDSGraduationError("GR2023 two-year awards exceed adjusted cohort")
+    return IPEDSGraduationResolution(
+        unitid=unitid,
+        release_id=release.release_id,
+        status=IPEDSGraduationStatus.AVAILABLE,
+        observation=IPEDSGraduationObservation(
+            unitid=unitid,
+            release_id=release.release_id,
+            publication_status=release.publication_status,
+            component=release.component,
+            cohort_year=2020,
+            cohort_scope=GraduationCohortScope.ALL_DEGREE_OR_CERTIFICATE_SEEKING,
+            award_outcome=GraduationAwardOutcome.ANY_AWARD,
+            normal_time_percent=150,
+            adjusted_cohort=denominator,
+            completers=numerator,
+            source_artifact_id=archive_manifest.artifact_id,
+            dictionary_artifact_id=dictionary_manifest.artifact_id,
+            source_columns=("GRTOTLT[GRTYPE=29]", "GRTOTLT[GRTYPE=30]"),
+            source_row_keys=("COHORT=4;SECTION=4;GRTYPE=29", "COHORT=4;SECTION=4;GRTYPE=30"),
+            source_statuses=(selected["29"]["XGRTOTLT"], selected["30"]["XGRTOTLT"]),
         ),
     )

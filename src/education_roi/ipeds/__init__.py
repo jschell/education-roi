@@ -57,6 +57,7 @@ from education_roi.ipeds.graduation import (
     IPEDSGraduationResolution,
     IPEDSGraduationStatus,
     resolve_gr2023_bachelors,
+    resolve_gr2023_two_year_any_award,
     validate_gr2023_archive,
 )
 from education_roi.ipeds.graduation_2022 import verify_gr2022_dictionary
@@ -219,6 +220,7 @@ __all__ = [
     "register_gr2022_release",
     "resolve_cip",
     "resolve_gr2023_bachelors",
+    "resolve_gr2023_two_year_any_award",
     "resolve_graduation_evidence",
     "resolve_ic2023_expenses",
     "resolve_retention",

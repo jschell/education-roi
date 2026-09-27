@@ -12,6 +12,7 @@ from education_roi.ipeds import (
     IPEDSRelease,
     IPEDSReleaseCatalog,
     resolve_gr2023_bachelors,
+    resolve_gr2023_two_year_any_award,
     select_release,
     validate_gr2023_archive,
 )
@@ -80,6 +81,77 @@ def test_final_bachelors_rate_uses_matching_award_and_cohort_rows(
     assert result.observation.award_outcome.value == "bachelors_degree"
     assert result.observation.source_statuses == ("R", "Z")
     assert result.observation.dictionary_artifact_id == args[4].artifact_id
+
+
+def test_final_two_year_any_award_preserves_its_distinct_cohort(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("education_roi.ipeds.graduation._verify_dictionary", lambda path: None)
+    monkeypatch.setattr(
+        "education_roi.ipeds.graduation._xlsx_rows",
+        lambda data: [
+            ["GRTYPE", "", "27", "gr2023_RV", "", "", "", "2-year institutions"],
+            ["GRTYPE", "", "29", "gr2023_RV", "", "", "", "Adjusted cohort"],
+            [
+                "GRTYPE",
+                "",
+                "30",
+                "gr2023_RV",
+                "",
+                "",
+                "",
+                "Completers within 150% of normal time total",
+            ],
+        ],
+    )
+    args = fixture(
+        tmp_path,
+        "100760,29,12,4,4,50,R,225\n100760,30,13,4,4,29A,R,54\n",
+    )
+    result = resolve_gr2023_two_year_any_award(*args, 100760)
+    assert result.status is IPEDSGraduationStatus.AVAILABLE
+    assert result.observation is not None
+    assert result.observation.cohort_year == 2020
+    assert result.observation.cohort_scope.value == "all_degree_or_certificate_seeking"
+    assert result.observation.award_outcome.value == "any_award"
+    assert result.observation.observed_rate == pytest.approx(0.24)
+    assert result.observation.source_statuses == ("R", "R")
+    missing = resolve_gr2023_two_year_any_award(*args, 999999)
+    assert missing.status is IPEDSGraduationStatus.INSUFFICIENT_DATA
+    assert missing.observation is None
+
+
+def test_two_year_rejects_wrong_cohort_and_duplicate_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("education_roi.ipeds.graduation._verify_dictionary", lambda path: None)
+    monkeypatch.setattr(
+        "education_roi.ipeds.graduation._xlsx_rows",
+        lambda data: [
+            ["GRTYPE", "", "27", "gr2023_RV", "", "", "", "2-year institutions"],
+            ["GRTYPE", "", "29", "gr2023_RV", "", "", "", "Adjusted cohort"],
+            [
+                "GRTYPE",
+                "",
+                "30",
+                "gr2023_RV",
+                "",
+                "",
+                "",
+                "Completers within 150% of normal time total",
+            ],
+        ],
+    )
+    (tmp_path / "wrong").mkdir()
+    wrong = fixture(tmp_path / "wrong", "100760,29,12,4,2,50,R,225\n")
+    with pytest.raises(IPEDSGraduationError, match="incompatible two-year cohort keys"):
+        resolve_gr2023_two_year_any_award(*wrong, 100760)
+    (tmp_path / "duplicate").mkdir()
+    duplicate = fixture(
+        tmp_path / "duplicate", "100760,29,12,4,4,50,R,225\n100760,29,12,4,4,50,R,225\n"
+    )
+    with pytest.raises(IPEDSGraduationError, match="duplicate two-year cohort row"):
+        resolve_gr2023_two_year_any_award(*duplicate, 100760)
 
 
 @pytest.mark.parametrize(
