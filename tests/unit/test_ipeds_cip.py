@@ -9,7 +9,12 @@ from education_roi.ipeds import (
     CIPCrosswalkError,
     CIPMappingConfidence,
     CIPRelationship,
+    cip_official,
     resolve_cip,
+)
+
+OFFICIAL_CROSSWALK = (
+    Path(__file__).resolve().parents[2] / "data/crosswalks/nces-cip-2010-to-2020.json"
 )
 
 
@@ -93,3 +98,24 @@ def test_crosswalk_file_is_strict_versioned_and_official(tmp_path: Path) -> None
         CIPCrosswalk.model_validate(
             {**payload, "mappings": [payload["mappings"][0], payload["mappings"][0]]}
         )
+
+
+def test_reviewed_nces_mapping_preserves_exact_moved_and_deleted_codes() -> None:
+    official = CIPCrosswalk.from_file(OFFICIAL_CROSSWALK)
+    assert official.source_sha256 == cip_official.SOURCE_SHA256
+    assert len(official.mappings) == 2143
+    exact = resolve_cip("11.0101", "2010", "2020", crosswalk=official)
+    assert exact.target_code == "11.0101"
+    assert not exact.review_required
+    moved = resolve_cip("43.0116", "2010", "2020", crosswalk=official)
+    assert moved.target_code == "43.0403"
+    assert moved.review_required
+    with pytest.raises(CIPCrosswalkError, match="no mapping"):
+        resolve_cip("60.0406", "2010", "2020", crosswalk=official)
+
+
+def test_official_import_rejects_unreviewed_source(tmp_path: Path) -> None:
+    source = tmp_path / "altered.csv"
+    source.write_text(",".join(cip_official.COLUMNS) + "\n", encoding="utf-8")
+    with pytest.raises(CIPCrosswalkError, match="SHA-256"):
+        cip_official.import_official_cip_crosswalk(source)
