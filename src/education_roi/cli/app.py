@@ -45,7 +45,7 @@ from education_roi.ipeds import (
     transform_gr2023_archive,
     transform_ic2023_expenses,
 )
-from education_roi.ipeds.cip import CIPCrosswalkError
+from education_roi.ipeds.cip import CIPCrosswalk, CIPCrosswalkError
 from education_roi.ipeds.cip_official import write_official_cip_crosswalk
 from education_roi.ipeds.enrollment import (
     ENROLLMENT_DATA,
@@ -81,6 +81,7 @@ from education_roi.ipeds.program_awards import (
     register_program_awards,
     resolve_program_awards,
 )
+from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
     IPEDSProgramAwardsTableError,
     resolve_program_awards_evidence,
@@ -879,6 +880,50 @@ def ipeds_resolve_program_awards_table(
     try:
         result = resolve_program_awards_evidence(table, unitid, cip_code, major_number, award_level)
     except (IPEDSProgramAwardsTableError, ValueError) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("review-program-awards-context")
+def ipeds_review_program_awards_context(
+    table: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    unitid: Annotated[int, typer.Argument(help="Source institution UNITID.")],
+    source_release: Annotated[str, typer.Argument(help="Exact source release ID.")],
+    cip_code: Annotated[str, typer.Argument(help="Source CIP code.")],
+    cip_version: Annotated[str, typer.Argument(help="Source CIP edition.")],
+    major_number: Annotated[int, typer.Argument(help="First (1) or second (2) major.")],
+    award_level: Annotated[int, typer.Argument(help="Exact IPEDS award level.")],
+    crosswalk: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    history: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    target_cip_code: Annotated[
+        str | None, typer.Option(help="Explicit ambiguous target CIP.")
+    ] = None,
+    target_unitid: Annotated[
+        int | None, typer.Option(help="Explicit ambiguous target UNITID.")
+    ] = None,
+) -> None:
+    """Gate C2023_A awards on directional code and institution evidence."""
+    try:
+        result = review_program_awards_context(
+            table,
+            unitid,
+            source_release,
+            cip_code,
+            cip_version,
+            major_number,
+            award_level,
+            crosswalk=CIPCrosswalk.from_file(crosswalk) if crosswalk else None,
+            history=InstitutionHistory.from_file(history) if history else None,
+            target_cip_code=target_cip_code,
+            target_unitid=target_unitid,
+        )
+    except (
+        CIPCrosswalkError,
+        InstitutionHistoryError,
+        IPEDSProgramAwardsTableError,
+        ValueError,
+    ) as error:
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
