@@ -160,12 +160,16 @@ Add versioned institution-level costs, characteristics, program production, aid,
   C2022_A exact-key lookup retains status labels and hashes; official
   301,055-row lookup tested. Batch full-universe comparison now writes immutable
   JSONL review findings with table and manifest hashes in its compact summary;
-  an official full-universe run remains pending.
+  the official full-universe run has now been verified with the pinned source
+  archives and reviewed institution history.
 - exact-key C2022_A→C2023_A program award review verifies both complete tables
   and source lineage, checks CIP/award definitions and UNITID continuity,
   and flags count, availability, and source-status changes. An official
   same-key comparison found 9 versus 18 awards and requires review; full
-  universe run against official processed tables remains pending.
+  universe run against official processed tables produced 187,645 findings
+  across 282,921 paired keys at a 25% threshold; see
+  `docs/ipeds-program-awards-universe-review.md` for hashes, coverage, and
+  interpretation limits.
   `ipeds compare-program-award-tables PREVIOUS CURRENT OUTPUT.jsonl` checks the
   two complete tables and writes institution and program findings. Optional
   `--history` and `--history-source` supply and hash-check the directional
