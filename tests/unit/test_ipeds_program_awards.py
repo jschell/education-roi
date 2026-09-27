@@ -239,6 +239,31 @@ def test_prior_year_registration_and_lookup_keep_release_definitions(
     )
     assert built.exit_code == 0, built.stdout
     assert json.loads(built.stdout)["manifest"]["row_count"] == 1
+    evidence = resolve_program_awards_evidence(first.parquet_path, 100654, "01.0999", 1, 5)
+    assert evidence.status == "OBSERVED"
+    assert evidence.award_count == 9
+    assert evidence.source_status_label == "Analyst corrected reported value"
+    assert evidence.source_status_review_required
+    assert evidence.transformation_version == VERSION_2022
+    assert evidence.table_sha256 == first.manifest.transformation.output_sha256
+    lookup = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "resolve-program-awards-table",
+            str(first.parquet_path),
+            "100654",
+            "01.0999",
+            "1",
+            "5",
+        ],
+    )
+    assert lookup.exit_code == 0, lookup.stdout
+    assert json.loads(lookup.stdout)["period_start"] == "2021-07-01"
+    assert (
+        resolve_program_awards_evidence(first.parquet_path, 999999, "01.0999", 1, 5).status
+        == "INSUFFICIENT_DATA"
+    )
 
 
 @pytest.mark.parametrize(

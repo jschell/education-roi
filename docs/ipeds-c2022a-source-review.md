@@ -44,5 +44,10 @@ data/manifests/ipeds-release-catalog.json --release-id 2022-23-final` now
 produces an immutable release-specific Parquet table and processing manifest.
 The official 301,055-row build produced a 1,077,717-byte Parquet artifact
 with SHA-256 `fd228fae423f06be6fe02545b3f7c92e23df9017f4ae994e2e96a231ecf9ef5e`;
-an isolated rerun returned the same manifest. Verified processed-table
-lookup and cross-release comparison remain gated.
+an isolated rerun returned the same manifest. `edu-roi ipeds
+resolve-program-awards-table TABLE.parquet UNITID CIPCODE MAJORNUM AWLEVEL`
+now verifies the complete C2022_A table, sidecar hash, release period,
+transformation version, exact keys, source cells, and paired artifact IDs.
+The official table lookup for UNITID 100654, CIP `01.0999`, first major,
+bachelor's level returned nine reported awards with the matching table hash.
+Cross-release comparison remains gated.

@@ -156,8 +156,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   validate the release-specific workbook, revised CSV, imputation labels, and
   reporting period; official ZIP pair and a revised-member lookup verified.
   Its separate immutable 301,055-row program awards table and identical rerun
-  were verified from the official archives. Processed-table evidence lookup
-  and cross-release comparison remain pending.
+  were verified from the official archives. Full-table/manifest verified
+  C2022_A exact-key lookup retains status labels and hashes; official
+  301,055-row lookup tested. Cross-release comparison remains pending.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
