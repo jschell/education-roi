@@ -83,6 +83,10 @@ from education_roi.ipeds.program_awards import (
     register_program_awards,
     resolve_program_awards,
 )
+from education_roi.ipeds.program_awards_comparison import (
+    IPEDSProgramAwardsComparisonError,
+    compare_program_award_key,
+)
 from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
     IPEDSProgramAwardsTableError,
@@ -904,6 +908,61 @@ def ipeds_resolve_program_awards_table(
         typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
         raise typer.Exit(code=2) from None
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True, separators=(",", ":")))
+
+
+@ipeds_app.command("compare-program-award-key")
+def ipeds_compare_program_award_key(
+    previous: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    current: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    unitid: Annotated[int, typer.Argument(help="Source institution UNITID.")],
+    cip_code: Annotated[str, typer.Argument(help="Exact six-digit CIP 2020 code.")],
+    major_number: Annotated[int, typer.Argument(help="First (1) or second (2) major.")],
+    award_level: Annotated[int, typer.Argument(help="Exact IPEDS award level.")],
+    threshold: Annotated[float, typer.Option(help="Relative count review threshold.")] = 0.25,
+    history: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    history_source: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    target_unitid: Annotated[int | None, typer.Option(help="Explicit successor UNITID.")] = None,
+    fail_on_review: Annotated[bool, typer.Option(help="Exit 1 on review required.")] = False,
+) -> None:
+    """Compare one exact program award key across verified 2022 and 2023 tables."""
+    try:
+        if history_source is not None and history is None:
+            raise ValueError("--history-source requires --history")
+        institution_history = InstitutionHistory.from_file(history) if history else None
+        if history_source is not None:
+            assert institution_history is not None
+            if sha256_file(history_source)[0] != institution_history.source_sha256:
+                raise ValueError("history source SHA-256 does not match supplied artifact")
+        report = compare_program_award_key(
+            previous,
+            current,
+            unitid,
+            cip_code,
+            major_number,
+            award_level,
+            target_unitid=target_unitid,
+            relative_count_threshold=threshold,
+            institution_history=institution_history,
+        )
+    except (
+        IPEDSProgramAwardsComparisonError,
+        InstitutionHistoryError,
+        ValueError,
+        OSError,
+    ) as error:
+        typer.echo(json.dumps({"error": str(error), "status": "INVALID"}, sort_keys=True))
+        raise typer.Exit(code=2) from None
+    payload = report.model_dump(mode="json")
+    payload["history_source_status"] = (
+        "HASH_VERIFIED"
+        if history_source is not None
+        else "UNVERIFIED"
+        if history is not None
+        else "NOT_APPLICABLE"
+    )
+    typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    if report.status == "REVIEW_REQUIRED" and fail_on_review:
+        raise typer.Exit(code=1)
 
 
 @ipeds_app.command("review-program-awards-context")

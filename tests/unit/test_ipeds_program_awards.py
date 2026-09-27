@@ -24,6 +24,10 @@ from education_roi.ipeds.program_awards import (
     resolve_program_awards,
     verify_program_dictionary,
 )
+from education_roi.ipeds.program_awards_comparison import (
+    IPEDSProgramAwardsComparisonError,
+    compare_program_award_key,
+)
 from education_roi.ipeds.program_awards_context import review_program_awards_context
 from education_roi.ipeds.program_awards_evidence import (
     IPEDSProgramAwardsTableError,
@@ -554,3 +558,114 @@ def test_program_context_blocks_merged_and_unresolved_institution_identity() -> 
         assert result.status == "REVIEW_REQUIRED"
         assert result.institution_resolution.relationship.value == expected
         assert result.evidence is None
+
+
+def test_exact_program_key_comparison_verifies_both_tables_and_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards.verify_program_dictionary",
+        lambda path, release_id=None: None,
+    )
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary",
+        lambda path, release_id=None: None,
+    )
+    catalog = IPEDSReleaseCatalog.from_file(CATALOG)
+    paths = ProjectPaths(tmp_path / "project")
+    tables = []
+    for release_id, count in (("2022-23-final", 9), ("2023-24-final", 12)):
+        release = select_release(
+            catalog, IPEDSComponent.COMPLETIONS_BY_PROGRAM, release_id=release_id
+        )
+        data = tmp_path / f"{release_id}-data.zip"
+        dictionary = tmp_path / f"{release_id}-dictionary.zip"
+        with ZipFile(data, "w", ZIP_DEFLATED) as output:
+            output.writestr(release.data_member or "", HEADER + f"100654,01.0999,1,05,{count},R\n")
+        with ZipFile(dictionary, "w", ZIP_DEFLATED) as output:
+            output.writestr(
+                "c2022_a.xlsx" if release_id == "2022-23-final" else "C2023_a_dict.xlsx",
+                b"fixture",
+            )
+
+        class FakeDownloader:
+            def __init__(self, files: tuple[Path, Path], name: str) -> None:
+                self.files = files
+                self.name = name
+                self.index = 0
+
+            def download(
+                self, url: str, destination_directory: Path, allowed_domains: tuple[str, ...]
+            ) -> DownloadResult:
+                self.index += 1
+                destination_directory.mkdir(parents=True, exist_ok=True)
+                target = destination_directory / f"download-{self.name}-{self.index}.zip"
+                copyfile(self.files[self.index - 1], target)
+                return DownloadResult(target, url, url, target.stat().st_size)
+
+        pair = register_program_awards(
+            release,
+            paths,
+            downloader=FakeDownloader((data, dictionary), release_id),  # type: ignore[arg-type]
+        )
+        built = transform_program_awards(
+            paths.data / "raw" / pair.data.storage_path,
+            paths.data / "raw" / pair.dictionary.storage_path,
+            paths.data / "processed",
+            pair.data,
+            pair.dictionary,
+            release,
+        )
+        tables.append(built.parquet_path)
+    previous, current = tables
+    report = compare_program_award_key(previous, current, 100654, "01.0999", 1, 5)
+    assert report.status == "REVIEW_REQUIRED"
+    assert report.absolute_count_change == 3
+    assert report.relative_count_change == pytest.approx(1 / 3)
+    assert report.previous.table_sha256 != report.current.table_sha256
+    assert (
+        compare_program_award_key(
+            previous, current, 100654, "01.0999", 1, 5, relative_count_threshold=0.5
+        ).status
+        == "ACCEPTABLE"
+    )
+    cli = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "compare-program-award-key",
+            str(previous),
+            str(current),
+            "100654",
+            "01.0999",
+            "1",
+            "5",
+            "--fail-on-review",
+        ],
+    )
+    assert cli.exit_code == 1
+    assert json.loads(cli.stdout)["absolute_count_change"] == 3
+    history = InstitutionHistory.model_validate(
+        {
+            "history_id": "reviewed-example",
+            "source_release": "2022-23-final",
+            "target_release": "2023-24-final",
+            "source_url": "https://nces.ed.gov/ipeds/datacenter/data/HD2023.zip",
+            "source_sha256": "a" * 64,
+            "entries": [
+                {
+                    "source_unitid": 100654,
+                    "target_unitid": 100655,
+                    "relationship": "merged",
+                    "confidence": "high",
+                }
+            ],
+        }
+    )
+    blocked = compare_program_award_key(
+        previous, current, 100654, "01.0999", 1, 5, institution_history=history
+    )
+    assert blocked.status == "REVIEW_REQUIRED"
+    assert blocked.absolute_count_change is None
+    with pytest.raises(IPEDSProgramAwardsComparisonError, match="ordered"):
+        compare_program_award_key(current, previous, 100654, "01.0999", 1, 5)

@@ -158,7 +158,12 @@ Add versioned institution-level costs, characteristics, program production, aid,
   Its separate immutable 301,055-row program awards table and identical rerun
   were verified from the official archives. Full-table/manifest verified
   C2022_A exact-key lookup retains status labels and hashes; official
-  301,055-row lookup tested. Cross-release comparison remains pending.
+  301,055-row lookup tested. Full-universe comparison remains pending.
+- exact-key C2022_A→C2023_A program award review verifies both complete tables
+  and source lineage, checks CIP/award definitions and UNITID continuity,
+  and flags count, availability, and source-status changes. An official
+  same-key comparison found 9 versus 18 awards and requires review; full
+  universe comparison remains pending.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 
