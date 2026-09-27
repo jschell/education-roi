@@ -117,6 +117,11 @@ Add versioned institution-level costs, characteristics, program production, aid,
   pin and a bachelor's/full-time institution scenario, then links hash-verified
   cohort evidence to the scenario configuration; it does not infer outcome
   branch probabilities from an institution's 150%-of-normal-time cohort rate.
+- scenario resolution now keeps IPEDS-backed completion branch requests in an
+  explicit insufficient-data state even when a fixture offers an institutional
+  cohort, retention, enrollment, or award value. A reviewed mapping is required
+  before such observations can become on-time, late, transfer, or noncompletion
+  branch probabilities; explicitly provided scenario assumptions remain distinct.
 - reviewed final revised EF2023A enrollment data/dictionary pair and five
   distinct total-count cohort keys cataloged; paired immutable registration
   validates the full 115,190-row revised member and workbook, with exact
@@ -189,7 +194,9 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 5. Review unresolved UNITID transitions and extend contextual program production
    to additional releases, CIP editions, and award populations.
 6. Extend institution/year analytical Parquet tables beyond academic-year charges.
-7. Add scenario completion resolution and extend release comparisons beyond charges.
+7. Develop and validate a reviewed scenario completion mapping before any
+   IPEDS observation can resolve an outcome probability; extend release
+   comparisons beyond charges.
 
 ## Tests still required
 

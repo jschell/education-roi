@@ -12,6 +12,7 @@ from education_roi.scenarios import (
     resolve_configuration_graph,
     resolve_scenario_graph,
 )
+from education_roi.scenarios.models import DatasetPin, ValueSpec, ValueStatus
 
 EXAMPLES = Path(__file__).parents[2] / "scenarios" / "examples"
 
@@ -107,3 +108,60 @@ def test_unpinned_value_request_is_rejected() -> None:
     )
     with pytest.raises(ScenarioResolutionError, match="unpinned dataset ipeds"):
         resolve_configuration_graph(changed_graph, FixtureValueProvider(fixture_values()))
+
+
+@pytest.mark.parametrize(
+    ("branch", "dataset"),
+    [
+        ("graduate_on_time", "ipeds-graduation-rates"),
+        ("graduate_late", "ipeds-retention"),
+        ("transfer", "ipeds-enrollment"),
+        ("leave_without_credential", "ipeds-program-awards"),
+    ],
+)
+def test_ipeds_observation_cannot_resolve_completion_probability(branch: str, dataset: str) -> None:
+    source = graph()
+    bachelors = source.scenarios[1]
+    assert bachelors.education is not None
+    completion = bachelors.education.completion.model_copy(
+        update={
+            branch: ValueSpec(
+                status=ValueStatus.RESOLVE_FROM_DATA,
+                source=dataset,
+                vintage="2023-24-final",
+            )
+        }
+    )
+    changed = bachelors.model_copy(
+        update={
+            "education": bachelors.education.model_copy(update={"completion": completion}),
+            "data": bachelors.data.model_copy(
+                update={
+                    "pins": (
+                        *bachelors.data.pins,
+                        DatasetPin(dataset=dataset, release="2023-24-final"),
+                    )
+                }
+            ),
+        }
+    )
+    changed_graph = source.__class__(
+        source.schema_version,
+        source.topological_order,
+        (source.scenarios[0], changed),
+        source.graph_hash,
+    )
+    key = f"example-bachelors.education.completion.{branch}"
+    provider = FixtureValueProvider(
+        {
+            key: ProviderValue(
+                value=0.7, source=dataset, vintage="2023-24-final", artifact_id="observed-cohort"
+            )
+        }
+    )
+    resolved = resolve_configuration_graph(changed_graph, provider).scenarios[1]
+    value = next(item for item in resolved.values if item.path == f"education.completion.{branch}")
+    assert value.status is ResolutionStatus.INSUFFICIENT_DATA
+    assert value.value is None and value.artifact_id is None
+    assert "reviewed mapping" in (value.note or "")
+    assert value.input_status is ValueStatus.RESOLVE_FROM_DATA
