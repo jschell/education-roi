@@ -39,4 +39,10 @@ Use `edu-roi ipeds register-program-awards --catalog
 data/manifests/ipeds-release-catalog.json --release-id 2022-23-final` and
 `edu-roi ipeds resolve-program-awards 100654 01.0999 1 5 --catalog
 data/manifests/ipeds-release-catalog.json --release-id 2022-23-final`.
-Processed tables and cross-release comparisons remain gated.
+`edu-roi ipeds build-program-awards --catalog
+data/manifests/ipeds-release-catalog.json --release-id 2022-23-final` now
+produces an immutable release-specific Parquet table and processing manifest.
+The official 301,055-row build produced a 1,077,717-byte Parquet artifact
+with SHA-256 `fd228fae423f06be6fe02545b3f7c92e23df9017f4ae994e2e96a231ecf9ef5e`;
+an isolated rerun returned the same manifest. Verified processed-table
+lookup and cross-release comparison remain gated.

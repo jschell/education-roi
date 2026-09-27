@@ -826,21 +826,29 @@ def ipeds_resolve_program_awards(
 def ipeds_build_program_awards(
     catalog: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    release_id: Annotated[
+        str, typer.Option(help="Reviewed final program release.")
+    ] = "2023-24-final",
 ) -> None:
-    """Build an immutable, exact-key C2023_A program award table."""
+    """Build an immutable, exact-key C2022_A or C2023_A program award table."""
     paths = ProjectPaths.from_environment(root)
     try:
         release = select_release(
             IPEDSReleaseCatalog.from_file(catalog),
             IPEDSComponent.COMPLETIONS_BY_PROGRAM,
-            release_id="2023-24-final",
+            release_id=release_id,
         )
         registry_path = paths.data / "manifests" / "registry.sqlite"
         if not registry_path.is_file():
             raise ValueError(f"artifact registry not found: {registry_path}")
         registry = Registry(registry_path)
         manifests = []
-        for dataset_id in (PROGRAM_DATA.dataset_id, PROGRAM_DICTIONARY.dataset_id):
+        definitions = (
+            (PROGRAM_DATA_2022, PROGRAM_DICTIONARY_2022)
+            if release.release_id == "2022-23-final"
+            else (PROGRAM_DATA, PROGRAM_DICTIONARY)
+        )
+        for dataset_id in (definition.dataset_id for definition in definitions):
             matches = tuple(
                 item
                 for item in registry.list_artifacts(dataset_id, release.release_id)
