@@ -1,4 +1,4 @@
-"""Immutable paired C2023_A award table with exact source keys and statuses."""
+"""Immutable paired program award tables with exact source keys and statuses."""
 
 import csv
 import io
@@ -18,7 +18,9 @@ from education_roi.ipeds.catalog import IPEDSRelease
 from education_roi.ipeds.pipeline import IPEDSProcessedArtifactConflict, _publish_immutable
 from education_roi.ipeds.program_awards import (
     PROGRAM_DATA,
+    PROGRAM_DATA_2022,
     PROGRAM_DICTIONARY,
+    PROGRAM_DICTIONARY_2022,
     _read_awards,
     _require_release,
     _verify_manifest,
@@ -28,6 +30,7 @@ from education_roi.provenance.integrity import sha256_file
 from education_roi.provenance.models import ArtifactManifest, TransformationManifest
 
 VERSION = "ipeds-c2023a-program-awards-v1"
+VERSION_2022 = "ipeds-c2022a-program-awards-v1"
 KEYS = ("unitid", "cip_code", "major_number", "award_level")
 
 
@@ -63,21 +66,29 @@ def transform_program_awards(
 ) -> ProcessedProgramAwards:
     """Preserve all exact award keys, including aggregate rows, without summing them."""
     _require_release(release)
+    prior = release.release_id == "2022-23-final"
+    data_definition = PROGRAM_DATA_2022 if prior else PROGRAM_DATA
+    dictionary_definition = PROGRAM_DICTIONARY_2022 if prior else PROGRAM_DICTIONARY
+    version = VERSION_2022 if prior else VERSION
+    period_start = "2021-07-01" if prior else "2022-07-01"
+    period_end = "2022-06-30" if prior else "2023-06-30"
     _verify_manifest(
-        archive, data_manifest, release, PROGRAM_DATA.dataset_id, str(release.data_url)
+        archive, data_manifest, release, data_definition.dataset_id, str(release.data_url)
     )
     _verify_manifest(
         dictionary,
         dictionary_manifest,
         release,
-        PROGRAM_DICTIONARY.dataset_id,
+        dictionary_definition.dataset_id,
         str(release.dictionary_url),
     )
-    verify_program_dictionary(dictionary)
+    verify_program_dictionary(dictionary, release.release_id)
     count, _ = _read_awards(archive, release.data_member or "")
     records = []
     with ZipFile(archive) as zipped, zipped.open(release.data_member or "") as stream:
-        for row in csv.DictReader(io.TextIOWrapper(stream, encoding="utf-8-sig")):
+        for row in csv.DictReader(
+            io.TextIOWrapper(stream, encoding="cp1252" if prior else "utf-8-sig")
+        ):
             raw = row["CTOTALT"].strip()
             value = int(raw) if raw else None
             available = value is not None and value >= 0
@@ -95,11 +106,11 @@ def transform_program_awards(
                     "unavailable_reason": None if available else "missing or negative source count",
                     "release_id": release.release_id,
                     "publication_status": release.publication_status.value,
-                    "period_start": "2022-07-01",
-                    "period_end": "2023-06-30",
+                    "period_start": period_start,
+                    "period_end": period_end,
                     "data_artifact_id": data_manifest.artifact_id,
                     "dictionary_artifact_id": dictionary_manifest.artifact_id,
-                    "transformation_version": VERSION,
+                    "transformation_version": version,
                 }
             )
     schema = {
@@ -125,11 +136,11 @@ def transform_program_awards(
     if frame.height != count:
         raise IPEDSProcessedArtifactConflict("program row count changed during transformation")
     relative = (
-        Path(PROGRAM_DATA.dataset_id)
+        Path(data_definition.dataset_id)
         / release.release_id
         / data_manifest.sha256
         / dictionary_manifest.sha256
-        / VERSION
+        / version
         / "program-awards.parquet"
     )
     destination = output_root / relative
@@ -145,7 +156,7 @@ def transform_program_awards(
         temporary.unlink(missing_ok=True)
     transformation = TransformationManifest(
         transformation_id=(
-            f"{VERSION}:{release.release_id}:{data_manifest.sha256}:"
+            f"{version}:{release.release_id}:{data_manifest.sha256}:"
             f"{dictionary_manifest.sha256}:{output_hash}"
         ),
         created_at=datetime.now(UTC),
@@ -155,9 +166,9 @@ def transform_program_awards(
         parameters={
             "data_member": release.data_member,
             "cip_version": "2020",
-            "period_start": "2022-07-01",
-            "period_end": "2023-06-30",
-            "transformation_version": VERSION,
+            "period_start": period_start,
+            "period_end": period_end,
+            "transformation_version": version,
         },
     )
     manifest = IPEDSProgramAwardsProcessingManifest(
@@ -165,8 +176,8 @@ def transform_program_awards(
         release_id=release.release_id,
         publication_status=release.publication_status.value,
         cip_version="2020",
-        period_start="2022-07-01",
-        period_end="2023-06-30",
+        period_start=period_start,
+        period_end=period_end,
         row_count=frame.height,
         columns=tuple(frame.columns),
         key_columns=KEYS,

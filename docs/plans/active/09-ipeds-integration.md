@@ -155,7 +155,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   and 301,055 exact award keys. Paired registration and raw exact-key lookup
   validate the release-specific workbook, revised CSV, imputation labels, and
   reporting period; official ZIP pair and a revised-member lookup verified.
-  Processed tables and cross-release comparisons remain pending.
+  Its separate immutable 301,055-row program awards table and identical rerun
+  were verified from the official archives. Processed-table evidence lookup
+  and cross-release comparison remain pending.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

@@ -29,7 +29,7 @@ from education_roi.ipeds.program_awards_evidence import (
     IPEDSProgramAwardsTableError,
     resolve_program_awards_evidence,
 )
-from education_roi.ipeds.program_awards_pipeline import transform_program_awards
+from education_roi.ipeds.program_awards_pipeline import VERSION_2022, transform_program_awards
 from education_roi.ipeds.program_awards_status import (
     LABELS as IMPUTATION_LABELS,
 )
@@ -154,6 +154,10 @@ def test_prior_year_registration_and_lookup_keep_release_definitions(
         "education_roi.ipeds.program_awards.verify_program_dictionary",
         lambda path, release_id=None: None,
     )
+    monkeypatch.setattr(
+        "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary",
+        lambda path, release_id=None: None,
+    )
 
     class FakeDownloader:
         index = 0
@@ -205,6 +209,36 @@ def test_prior_year_registration_and_lookup_keep_release_definitions(
     )
     assert cli.exit_code == 0, cli.stdout
     assert json.loads(cli.stdout)["award_count"] == 9
+    archive = paths.data / "raw" / pair.data.storage_path
+    workbook = paths.data / "raw" / pair.dictionary.storage_path
+    first = transform_program_awards(
+        archive, workbook, paths.data / "processed", pair.data, pair.dictionary, release
+    )
+    second = transform_program_awards(
+        archive, workbook, paths.data / "processed", pair.data, pair.dictionary, release
+    )
+    assert first.manifest == second.manifest
+    assert first.manifest.row_count == 1
+    assert first.manifest.transformation.parameters["data_member"] == "c2022_a_rv.csv"
+    assert first.manifest.transformation.parameters["transformation_version"] == VERSION_2022
+    row = pl.read_parquet(first.parquet_path).to_dicts()[0]
+    assert (row["award_count"], row["source_status"], row["award_level"]) == (9, "C", 5)
+    assert (row["period_start"], row["period_end"]) == ("2021-07-01", "2022-06-30")
+    built = CliRunner().invoke(
+        app,
+        [
+            "ipeds",
+            "build-program-awards",
+            "--catalog",
+            str(CATALOG),
+            "--root",
+            str(paths.root),
+            "--release-id",
+            "2022-23-final",
+        ],
+    )
+    assert built.exit_code == 0, built.stdout
+    assert json.loads(built.stdout)["manifest"]["row_count"] == 1
 
 
 @pytest.mark.parametrize(
@@ -313,7 +347,8 @@ def test_immutable_program_table_preserves_exact_keys_and_statuses(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary", lambda p: None
+        "education_roi.ipeds.program_awards_pipeline.verify_program_dictionary",
+        lambda p, release_id=None: None,
     )
     monkeypatch.setattr(
         "education_roi.ipeds.program_awards.verify_program_dictionary",
