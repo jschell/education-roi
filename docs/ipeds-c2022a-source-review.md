@@ -25,7 +25,18 @@ The older workbook names its variable sheet `varlist` rather than `Varlist`.
 Its imputation values sheet adds a heading row and labels `Z` as “Implied
 zero;” instead of the C2023_A wording “Implied zero.” The revised CSV uses
 zero-padded award levels (for example `05`) and legacy text encoding. These
-are release-specific parsing and validation requirements, not evidence that
-the current C2023_A pipeline supports C2022_A. Paired registration, processed
-tables, and cross-release comparisons remain gated pending implementation and
-live validation.
+are release-specific parsing and validation requirements. Paired registration
+and exact-key raw lookup now validate this release using separate dataset IDs,
+the lowercase workbook member and sheet, the reviewed imputation labels,
+legacy CSV decoding, and the July 2021–June 2022 reporting period. An isolated
+official-archive registration verified both ZIP hashes and a lookup of
+`UNITID=100654`, CIP `01.0999`, first major, bachelor's level: nine awards
+with reported `XCTOTALT=R`. The nonrevised member has 300,877 rows compared
+with 301,055 revised rows; both report nine for this specific key. The raw
+ZIPs are not committed.
+
+Use `edu-roi ipeds register-program-awards --catalog
+data/manifests/ipeds-release-catalog.json --release-id 2022-23-final` and
+`edu-roi ipeds resolve-program-awards 100654 01.0999 1 5 --catalog
+data/manifests/ipeds-release-catalog.json --release-id 2022-23-final`.
+Processed tables and cross-release comparisons remain gated.

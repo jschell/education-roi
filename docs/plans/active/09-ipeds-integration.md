@@ -151,9 +151,11 @@ Add versioned institution-level costs, characteristics, program production, aid,
 - C2023_A program award lookups interpret `XCTOTALT` using the dictionary's
   complete imputation code list, retaining the raw flag, its exact label,
   and review state without changing observed numeric counts.
-- reviewed prior-year final revised C2022_A source pair cataloged with CIP 2020,
-  301,055 exact award keys, and documented workbook/CSV compatibility gates;
-  paired registration and cross-release comparisons remain pending.
+- reviewed prior-year final revised C2022_A source pair cataloged with CIP 2020
+  and 301,055 exact award keys. Paired registration and raw exact-key lookup
+  validate the release-specific workbook, revised CSV, imputation labels, and
+  reporting period; official ZIP pair and a revised-member lookup verified.
+  Processed tables and cross-release comparisons remain pending.
 
 This slice intentionally does not claim that IPEDS charges are net price or program-specific cost.
 

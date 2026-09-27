@@ -25,8 +25,13 @@ class AwardSourceStatus:
     review_required: bool
 
 
-def interpret_award_status(code: str | None) -> AwardSourceStatus:
+def interpret_award_status(
+    code: str | None, release_id: str = "2023-24-final"
+) -> AwardSourceStatus:
     """Flag every nonreported or unknown source cell for human interpretation."""
     if code is None:
         return AwardSourceStatus(None, False)
-    return AwardSourceStatus(LABELS.get(code), code != "R")
+    label = LABELS.get(code)
+    if release_id == "2022-23-final" and code == "Z":
+        label = "Implied zero;"
+    return AwardSourceStatus(label, code != "R")
