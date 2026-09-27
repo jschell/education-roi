@@ -60,6 +60,7 @@ from education_roi.ipeds.enrollment_evidence import (
     resolve_enrollment_evidence,
 )
 from education_roi.ipeds.enrollment_pipeline import transform_enrollment
+from education_roi.ipeds.identity_official import write_official_institution_history
 from education_roi.ipeds.net_price import (
     NET_PRICE_DATA,
     NET_PRICE_DICTIONARY,
@@ -172,6 +173,31 @@ def build_cip_crosswalk(
                 "omitted_deleted": imported.omitted_deleted,
                 "omitted_new": imported.omitted_new,
                 "source_sha256": imported.crosswalk.source_sha256,
+            },
+            sort_keys=True,
+        )
+    )
+
+
+@ipeds_app.command("build-institution-history")
+def build_institution_history(
+    previous: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    current: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    dictionary: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(help="Immutable directional history JSON destination.")],
+) -> None:
+    """Build reviewed 2022→2023 merger and deletion events from NCES directories."""
+    try:
+        history = write_official_institution_history(previous, current, dictionary, output)
+    except InstitutionHistoryError as error:
+        typer.echo(f"Invalid NCES institution source: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    typer.echo(
+        json.dumps(
+            {
+                "output": str(output),
+                "events": len(history.entries),
+                "source_sha256": history.source_sha256,
             },
             sort_keys=True,
         )
