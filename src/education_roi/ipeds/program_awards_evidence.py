@@ -1,14 +1,21 @@
-"""Verify a processed C2023_A table and resolve one exact program award cell."""
+"""Verify a processed C2022_A or C2023_A exact program award cell."""
 
 from pathlib import Path
 
 import polars as pl
 from pydantic import Field, ValidationError
 
-from education_roi.ipeds.program_awards import CIP_PATTERN, PROGRAM_DATA
+from education_roi.ipeds.program_awards import (
+    CIP_PATTERN,
+    PROGRAM_DATA,
+    PROGRAM_DATA_2022,
+    PROGRAM_DICTIONARY,
+    PROGRAM_DICTIONARY_2022,
+)
 from education_roi.ipeds.program_awards_pipeline import (
     KEYS,
     VERSION,
+    VERSION_2022,
     IPEDSProgramAwardsProcessingManifest,
 )
 from education_roi.ipeds.program_awards_status import interpret_award_status
@@ -93,27 +100,45 @@ def resolve_program_awards_evidence(
         raise IPEDSProgramAwardsTableError(f"could not verify program table: {error}") from error
     parameters = manifest.transformation.parameters
     path_parts = Path(manifest.output_path).parts
+    configurations = {
+        "2022-23-final": (
+            PROGRAM_DATA_2022.dataset_id,
+            PROGRAM_DICTIONARY_2022.dataset_id,
+            VERSION_2022,
+            "c2022_a_rv.csv",
+            ("2021-07-01", "2022-06-30"),
+        ),
+        "2023-24-final": (
+            PROGRAM_DATA.dataset_id,
+            PROGRAM_DICTIONARY.dataset_id,
+            VERSION,
+            "C2023_a_RV.csv",
+            ("2022-07-01", "2023-06-30"),
+        ),
+    }
+    if manifest.release_id not in configurations:
+        raise IPEDSProgramAwardsTableError("unsupported program release")
+    dataset_id, dictionary_dataset_id, version, member, period = configurations[manifest.release_id]
     if (
-        manifest.release_id != "2023-24-final"
-        or manifest.publication_status != "final"
+        manifest.publication_status != "final"
         or manifest.cip_version != "2020"
-        or (manifest.period_start, manifest.period_end) != ("2022-07-01", "2023-06-30")
+        or (manifest.period_start, manifest.period_end) != period
         or manifest.key_columns != KEYS
-        or parameters.get("data_member") != "C2023_a_RV.csv"
+        or parameters.get("data_member") != member
         or parameters.get("cip_version") != "2020"
         or parameters.get("period_start") != manifest.period_start
         or parameters.get("period_end") != manifest.period_end
-        or parameters.get("transformation_version") != VERSION
+        or parameters.get("transformation_version") != version
         or len(path_parts) != 6
-        or path_parts[0] != PROGRAM_DATA.dataset_id
+        or path_parts[0] != dataset_id
         or path_parts[1] != manifest.release_id
         or any(
             len(component) != 64 or any(char not in "0123456789abcdef" for char in component)
             for component in path_parts[2:4]
         )
-        or path_parts[4:] != (VERSION, "program-awards.parquet")
+        or path_parts[4:] != (version, "program-awards.parquet")
         or manifest.transformation.transformation_id
-        != (f"{VERSION}:{manifest.release_id}:{path_parts[2]}:{path_parts[3]}:{table_hash}")
+        != (f"{version}:{manifest.release_id}:{path_parts[2]}:{path_parts[3]}:{table_hash}")
         or not (
             manifest.output_path == path.name
             or path.as_posix().endswith("/" + manifest.output_path)
@@ -129,6 +154,11 @@ def resolve_program_awards_evidence(
     ):
         raise IPEDSProgramAwardsTableError("program table schema, count or lineage differs")
     data_id, dictionary_id = manifest.transformation.input_artifact_ids
+    if (
+        data_id != f"{dataset_id}:{manifest.release_id}:{path_parts[2]}"
+        or dictionary_id != f"{dictionary_dataset_id}:{manifest.release_id}:{path_parts[3]}"
+    ):
+        raise IPEDSProgramAwardsTableError("program source artifacts differ from output path")
     previous_key: tuple[int, str, int, int] | None = None
     selected = None
     target = (unitid, cip_code, major_number, award_level)
@@ -153,7 +183,7 @@ def resolve_program_awards_evidence(
             or row["publication_status"] != manifest.publication_status
             or row["period_start"] != manifest.period_start
             or row["period_end"] != manifest.period_end
-            or row["transformation_version"] != VERSION
+            or row["transformation_version"] != version
             or row["data_artifact_id"] != data_id
             or row["dictionary_artifact_id"] != dictionary_id
             or not isinstance(row["raw_award_count"], str)
@@ -173,7 +203,7 @@ def resolve_program_awards_evidence(
         if key == target:
             selected = row
     source_status = selected["source_status"] if selected else None
-    source_interpretation = interpret_award_status(source_status)
+    source_interpretation = interpret_award_status(source_status, manifest.release_id)
     return ProgramAwardEvidence(
         status="OBSERVED"
         if selected and selected["unavailable_reason"] is None
@@ -197,7 +227,7 @@ def resolve_program_awards_evidence(
         period_end=manifest.period_end,
         data_artifact_id=data_id,
         dictionary_artifact_id=dictionary_id,
-        transformation_version=VERSION,
+        transformation_version=version,
         table_sha256=table_hash,
         manifest_sha256=manifest_hash,
     )
