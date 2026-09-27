@@ -149,6 +149,14 @@ def test_reviewed_program_awards_source_pins_revised_member() -> None:
     assert str(selected.dictionary_url) == (
         "https://nces.ed.gov/ipeds/datacenter/data/C2023_A_Dict.zip"
     )
+    prior = select_release(
+        inventory, IPEDSComponent.COMPLETIONS_BY_PROGRAM, release_id="2022-23-final"
+    )
+    assert prior.data_member == "c2022_a_rv.csv"
+    assert str(prior.data_url) == "https://nces.ed.gov/ipeds/datacenter/data/C2022_A.zip"
+    assert str(prior.dictionary_url) == (
+        "https://nces.ed.gov/ipeds/datacenter/data/C2022_A_Dict.zip"
+    )
 
 
 def test_reviewed_aid_source_pins_final_revised_member() -> None:
