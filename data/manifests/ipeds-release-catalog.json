@@ -62,6 +62,16 @@
       "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2023&surveyNumber=2"
     },
     {
+      "release_id": "2022-23-final",
+      "collection_year": 2022,
+      "component": "completions-by-program",
+      "publication_status": "final",
+      "data_url": "https://nces.ed.gov/ipeds/datacenter/data/C2022_A.zip",
+      "data_member": "c2022_a_rv.csv",
+      "dictionary_url": "https://nces.ed.gov/ipeds/datacenter/data/C2022_A_Dict.zip",
+      "inventory_url": "https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx?year=2022&surveyNumber=3"
+    },
+    {
       "release_id": "2023-24-final",
       "collection_year": 2023,
       "component": "completions-by-program",
