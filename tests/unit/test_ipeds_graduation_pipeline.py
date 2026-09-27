@@ -47,3 +47,36 @@ def test_bulk_table_preserves_unavailable_count_and_source_status(tmp_path: Path
         )
     with pytest.raises(IPEDSGraduationError, match="exceed cohort"):
         _frame(archive, release, "data-id", "dictionary-id")
+
+
+def test_two_year_table_keeps_distinct_population_and_missing_awards(tmp_path: Path) -> None:
+    release = next(
+        item
+        for item in IPEDSReleaseCatalog.from_file(CATALOG).releases
+        if item.component is IPEDSComponent.GRADUATION_RATES and item.release_id == "2023-24-final"
+    )
+    archive = tmp_path / "data.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr(
+            "gr2023_RV.csv",
+            HEADER
+            + "2,29,12,4,4,50,R,0\n2,30,13,4,4,29A,Z,0\n"
+            + "1,29,12,4,4,50,R,225\n1,30,13,4,4,29A,R,54\n"
+            + "3,29,12,4,4,50,R,10\n",
+        )
+    frame = _frame(archive, release, "data-id", "dictionary-id", two_year=True)
+    rows = frame.to_dicts()
+    assert [row["unitid"] for row in rows] == [1, 2, 3]
+    assert rows[0]["cohort_year"] == 2020
+    assert rows[0]["award_outcome"] == "any_award"
+    assert rows[0]["any_awards"] == 54
+    assert rows[0]["observed_rate"] == pytest.approx(0.24)
+    assert rows[0]["award_row_key"] == "COHORT=4;SECTION=4;GRTYPE=30"
+    assert "bachelors_awards" not in frame.columns
+    assert rows[1]["unavailable_reason"] == "zero adjusted cohort"
+    assert rows[1]["award_status"] == "Z"
+    assert rows[2]["unavailable_reason"] == "missing cohort or award row"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+        output.writestr("gr2023_RV.csv", HEADER + "1,29,12,4,4,50,R,10\n1,30,13,4,4,29A,R,11\n")
+    with pytest.raises(IPEDSGraduationError, match="exceed cohort"):
+        _frame(archive, release, "data-id", "dictionary-id", two_year=True)

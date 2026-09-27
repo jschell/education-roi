@@ -75,11 +75,13 @@ from education_roi.ipeds.graduation_evidence import (
 )
 from education_roi.ipeds.graduation_pipeline import (
     GR2022_TRANSFORMATION_VERSION,
+    GR2023_TWO_YEAR_TRANSFORMATION_VERSION,
     GR_TRANSFORMATION_VERSION,
     IPEDSGraduationProcessingManifest,
     ProcessedIPEDSGraduation,
     transform_gr2022_archive,
     transform_gr2023_archive,
+    transform_gr2023_two_year_archive,
 )
 from education_roi.ipeds.identity import (
     InstitutionHistory,
@@ -151,6 +153,7 @@ __all__ = [
     "GraduationComparison",
     "GR_TRANSFORMATION_VERSION",
     "GR2022_TRANSFORMATION_VERSION",
+    "GR2023_TWO_YEAR_TRANSFORMATION_VERSION",
     "GraduationAwardOutcome",
     "GR2023_DATASET_ID",
     "GR2023_DICTIONARY_DATASET_ID",
@@ -229,6 +232,7 @@ __all__ = [
     "transform_charges_archive",
     "transform_ic2023_expenses",
     "transform_gr2023_archive",
+    "transform_gr2023_two_year_archive",
     "transform_gr2022_archive",
     "validate_gr2023_archive",
     "verify_gr2022_dictionary",

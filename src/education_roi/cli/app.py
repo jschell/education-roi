@@ -44,6 +44,7 @@ from education_roi.ipeds import (
     transform_charges_archive,
     transform_gr2022_archive,
     transform_gr2023_archive,
+    transform_gr2023_two_year_archive,
     transform_ic2023_expenses,
 )
 from education_roi.ipeds.cip import CIPCrosswalk, CIPCrosswalkError
@@ -1443,7 +1444,21 @@ def ipeds_build_gr2022(
     _build_gr_table(catalog, root, "2022-23-final")
 
 
-def _build_gr_table(catalog: Path, root: Path | None, release_id: str) -> None:
+@ipeds_app.command("build-gr2023-two-year")
+def ipeds_build_gr2023_two_year(
+    catalog: Annotated[
+        Path,
+        typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
+    ],
+    root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+) -> None:
+    """Build the immutable 2020 two-year any-award cohort table."""
+    _build_gr_table(catalog, root, "2023-24-final", two_year=True)
+
+
+def _build_gr_table(
+    catalog: Path, root: Path | None, release_id: str, *, two_year: bool = False
+) -> None:
     paths = ProjectPaths.from_environment(root)
     try:
         release = select_release(
@@ -1458,7 +1473,11 @@ def _build_gr_table(catalog: Path, root: Path | None, release_id: str) -> None:
             Registry(registry_path), release.release_id
         )
         transform = (
-            transform_gr2022_archive if release_id == "2022-23-final" else transform_gr2023_archive
+            transform_gr2023_two_year_archive
+            if two_year
+            else transform_gr2022_archive
+            if release_id == "2022-23-final"
+            else transform_gr2023_archive
         )
         processed = transform(
             paths.data / "raw" / data_manifest.storage_path,
