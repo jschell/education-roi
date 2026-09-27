@@ -36,6 +36,7 @@ from education_roi.ipeds import (
     register_gr2023_release,
     register_retention_release,
     resolve_gr2023_bachelors,
+    resolve_gr2023_two_year_any_award,
     resolve_graduation_evidence,
     resolve_ic2023_expenses,
     resolve_retention,
@@ -1359,8 +1360,11 @@ def ipeds_resolve_gr2023(
         typer.Option(exists=True, dir_okay=False, readable=True, help="Reviewed catalog JSON."),
     ],
     root: Annotated[Path | None, typer.Option(help="Project root.")] = None,
+    two_year: Annotated[
+        bool, typer.Option(help="2020 two-year entrants, any award at 150%.")
+    ] = False,
 ) -> None:
-    """Report one observed institutional bachelor's cohort; no probability inference."""
+    """Report one reviewed institutional cohort; no probability inference."""
     paths = ProjectPaths.from_environment(root)
     try:
         release = select_release(
@@ -1374,7 +1378,8 @@ def ipeds_resolve_gr2023(
         data_manifest, dictionary_manifest = _gr2023_manifests(
             Registry(registry_path), release.release_id
         )
-        result = resolve_gr2023_bachelors(
+        resolver = resolve_gr2023_two_year_any_award if two_year else resolve_gr2023_bachelors
+        result = resolver(
             paths.data / "raw" / data_manifest.storage_path,
             paths.data / "raw" / dictionary_manifest.storage_path,
             release,

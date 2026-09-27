@@ -55,6 +55,11 @@ Add versioned institution-level costs, characteristics, program production, aid,
   production `ipeds register-gr2023` command; other cohorts remain unvalidated.
 - registry-backed `ipeds resolve-gr2023` command with exact validated data/dictionary artifacts,
   population labeling, and explicit insufficient/invalid states; no probability inference.
+- the same pinned final GR2023 source pair now supports an explicit 2020 two-year
+  degree/certificate-seeking cohort lookup for any award within 150% of normal
+  time. Dictionary labels, exact row keys, paired hashes, and missing cells
+  are checked; official UNITID 100760 yields 54/225. See
+  `docs/ipeds-gr2023-two-year-source-review.md`. A processed table is pending.
 - immutable final GR2023 bachelor's cohort Parquet table with input-paired lineage, original
   count/status cells, explicit unavailable reasons, and `ipeds build-gr2023` CLI; no estimates
   are invented for absent cohort rows.
@@ -185,7 +190,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 ## Remaining implementation tasks
 
-1. Extend official workbook validation beyond the final four-year bachelor's mapping.
+1. Build a processed table and cross-release comparison for the reviewed
+   two-year cohort; extend official workbook validation to further GR scopes.
 2. Interpret documented IPEDS imputation/status fields in additional components;
    C2023_A `XCTOTALT` now has a dictionary-verified interpretation.
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense
