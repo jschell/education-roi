@@ -62,6 +62,9 @@ Add versioned institution-level costs, characteristics, program production, aid,
   `docs/ipeds-gr2023-two-year-source-review.md`. A separate immutable
   two-year Parquet table preserves 1,454 institutions, including nine with
   missing award rows; the official build and identical rerun were verified.
+  A processed exact-UNITID lookup verifies the full table, adjacent manifest,
+  source cells, cohort definition, and paired lineage before returning an
+  observed or insufficient-data state.
 - immutable final GR2023 bachelor's cohort Parquet table with input-paired lineage, original
   count/status cells, explicit unavailable reasons, and `ipeds build-gr2023` CLI; no estimates
   are invented for absent cohort rows.
@@ -192,8 +195,8 @@ This slice intentionally does not claim that IPEDS charges are net price or prog
 
 ## Remaining implementation tasks
 
-1. Add verified processed-table lookup and cross-release comparison for the
-   reviewed two-year cohort; extend workbook validation to further GR scopes.
+1. Add cross-release comparison for the reviewed two-year cohort; extend
+   workbook validation to further GR scopes.
 2. Interpret documented IPEDS imputation/status fields in additional components;
    C2023_A `XCTOTALT` now has a dictionary-verified interpretation.
 3. Add further aid, enrollment processing, other completion cohorts, and program production. Expense

@@ -83,6 +83,10 @@ from education_roi.ipeds.graduation_pipeline import (
     transform_gr2023_archive,
     transform_gr2023_two_year_archive,
 )
+from education_roi.ipeds.graduation_two_year_evidence import (
+    TwoYearGraduationEvidence,
+    resolve_two_year_graduation_evidence,
+)
 from education_roi.ipeds.identity import (
     InstitutionHistory,
     InstitutionHistoryEntry,
@@ -225,6 +229,8 @@ __all__ = [
     "resolve_gr2023_bachelors",
     "resolve_gr2023_two_year_any_award",
     "resolve_graduation_evidence",
+    "resolve_two_year_graduation_evidence",
+    "TwoYearGraduationEvidence",
     "resolve_ic2023_expenses",
     "resolve_retention",
     "resolve_unitid",

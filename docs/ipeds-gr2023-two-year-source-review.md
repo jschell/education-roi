@@ -44,7 +44,13 @@ an isolated rerun returned the same manifest and bytes. The table preserves
 both original count cells, source statuses, row keys, release, cohort scope,
 and paired artifact IDs without using the bachelor-specific award column.
 
+`edu-roi ipeds resolve-gr2023-two-year-table TABLE.parquet UNITID` verifies
+the complete processed table and adjacent manifest before returning one
+institution. It checks the exact 2020 two-year any-award definition, source
+lineage, ordered UNITIDs, raw-to-numeric counts, row keys, statuses,
+availability, and computed rate. Missing institutions and the nine missing
+award rows remain explicit insufficient-data results.
+
 This 150% any-award rate is an institutional historical observation, not an
-associate degree rate or an individual completion probability. Verified
-processed-table lookup, cross-release comparison, and scenario outcome mapping
-remain separate tasks.
+associate degree rate or an individual completion probability. Cross-release
+comparison and scenario outcome mapping remain separate tasks.
